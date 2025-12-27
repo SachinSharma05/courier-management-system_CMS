@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException  } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../admin/users/users.service';
-import { decrypt } from '../utils/crypto';
 import * as argon2 from 'argon2';
 
 @Injectable()
@@ -18,19 +17,17 @@ export class AuthService {
     };
 
     return {
-      accessToken: this.jwt.sign(payload, { expiresIn: '15m' }),
+      accessToken: this.jwt.sign(payload, { expiresIn: '150m' }),
       refreshToken: this.jwt.sign(payload, { expiresIn: '7d' }),
     };
   }
 
   async validateUser(email: string, password: string) {
     const user = await this.users.findByEmail(email);
-    console.log('AUTH DEBUG → user from DB:', user);
 
     if (!user || !user.is_active) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    console.log('AUTH DEBUG → user from DB:', user);
     // 1️⃣ Try bcrypt first (new users / migrated users)
     const valid = await argon2.verify(user.password_hash, password);
       if (!valid) {

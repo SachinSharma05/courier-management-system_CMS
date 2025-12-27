@@ -12,6 +12,8 @@ import { ConsignmentsModule } from './admin/consignments/consignments.module';
 import { DashboardModule } from './admin/dashboard/dashboard.module';
 import { ClientsModule } from './admin/clients/clients.module';
 import { ProvidersModule } from './admin/providers/providers.module';
+import { TrackingModule } from './admin/tracking/tracking.module';
+import { BulkTrackingModule } from './admin/tracking/bulk/bulk-tracking.module';
 
 @Module({
   imports: [
@@ -26,7 +28,9 @@ import { ProvidersModule } from './admin/providers/providers.module';
     ConsignmentsModule,
     DashboardModule,
     ClientsModule,
-    ProvidersModule
+    ProvidersModule,
+    TrackingModule,
+    BulkTrackingModule,
   ],
   providers:[
     {

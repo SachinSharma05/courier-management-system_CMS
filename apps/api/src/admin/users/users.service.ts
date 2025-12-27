@@ -18,8 +18,6 @@ export class UsersService {
       .where(eq(users.email, email))
       .limit(1);
 
-      console.log("DB result", result)
-
     return result[0] ?? null;
   }
 }

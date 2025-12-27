@@ -3,7 +3,8 @@
 import { 
   Search, Calendar, Download, Plus, 
   AlertCircle, Clock, CheckCircle2, Package,
-  ChevronLeft, ChevronRight, Loader2
+  ChevronLeft, ChevronRight, Loader2,
+  Box
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useConsignments } from '@/hooks/useConsignments';
@@ -65,9 +66,14 @@ export default function ConsignmentsPage() {
       
       {/* ───────────────── HEADER ───────────────── */}
       <div className="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Consignments</h1>
-          <p className="text-xs text-slate-500 font-medium">Global shipment tracking & management.</p>
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+            <Box size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Consignments</h1>
+            <p className="text-sm text-slate-500 font-medium">Global shipment tracking & management.</p>
+          </div>
         </div>
         
         {/* COMPACT STATS ROW */}
@@ -251,15 +257,36 @@ function Td({ children }: any) {
   return <td className="px-4 py-3 text-sm">{children}</td>;
 }
 
-function tatBadgeUI(t: string) {
-  const styles: any = {
-    "Critical": "bg-red-100 text-red-700",
-    "Warning": "bg-amber-100 text-amber-700",
-    "default": "bg-slate-100 text-slate-600"
-  };
-  return <span className={clsx("px-1.5 py-0.5 rounded text-[9px] font-bold", styles[t] || styles.default)}>{t || 'On Time'}</span>;
-}
+// function tatBadgeUI(t: string) {
+//   const styles: any = {
+//     "Delivered": "bg-green-100 text-green-700",
+//     "Sensitive": "bg-red-600 text-white",
+//     "Critical": "bg-red-200 text-red-800",
+//     "Warning": "bg-yellow-200 text-yellow-800",
+//     "default": "bg-slate-100 text-slate-600"
+//   };
+//   return <span className={clsx("px-1.5 py-0.5 rounded text-[9px] font-bold", styles[t] || styles.default)}>{t || 'On Time'}</span>;
+// }
 
-function moveBadgeUI(t: string) {
-  return <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">{t || 'Surface'}</span>;
-}
+// function moveBadgeUI(t: string) {
+//   return <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">{t || 'Surface'}</span>;
+// }
+
+function tatBadgeUI(t: string) {
+    switch (t) {
+      case "Delivered":
+        return <span className="text-[9px] px-2 py-0.5 bg-green-100 text-green-700 rounded">Delivered</span>;
+      case "Sensitive":
+        return <span className="text-[9px] px-2 py-0.5 bg-red-600 text-white rounded">Sensitive</span>;
+      case "Critical":
+        return <span className="text-[9px] px-2 py-0.5 bg-red-200 text-red-800 rounded">Critical</span>;
+      case "Warning":
+        return <span className="text-[9px] px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded">Warning</span>;
+      default:
+        return <span className="text-[9px] px-2 py-0.5 bg-slate-200 text-slate-800 rounded">On Time</span>;
+    }
+  }
+
+  function moveBadgeUI(t: string) {
+    return tatBadgeUI(t); // identical styling rules
+  }
