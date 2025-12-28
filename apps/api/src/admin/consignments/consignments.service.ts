@@ -6,17 +6,6 @@ import { computeMovement, computeTAT } from './tat.engine';
 import { stringify } from 'csv-stringify/sync';
 import { ListConsignmentsDto } from './dto/list-consignments.dto';
 
-interface ListParams {
-  page: number;
-  limit: number;
-  awb?: string;
-  provider?: string;
-  status?: string;
-  clientId?: number;
-  from?: string;
-  to?: string;
-}
-
 @Injectable()
 export class ConsignmentsService {
   async list(params: ListConsignmentsDto & { page: number; limit: number }) {
@@ -158,9 +147,9 @@ export class ConsignmentsService {
   }
 
   async getSummary(clientId?: number) {
-    const baseWhere = clientId
-      ? eq(consignments.client_id, clientId)
-      : undefined;
+    const whereClause = clientId 
+    ? sql`WHERE ${consignments.client_id} = ${clientId}` 
+    : sql``;
 
     const rows = await db.execute(sql`
       SELECT
@@ -169,7 +158,7 @@ export class ConsignmentsService {
         COUNT(*) FILTER (WHERE current_status not in ('Delivered', 'RTO')) as pending,
         COUNT(*) FILTER (WHERE current_status = 'RTO') as rto
       FROM consignments
-      ${baseWhere ? sql`WHERE ${baseWhere}` : sql``}
+      ${whereClause}
     `);
 
     const r = rows.rows[0];
