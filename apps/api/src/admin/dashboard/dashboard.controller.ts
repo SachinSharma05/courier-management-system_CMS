@@ -14,12 +14,12 @@ export class DashboardController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.service.getSummary({ clientId, provider, from, to });
+    return this.service.getSummary();
   }
 
-  @Get('live-ops')
-  getLiveOps() {
-    return this.service.getLiveOps();
+  @Get('performance')
+  getProviderPerformance() {
+    return this.service.getProviderPerformance();
   }
 
   @Get('alerts')

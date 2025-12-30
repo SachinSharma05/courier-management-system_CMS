@@ -1,20 +1,90 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
-  IndianRupee, Info, Calculator, 
+  IndianRupee, Calculator, 
   Layers, ArrowDownRight, ArrowUpRight, 
   Zap, Truck, ShieldCheck, Download, 
   Percent, ChevronDown
 } from 'lucide-react';
 import clsx from 'clsx';
+import { EditableRateCell } from '@/components/ui/EditableRateCell';
+import { useRateCard } from '@/hooks/useRateCard';
+import { getClients } from '@/lib/api/clients.api';
+import { api } from '@/lib/api/axios';
 
 const ZONES = ['A', 'B', 'C1', 'C2', 'D1', 'D2', 'E', 'F'];
 
+type ClientOption = {
+  id: number;
+  name: string;
+};
+
 export default function PricingPage() {
   const [provider, setProvider] = useState('DTDC');
-  const [service, setService] = useState<'Surface' | 'Express'>('Surface');
+  const [clientId, setClientId] = useState<number | null>(null); // null = global
+  const [service, setService] = useState<'Surface' | 'Express' | 'Priority'>('Surface');
   const [gstInclusive, setGstInclusive] = useState(false);
+
+  const [clients, setClients] = useState<ClientOption[]>([]);
+
+  useEffect(() => {
+    getClients().then(setClients);
+  }, []);
+
+  // 1. First, fetch the data
+  const { data, isLoading, refetch } = useRateCard(provider, service, clientId);
+// 2. Compute the map (Strictly data only)
+  const ratesBySlab = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    
+    // Guard against empty data
+    if (!data || !data.slabs) return map;
+
+    data.slabs.forEach((s: any) => {
+      // 🔥 MATCH BACKEND: Use snake_case 'slab_type'
+      const type = s.slab_type; 
+      map[type] ??= {};
+      map[type][s.zone_code] = Number(s.rate);
+    });
+    return map;
+  }, [data]);
+
+  // 3. Handle the Loading State UI after the hooks
+  if (isLoading || !data) {
+    return (
+      <div className="p-6 text-slate-500 text-sm animate-pulse">
+        Loading rate card…
+      </div>
+    );
+  }
+
+  if (data?.notConfigured) {
+    return (
+      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+        <h3 className="text-lg font-bold text-slate-900">
+          Rate Card Not Configured
+        </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          No rate card exists for this client and service.
+        </p>
+
+        <button
+          onClick={async () => {
+            await api.post('/admin/rate-cards/create', {
+              provider,
+              serviceType: service,
+              clientId,
+            });
+            refetch();
+          }}
+          className="mt-4 rounded-xl bg-amber-600 px-6 py-3 text-sm font-bold text-white hover:bg-amber-700"
+        >
+          Create Rate Card
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500">
@@ -43,15 +113,16 @@ export default function PricingPage() {
 
       {/* ───────────────── CONTROLS ───────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center rounded-3xl bg-white p-4 border border-slate-100 shadow-sm">
-        {/* Provider Select */}
-        <div className="lg:col-span-3 relative group">
+        
+        {/* 1. Provider Select (Span 2) */}
+        <div className="lg:col-span-2 relative group">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <Layers size={16} className="text-slate-400" />
           </div>
           <select 
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
-            className="w-full bg-slate-50 border-slate-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none"
+            className="w-full bg-slate-50 border-slate-100 rounded-2xl pl-10 pr-8 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none"
           >
             <option>DTDC</option>
             <option>Delhivery</option>
@@ -60,29 +131,52 @@ export default function PricingPage() {
           <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
         </div>
 
-        {/* Service Toggle */}
+        {/* 2. Client Select (Span 2) */}
+        <div className="lg:col-span-2 relative">
+          <select
+            className={clsx(
+              "w-full border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold outline-none transition-all appearance-none",
+              provider === 'DTDC' 
+                ? "bg-slate-50 text-slate-700 focus:ring-2 focus:ring-amber-500/20 cursor-pointer" 
+                : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
+            )}
+            value={clientId ?? ''}
+            disabled={provider !== 'DTDC'} // 🔥 Logic: Disable if not DTDC
+            onChange={(e) => setClientId(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">{provider === 'DTDC' ? "All Clients" : "N/A"}</option>
+            {provider === 'DTDC' && clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          {provider === 'DTDC' && (
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          )}
+        </div>
+
+        {/* 3. Service Toggle (Span 4) */}
         <div className="lg:col-span-4 flex p-1 bg-slate-100 rounded-2xl h-[52px]">
-          {(['Surface', 'Express'] as const).map((s) => (
+          {(['Surface', 'Express', 'Priority'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setService(s)}
               className={clsx(
-                "flex-1 flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all",
+                "flex-1 flex items-center justify-center gap-1 rounded-xl text-xs font-bold transition-all",
                 service === s 
                   ? "bg-white text-slate-900 shadow-sm" 
                   : "text-slate-500 hover:text-slate-700"
               )}
             >
-              {s === 'Surface' ? <Truck size={16} /> : <Zap size={16} />}
+              {s === 'Surface' ? <Truck size={14} /> : s === 'Express' ? <Zap size={14} /> : <ShieldCheck size={14} />}
               {s}
             </button>
           ))}
         </div>
 
-        {/* GST Toggle */}
-        <div className="lg:col-span-5 flex justify-end">
+        {/* 4. GST Toggle (Span 4) */}
+        <div className="lg:col-span-4 flex justify-end items-center border-l border-slate-100 ml-2">
             <label className="flex items-center gap-3 cursor-pointer group px-4">
-              <span className="text-xs font-bold text-slate-500 group-hover:text-slate-700">Show rates with GST (18%)</span>
+              <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-700 whitespace-nowrap">Show rates with GST (18%)</span>
               <div className="relative inline-flex items-center cursor-pointer">
                 <input 
                     type="checkbox" 
@@ -90,7 +184,7 @@ export default function PricingPage() {
                     checked={gstInclusive}
                     onChange={() => setGstInclusive(!gstInclusive)}
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
               </div>
             </label>
         </div>
@@ -115,16 +209,49 @@ export default function PricingPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               <SectionRow label="Forward Charges" icon={<ArrowUpRight size={14}/>} />
-              <RateRow label="Base Fare (upto 250 g)" value={45} />
-              <RateRow label="Addl. 250 g (upto 500 g)" value={12} />
-              <RateRow label="Addl. 500 g (upto 5 kg)" value={25} />
-              <RateRow label="Every Additional 1 kg" value={40} isHighlight />
+                <RateRow
+                  label="Base Fare (upto 250 g)"
+                  slabType="BASE"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.BASE ?? {}}
+                />
+                <RateRow
+                  label="Addl. 250 g (upto 500 g)"
+                  slabType="ADD_250"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.ADD_250 ?? {}}
+                />
+                <RateRow
+                  label="Addl. 500 g (upto 5 kg)"
+                  slabType="ADD_500"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.ADD_500 ?? {}}
+                />
+                <RateRow
+                  label="Every Additional 1 kg"
+                  slabType="ADD_1KG"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.ADD_1KG ?? {}}
+                  isHighlight
+                />
 
               <SectionRow label="Return Charges (RTO)" icon={<ArrowDownRight size={14}/>} />
-              <RateRow label="RTO Base Fare" value={35} />
+                <RateRow
+                  label="RTO Base Fare"
+                  slabType="RTO_BASE"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.RTO_BASE ?? {}}
+                  isHighlight
+                />
               
               <SectionRow label="Reverse Pickup (DTO)" icon={<RefreshCw size={14}/>} />
-              <RateRow label="DTO Base Fare" value={55} />
+                <RateRow
+                  label="DTO Base Fare"
+                  slabType="DTO_BASE"
+                  rateCardId={data.rateCardId}
+                  rates={ratesBySlab.DTO_BASE ?? {}}
+                  isHighlight
+                />
             </tbody>
           </table>
         </div>
@@ -154,19 +281,33 @@ export default function PricingPage() {
 }
 
 /* ───────────────── HELPERS ───────────────── */
+function RateRow({
+  label,
+  slabType,
+  rateCardId,
+  rates,
+  isHighlight,
+}: {
+  label: string;
+  slabType: string;
+  rateCardId: number;
+  rates: Record<string, number>;
+  isHighlight?: boolean;
+}) {
+  const isSuperAdmin = true; // later from auth context
 
-function RateRow({ label, value, isHighlight }: { label: string; value: number, isHighlight?: boolean }) {
   return (
-    <tr className={clsx("group transition-colors", isHighlight ? "bg-slate-50/50" : "hover:bg-slate-50/50")}>
-      <Td className="font-bold text-slate-700 py-5">
-        <div className="flex items-center gap-2">
-            {isHighlight && <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />}
-            {label}
-        </div>
-      </Td>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <Td key={i} className="text-center group-hover:scale-110 transition-transform">
-          <span className="text-sm font-mono font-black text-slate-900">₹{value + (i * 5)}</span>
+    <tr className={clsx(isHighlight && 'bg-amber-50')}>
+      <Td className="font-semibold">{label}</Td>
+      {ZONES.map((zone) => (
+        <Td key={zone} className="text-center">
+          <EditableRateCell
+            value={rates[zone] ?? 0}
+            rateCardId={rateCardId}
+            zoneCode={zone}
+            slabType={slabType}
+            canEdit={isSuperAdmin}
+          />
         </Td>
       ))}
     </tr>

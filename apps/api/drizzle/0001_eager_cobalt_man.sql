@@ -1,0 +1,1 @@
+ALTER TABLE "rate_card_slabs" ADD CONSTRAINT "unq_rate_card_zone_slab" UNIQUE("rate_card_id","zone_code","slab_type");

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, serial, text, varchar, timestamp, uuid, 
-        integer, boolean, numeric, json, unique, jsonb, index } from "drizzle-orm/pg-core";
+        integer, boolean, numeric, json, unique, jsonb, index, 
+        date} from "drizzle-orm/pg-core";
 
 // CONSIGNMENTS
 export const consignments = pgTable(
@@ -139,45 +140,6 @@ export const clientCredentials = pgTable(
   })
 );
 
-// weight slabs
-export const courierWeightSlabs = pgTable("courier_weight_slabs", {
-  id: serial("id").primaryKey(),
-  client_id: integer("client_id").notNull(), // 0 = global default
-  min_weight: numeric("min_weight").notNull(),
-  max_weight: numeric("max_weight").notNull(),
-  price: numeric("price").notNull(),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-// service types (STANDARD / PRIORITY etc.)
-export const courierServices = pgTable("courier_services", {
-  id: serial("id").primaryKey(),
-  client_id: integer("client_id").notNull(), // 0 = global default
-  code: text("code").notNull(), // STANDARD, PRIORITY
-  base_price: numeric("base_price").notNull(),
-  priority_multiplier: numeric("priority_multiplier").notNull().default("1"),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-// distance slabs in KM
-export const courierDistanceSlabs = pgTable("courier_distance_slabs", {
-  id: serial("id").primaryKey(),
-  client_id: integer("client_id").notNull(),
-  min_km: integer("min_km").notNull(),
-  max_km: integer("max_km").notNull(),
-  price: integer("price").notNull(),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-// surcharges
-export const courierSurcharges = pgTable("courier_surcharges", {
-  id: serial("id").primaryKey(),
-  client_id: integer("client_id").notNull(),
-  load_type: text("load_type").notNull(), // NON-DOCUMENT
-  price: integer("price").notNull(),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
 export const providers = pgTable("providers", {
   id: serial("id").primaryKey(),
   key: varchar("key", { length: 50 }).notNull().unique(), // "dtdc", "delhivery"
@@ -199,39 +161,6 @@ export const users = pgTable("users", {
   phone: text("phone"),
   providers: json("providers").$type<string[]>().default([]),
   is_active: boolean("is_active").notNull().default(true),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-// db/schema/billing.ts
-export const invoices = pgTable("invoices", {
-  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(), // requires pgcrypto or pgcrypto extension / gen_random_uuid
-  client_id: integer("client_id").notNull(),
-  month: varchar("month", { length: 20 }).default(sql`TO_CHAR(NOW(), 'YYYY-MM')`), // e.g., '2024-11'
-  total_amount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
-  paid_amount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("unpaid"), // paid | unpaid | partial
-  note: text("note"),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-  updated_at: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const invoice_items = pgTable("invoice_items", {
-  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
-  invoice_id: uuid("invoice_id").notNull(),
-  awb: varchar("awb", { length: 128 }).notNull(),
-  charge: numeric("charge", { precision: 12, scale: 2 }).notNull(),
-  weight: numeric("weight", { precision: 8, scale: 2 }),
-  zone: varchar("zone", { length: 50 }).default(""),
-  provider: varchar("provider", { length: 50 }).default(""),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const payments = pgTable("payments", {
-  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
-  invoice_id: uuid("invoice_id").notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  method: varchar("method", { length: 50 }).default("manual"),
-  reference: varchar("reference", { length: 255 }).default(""),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -265,3 +194,55 @@ export const auditLogs = pgTable('audit_logs', {
   user_agent: varchar('user_agent', { length: 255 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const rateCards = pgTable('rate_cards', {
+  id: serial('id').primaryKey(),
+  provider: varchar('provider', { length: 50 }).notNull(),       // dtdc, delhivery
+  service_type: varchar('service_type', { length: 30 }).notNull(), // surface, express
+  client_id: integer('client_id'), // NULL = global/provider rate card
+  is_active: boolean('is_active').default(true).notNull(),
+  effective_from: date('effective_from').defaultNow().notNull(),
+  effective_to: date('effective_to'),
+  created_by: integer('created_by'), // users.id (super admin)
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const rateCardZones = pgTable('rate_card_zones', {
+  id: serial('id').primaryKey(),
+  rate_card_id: integer('rate_card_id')
+    .notNull()
+    .references(() => rateCards.id, { onDelete: 'cascade' }),
+  zone_code: varchar('zone_code', { length: 10 }).notNull(), // A, B, C1...
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const rateCardSlabs = pgTable('rate_card_slabs', {
+  id: serial('id').primaryKey(),
+  rate_card_id: integer('rate_card_id')
+    .notNull()
+    .references(() => rateCards.id, { onDelete: 'cascade' }),
+  zone_code: varchar('zone_code', { length: 10 }).notNull(),
+  slab_type: varchar('slab_type', { length: 30 }).notNull(),
+  min_weight_g: integer('min_weight_g'),
+  max_weight_g: integer('max_weight_g'),
+  rate: numeric('rate', { precision: 10, scale: 2 }).notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // 🔥 ADD THIS BLOCK: Creates a unique constraint on these 3 columns
+  unq_slab: unique('unq_rate_card_zone_slab').on(
+    table.rate_card_id, 
+    table.zone_code, 
+    table.slab_type
+  ),
+}));
+
+export const RATE_SLAB_TYPES = {
+  BASE: 'BASE',
+  ADD_250: 'ADD_250',
+  ADD_500: 'ADD_500',
+  ADD_1KG: 'ADD_1KG',
+  RTO_BASE: 'RTO_BASE',
+  DTO_BASE: 'DTO_BASE',
+} as const;

@@ -86,8 +86,7 @@ export default function ConsignmentsPage() {
           <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
           
           <div className="flex items-center gap-1.5">
-            <button onClick={exportCSV} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-sm transition-all"><Download size={15} /></button>
-            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all"><Plus size={15} /> New</button>
+            <button onClick={exportCSV} className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all"><Download size={15} /> Download Excel</button>
           </div>
         </div>
       </div>

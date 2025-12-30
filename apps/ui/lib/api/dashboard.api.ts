@@ -14,17 +14,18 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return res.data;
 }
 
-export type LiveOpsRow = {
-  provider: string;
-  client: string;
-  inTransit: number;
-  delivered: number;
-  failed: number;
-  lastSync: string;
+// 1. Rename to reflect the new purpose
+export type ProviderPerformance = {
+  name: string;
+  activeShipments: number;
+  tat: string | number; // Average Turnaround Time in days
+  rto: number;         // RTO percentage
+  healthScore: number; // Calculated 0-100 score
 };
 
-export async function getLiveOps(): Promise<LiveOpsRow[]> {
-  const res = await api.get('/admin/dashboard/live-ops');
+// 2. Update the fetcher function
+export async function getProviderPerformance(): Promise<ProviderPerformance[]> {
+  const res = await api.get('/admin/dashboard/performance');
   return res.data;
 }
 

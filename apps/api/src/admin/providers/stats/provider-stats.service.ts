@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../db";
 import { consignments } from "../../../db/schema";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, or } from "drizzle-orm";
 
 @Injectable()
 export class ProviderStatsService {
@@ -25,11 +25,9 @@ export class ProviderStatsService {
     const breakdown = rows.map(r => ({
       label: r.status || 'Unknown Status',
       value: Number(r.count),
-      // We use your existing classifyStatus to tag each row for frontend coloring
       group: classifyStatus(r.status || '').toLowerCase() 
     })).sort((a, b) => b.value - a.value); // Sort by highest count for better UX
 
-    // 2. Keep your existing aggregation loop exactly as it was
     for (const r of rows) {
       const count = Number(r.count);
       total += count;

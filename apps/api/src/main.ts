@@ -27,7 +27,7 @@ async function bootstrap() {
   await app.register(fastifyCors, {
     origin: 'http://localhost:3000', // Next.js
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
