@@ -1,33 +1,64 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { db } from '../db';
 import { clientCredentials } from '../db/schema';
 import { and, eq } from 'drizzle-orm';
-import { decrypt } from '../utils/crypto';
+import { decrypt, encrypt } from '../utils/crypto';
+import { UpdateCredentialDto } from './dto/update-credential.dto';
+import { CreateCredentialDto } from './dto/create-credential.dto';
 
 @Injectable()
 export class CredentialsService {
-  async getCredential(params: {
-    clientId: number;
-    providerId: number;
-    key: string;
-  }): Promise<string> {
-    const row = await db
-      .select()
+  async getCredentials(clientId: number, provider: string) {
+    const rows = await db
+      .select({
+        id: clientCredentials.id,
+        key: clientCredentials.env_key,
+        provider: clientCredentials.provider,
+        createdAt: clientCredentials.created_at,
+      })
       .from(clientCredentials)
       .where(
         and(
-          eq(clientCredentials.client_id, params.clientId),
-          eq(clientCredentials.provider_id, params.providerId),
-          eq(clientCredentials.env_key, params.key),
+          eq(clientCredentials.client_id, clientId),
+          eq(clientCredentials.provider, provider),
         ),
-      )
-      .limit(1);
+      );
 
-    if (!row.length) {
-      throw new ForbiddenException('Credential not configured');
+    // ⚠️ Do NOT return decrypted values
+    return rows;
+  }
+
+  async createCredential(dto: CreateCredentialDto) {
+    const encrypted = encrypt(dto.value);
+
+    const [row] = await db
+      .insert(clientCredentials)
+      .values({
+        client_id: dto.clientId,
+        provider: dto.provider,
+        env_key: dto.key,
+        encrypted_value: encrypted,
+      })
+      .returning();
+
+    return row;
+  }
+
+  async updateCredential(dto: UpdateCredentialDto) {
+    const encrypted = encrypt(dto.value);
+
+    const [updated] = await db
+      .update(clientCredentials)
+      .set({
+        encrypted_value: encrypted,
+      })
+      .where(eq(clientCredentials.id, dto.id))
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundException('Credential not found');
     }
 
-    // 🔓 Decrypt ONLY here
-    return decrypt(row[0].encrypted_value);
+    return updated;
   }
 }

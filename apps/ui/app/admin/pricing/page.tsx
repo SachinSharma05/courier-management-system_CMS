@@ -17,7 +17,7 @@ const ZONES = ['A', 'B', 'C1', 'C2', 'D1', 'D2', 'E', 'F'];
 
 type ClientOption = {
   id: number;
-  name: string;
+  company_name: string;
 };
 
 export default function PricingPage() {
@@ -146,7 +146,7 @@ export default function PricingPage() {
           >
             <option value="">{provider === 'DTDC' ? "All Clients" : "N/A"}</option>
             {provider === 'DTDC' && clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>{c.company_name}</option>
             ))}
           </select>
           {provider === 'DTDC' && (

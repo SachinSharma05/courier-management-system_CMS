@@ -128,7 +128,7 @@ export const clientCredentials = pgTable(
   {
     id: serial("id").primaryKey(),
     client_id: integer("client_id").notNull(),
-    provider_id: integer("provider_id").notNull(),
+    provider: varchar('provider', { length: 50 }).notNull(),
     env_key: varchar("env_key", { length: 100 }).notNull(),
     encrypted_value: text("encrypted_value").notNull(),
     is_active: boolean("is_active").notNull().default(true),
@@ -136,7 +136,7 @@ export const clientCredentials = pgTable(
   },
   (table) => ({
     uniq: unique("unique_credential_entry")
-      .on(table.client_id, table.provider_id, table.env_key),
+      .on(table.client_id, table.provider, table.env_key),
   })
 );
 

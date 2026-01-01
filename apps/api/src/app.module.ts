@@ -16,6 +16,7 @@ import { TrackingModule } from './admin/tracking/tracking.module';
 import { BulkTrackingModule } from './admin/tracking/bulk/bulk-tracking.module';
 import { ProviderStatsModule } from './admin/providers/stats/provider-stats.module';
 import { RateCardModule } from './admin/rate-cards/rate-cards.module';
+import { CredentialsModule } from './credentials/credentials.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { RateCardModule } from './admin/rate-cards/rate-cards.module';
     BulkTrackingModule,
     ProviderStatsModule,
     RateCardModule,
+    CredentialsModule,
   ],
   providers:[
     {

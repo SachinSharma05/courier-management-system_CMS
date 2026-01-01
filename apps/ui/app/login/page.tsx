@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '@/lib/api/axios';
-import router from 'next/router';
 
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);

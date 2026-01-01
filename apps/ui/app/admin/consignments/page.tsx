@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-  Search, Calendar, Download, Plus, 
+  Search, Calendar, Download, 
   AlertCircle, Clock, CheckCircle2, Package,
   ChevronLeft, ChevronRight, Loader2,
   Box
@@ -106,7 +106,7 @@ export default function ConsignmentsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Select label="Client" value={filters.clientId} onChange={v => setFilters(f => ({ ...f, clientId: v }))}>
             <option value="">All Clients</option>
-            {clients?.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+            {clients?.map(c => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
           </Select>
           <Select label="Provider" value={filters.provider} onChange={v => setFilters(f => ({ ...f, provider: v }))}>
             <option value="">All Providers</option>
