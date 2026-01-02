@@ -238,6 +238,95 @@ export const rateCardSlabs = pgTable('rate_card_slabs', {
   ),
 }));
 
+export const employees = pgTable('employees', {
+  id: serial('id').primaryKey(),
+  employee_code: text('employee_code').notNull().unique(),
+  name: text('name').notNull(),
+  phone: text('phone'),
+  email: text('email'),
+  designation: text('designation'),
+  department: text('department'),
+  joining_date: date('joining_date').notNull(),
+  exit_date: date('exit_date'),
+  salary_type: text('salary_type').notNull(), // monthly | daily | hourly
+  base_salary: integer('base_salary').notNull(),
+  is_active: boolean('is_active').default(true).notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const employeeAttendance = pgTable('employee_attendance', {
+  id: serial('id').primaryKey(),
+  employee_id: integer('employee_id')
+    .references(() => employees.id)
+    .notNull(),
+  date: date('date').notNull(),
+  status: text('status').notNull(), 
+  // present | absent | half_day | leave
+  check_in: timestamp('check_in'),
+  check_out: timestamp('check_out'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const employeeSalary = pgTable('employee_salary', {
+  id: serial('id').primaryKey(),
+  employee_id: integer('employee_id')
+    .references(() => employees.id)
+    .notNull(),
+  month: text('month').notNull(), // YYYY-MM
+  gross_salary: integer('gross_salary').notNull(),
+  deductions: integer('deductions').default(0),
+  net_salary: integer('net_salary').notNull(),
+  generated_at: timestamp('generated_at').defaultNow().notNull(),
+  is_locked: boolean('is_locked').default(false),
+});
+
+export const employeeSalaryPayments = pgTable('employee_salary_payments', {
+  id: serial('id').primaryKey(),
+  employee_id: integer('employee_id')
+    .references(() => employees.id)
+    .notNull(),
+  salary_id: integer('salary_id')
+    .references(() => employeeSalary.id),
+  amount: integer('amount').notNull(),
+  payment_date: date('payment_date').notNull(),
+  mode: text('mode'), // cash | bank | upi | cheque
+  remarks: text('remarks'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const employeeAdvances = pgTable('employee_advances', {
+  id: serial('id').primaryKey(),
+  employee_id: integer('employee_id')
+    .references(() => employees.id)
+    .notNull(),
+  amount: integer('amount').notNull(),
+  date: date('date').notNull(),
+  remarks: text('remarks'),
+  is_settled: boolean('is_settled').default(false),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const employeeLeaves = pgTable('employee_leaves', {
+  id: serial('id').primaryKey(),
+  employee_id: integer('employee_id')
+    .references(() => employees.id)
+    .notNull(),
+  from_date: date('from_date').notNull(),
+  to_date: date('to_date').notNull(),
+  type: text('type').notNull(), // sick | casual | paid | unpaid
+  status: text('status').notNull(), // pending | approved | rejected
+  reason: text('reason'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const holidays = pgTable('holidays', {
+  id: serial('id').primaryKey(),
+  date: date('date').notNull().unique(),
+  name: text('name').notNull(),
+  is_optional: boolean('is_optional').default(false),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const RATE_SLAB_TYPES = {
   BASE: 'BASE',
   ADD_250: 'ADD_250',
