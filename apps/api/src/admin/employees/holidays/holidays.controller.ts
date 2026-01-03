@@ -4,7 +4,7 @@ import { CreateHolidayDto } from "../dto/create-holiday.dto";
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
-@Controller('admin/holidays')
+@Controller('admin/employees/holidays')
 export class HolidaysController {
   constructor(private readonly holidaysService: HolidaysService) {}
 

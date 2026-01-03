@@ -10,7 +10,7 @@ import { GeneratePayslipDto } from '../dto/generate-payslip.dto';
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
-@Controller('admin/payslip')
+@Controller('admin/employees/payslip')
 export class PayslipController {
   constructor(private readonly payslipService: PayslipService) {}
 

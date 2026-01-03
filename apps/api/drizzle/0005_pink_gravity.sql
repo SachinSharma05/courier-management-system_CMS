@@ -1,0 +1,1 @@
+ALTER TABLE "employee_attendance" ADD CONSTRAINT "emp_date_idx" UNIQUE("employee_id","date");

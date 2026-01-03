@@ -9,7 +9,7 @@ import { PaySalaryDto } from '../dto/pay-salary.dto';
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
-@Controller('admin/salary/payments')
+@Controller('admin/employees/salary-payments/payments')
 export class SalaryPaymentsController {
   constructor(private readonly paymentsService: SalaryPaymentsService) {}
 

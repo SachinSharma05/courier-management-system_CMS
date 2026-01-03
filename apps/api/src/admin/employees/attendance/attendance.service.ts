@@ -33,7 +33,7 @@ export class AttendanceService {
       },
     })
     .returning();
-}
+  }
 
   async bulkMark(records: MarkAttendanceDto[]) {
     return Promise.all(records.map(r => this.mark(r)));
@@ -42,35 +42,34 @@ export class AttendanceService {
   /* ========== AUTO ========== */
 
   async checkIn(dto: CheckInDto) {
-  const date = dto.timestamp.split('T')[0];
+    const date = dto.timestamp.split('T')[0];
 
-  return db
-    .insert(employeeAttendance)
-    .values({
-      employee_id: dto.employee_id,
-      date,
-      status: 'present',
-      check_in: new Date(dto.timestamp),
-    })
-    .onConflictDoNothing();
-}
+    return db
+      .insert(employeeAttendance)
+      .values({
+        employee_id: dto.employee_id,
+        date,
+        status: 'present',
+        check_in: new Date(dto.timestamp),
+      })
+      .onConflictDoNothing();
+  }
 
 
   async checkOut(dto: CheckOutDto) {
-  const date = dto.timestamp.split('T')[0];
+    const date = dto.timestamp.split('T')[0];
 
-  return db
-    .update(employeeAttendance)
-    .set({
-      check_out: new Date(dto.timestamp),
-    })
-    .where(
-      and(
-        eq(employeeAttendance.employee_id, dto.employee_id),
-        eq(employeeAttendance.date, date),
-      ),
-    )
-    .returning();
-}
-
+    return db
+      .update(employeeAttendance)
+      .set({
+        check_out: new Date(dto.timestamp),
+      })
+      .where(
+        and(
+          eq(employeeAttendance.employee_id, dto.employee_id),
+          eq(employeeAttendance.date, date),
+        ),
+      )
+      .returning();
+  }
 }

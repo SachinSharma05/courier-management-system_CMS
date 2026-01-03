@@ -9,6 +9,12 @@ import { HolidaysService } from "./holidays/holidays.service";
 import { AttendanceService } from "./attendance/attendance.service";
 import { LeavesService } from "./leaves/leaves.service";
 import { SalaryService } from "./salary/salary.service";
+import { AdvancesService } from "./advances/advances.service";
+import { AdvancesController } from "./advances/advances.controller";
+import { PayslipController } from "./payslip/payslip.controller";
+import { PayslipService } from "./payslip/payslip.service";
+import { SalaryPaymentsService } from "./salary-payments/salary-payments.service";
+import { SalaryPaymentsController } from "./salary-payments/salary-payments.controller";
 
 @Module({
     controllers: [
@@ -16,16 +22,21 @@ import { SalaryService } from "./salary/salary.service";
         HolidaysController, 
         AttendanceController, 
         LeavesController, 
-        SalaryController
+        SalaryController,
+        AdvancesController,
+        PayslipController,
+        SalaryPaymentsController
     ],
     providers: [
         EmployeesService,
         HolidaysService,
         AttendanceService,
         LeavesService,
-        SalaryService    
+        SalaryService,
+        AdvancesService,  
+        PayslipService,
+        SalaryPaymentsService  
     ],
-    exports: [EmployeesService],
 })
 
 export class EmployeesModule {}

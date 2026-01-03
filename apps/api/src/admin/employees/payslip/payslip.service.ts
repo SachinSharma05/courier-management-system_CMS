@@ -25,7 +25,7 @@ export class PayslipService {
     doc.moveDown();
 
     /* ===== COMPANY ===== */
-    doc.fontSize(10).text('Your Company Name');
+    doc.fontSize(10).text('Variable Instinct Services');
     doc.text(`Payslip for: ${dto.month}`);
     doc.moveDown();
 

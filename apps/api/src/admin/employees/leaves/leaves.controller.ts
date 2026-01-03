@@ -14,14 +14,14 @@ import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { RejectLeaveDto } from '../dto/reject-leave.dto';
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
-@Controller()
+@Controller('admin/employees')
 export class LeavesController {
   constructor(private readonly leavesService: LeavesService) {}
 
   /* ========== EMPLOYEE ========== */
 
   @UseGuards(JwtAuthGuard)
-  @Post('employee/leaves/apply')
+  @Post('leaves/apply')
   apply(@Body() dto: ApplyLeaveDto) {
     return this.leavesService.apply(dto);
   }
@@ -29,13 +29,13 @@ export class LeavesController {
   /* ========== ADMIN ========== */
 
   @UseGuards(JwtAuthGuard)
-  @Get('admin/leaves')
+  @Get('leaves')
   findAll() {
     return this.leavesService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('admin/leaves/:id/approve')
+  @Patch('leaves/:id/approve')
   approve(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ApproveLeaveDto,
@@ -44,7 +44,7 @@ export class LeavesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('admin/leaves/:id/reject')
+  @Patch('leaves/:id/reject')
   reject(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RejectLeaveDto,

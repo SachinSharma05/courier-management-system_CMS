@@ -12,26 +12,26 @@ import { CheckInDto } from '../dto/check-in.dto';
 import { CheckOutDto } from '../dto/check-out.dto';
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
-@Controller()
+@Controller('admin/employees')
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   /* ================= ADMIN (MANUAL) ================= */
 
   @UseGuards(JwtAuthGuard)
-  @Get('admin/attendance')
+  @Get('attendance')
   findAll() {
     return this.attendanceService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('admin/attendance/mark')
+  @Post('attendance/mark')
   mark(@Body() dto: MarkAttendanceDto) {
     return this.attendanceService.mark(dto);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('admin/attendance/bulk')
+  @Post('attendance/bulk')
   bulkMark(@Body() dto: BulkAttendanceDto) {
     return this.attendanceService.bulkMark(dto.records);
   }

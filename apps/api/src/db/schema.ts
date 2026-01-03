@@ -265,6 +265,11 @@ export const employeeAttendance = pgTable('employee_attendance', {
   check_in: timestamp('check_in'),
   check_out: timestamp('check_out'),
   created_at: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    // THIS IS THE MISSING PIECE
+    empDateIdx: unique("emp_date_idx").on(table.employee_id, table.date),
+  };
 });
 
 export const employeeSalary = pgTable('employee_salary', {

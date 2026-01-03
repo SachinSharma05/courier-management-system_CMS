@@ -9,7 +9,7 @@ import { GenerateSalaryDto } from '../dto/generate-salary.dto';
 import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
-@Controller('admin/salary')
+@Controller('admin/employees/salary')
 export class SalaryController {
   constructor(private readonly salaryService: SalaryService) {}
 

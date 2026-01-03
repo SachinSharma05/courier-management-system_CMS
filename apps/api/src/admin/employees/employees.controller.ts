@@ -25,6 +25,11 @@ export class EmployeesController {
     return this.employeesService.findAll();
   }
 
+  @Get('overview')
+  findOverview() {
+    return this.employeesService.findOverview();
+  }
+
   // POST /admin/employees
   @Post()
   create(@Body() dto: CreateEmployeeDto) {
