@@ -1,18 +1,52 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
-import { Injectable } from '@nestjs/common';
-import { GeneratePayslipDto } from '../dto/generate-payslip.dto';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../../db';
-import { employeeAttendance, employees, employeeSalary, employeeSalaryPayments } from '../../../db/schema';
-import { eq, like, and } from 'drizzle-orm';
+import {
+  employees,
+  employeeSalary,
+  employeeSalaryPayments,
+  employeeAdvances,
+} from '../../../db/schema';
+import { GeneratePayslipDto } from '../dto/generate-payslip.dto';
 
 @Injectable()
 export class PayslipService {
-
   async generate(dto: GeneratePayslipDto): Promise<Buffer> {
-    const employee = await this.getEmployee(dto.employee_id);
-    const salary = await this.getSalary(dto.employee_id, dto.month);
-    const attendance = await this.getAttendance(dto.employee_id, dto.month);
-    const payments = await this.getPayments(salary.id);
+    const [emp] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.id, dto.employee_id));
+
+    if (!emp) throw new BadRequestException('Employee not found');
+
+    const [salary] = await db
+      .select()
+      .from(employeeSalary)
+      .where(
+        and(
+          eq(employeeSalary.employee_id, dto.employee_id),
+          eq(employeeSalary.month, dto.month),
+        ),
+      );
+
+    if (!salary)
+      throw new BadRequestException('Salary not generated for this month');
+
+    const payments = await db
+      .select()
+      .from(employeeSalaryPayments)
+      .where(eq(employeeSalaryPayments.salary_id, salary.id));
+
+    const advances = await db
+      .select()
+      .from(employeeAdvances)
+      .where(
+        and(
+          eq(employeeAdvances.employee_id, emp.id),
+          eq(employeeAdvances.is_settled, true),
+        ),
+      );
 
     const doc = new PDFDocument({ size: 'A4', margin: 40 });
     const buffers: Buffer[] = [];
@@ -20,103 +54,31 @@ export class PayslipService {
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => null);
 
-    /* ===== HEADER ===== */
     doc.fontSize(18).text('PAYSLIP', { align: 'center' });
     doc.moveDown();
 
-    /* ===== COMPANY ===== */
-    doc.fontSize(10).text('Variable Instinct Services');
-    doc.text(`Payslip for: ${dto.month}`);
+    doc.fontSize(10).text(`Employee: ${emp.name}`);
+    doc.text(`Month: ${dto.month}`);
     doc.moveDown();
 
-    /* ===== EMPLOYEE ===== */
-    doc.fontSize(12).text('Employee Details', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Name: ${employee.name}`);
-    doc.text(`Employee Code: ${employee.employee_code}`);
-    doc.text(`Designation: ${employee.designation ?? '-'}`);
-    doc.moveDown();
-
-    /* ===== ATTENDANCE ===== */
-    doc.fontSize(12).text('Attendance Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Payable Days: ${attendance.payableDays}`);
-    doc.text(`Leaves Taken: ${attendance.leaveDays}`);
-    doc.moveDown();
-
-    /* ===== SALARY ===== */
-    doc.fontSize(12).text('Salary Details', { underline: true });
-    doc.fontSize(10);
     doc.text(`Gross Salary: ₹${salary.gross_salary}`);
     doc.text(`Deductions: ₹${salary.deductions}`);
     doc.text(`Net Salary: ₹${salary.net_salary}`);
     doc.moveDown();
 
-    /* ===== PAYMENTS ===== */
-    doc.fontSize(12).text('Payment Summary', { underline: true });
-    doc.fontSize(10);
+    if (advances.length > 0) {
+      const advTotal = advances.reduce((s, a) => s + a.amount, 0);
+      doc.text(`Advance Adjusted: ₹${advTotal}`);
+    }
 
-    payments.forEach(p => {
-      doc.text(`₹${p.amount} paid on ${p.payment_date} (${p.mode})`);
-    });
-
-    doc.moveDown();
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`);
+    if (payments.length > 0) {
+      payments.forEach(p => {
+        doc.text(`Paid ₹${p.amount} on ${p.payment_date}`);
+      });
+    }
 
     doc.end();
 
     return Buffer.concat(buffers);
-  }
-
-  /* ===== Helpers ===== */
-
-  private async getEmployee(employee_id: number) {
-    const [emp] = await db.select().from(employees).where(eq(employees.id, employee_id));
-    return emp;
-  }
-
-  private async getSalary(employee_id: number, month: string) {
-    const [salary] = await db
-      .select()
-      .from(employeeSalary)
-      .where(
-        and(
-          eq(employeeSalary.employee_id, employee_id),
-          eq(employeeSalary.month, month),
-        ),
-      );
-
-    if (!salary) throw new Error('Salary not generated');
-    return salary;
-  }
-
-  private async getAttendance(employee_id: number, month: string) {
-    const rows = await db
-      .select()
-      .from(employeeAttendance)
-      .where(
-        and(
-          eq(employeeAttendance.employee_id, employee_id),
-          like(employeeAttendance.date, `${month}%`),
-        ),
-      );
-
-    let payableDays = 0;
-    let leaveDays = 0;
-
-    rows.forEach(r => {
-      if (r.status === 'present') payableDays += 1;
-      if (r.status === 'half_day') payableDays += 0.5;
-      if (r.status === 'leave') leaveDays += 1;
-    });
-
-    return { payableDays, leaveDays };
-  }
-
-  private async getPayments(salary_id: number) {
-    return db
-      .select()
-      .from(employeeSalaryPayments)
-      .where(eq(employeeSalaryPayments.salary_id, salary_id));
   }
 }

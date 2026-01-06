@@ -1,36 +1,37 @@
-import { Injectable } from "@nestjs/common";
-import { PaySalaryDto } from "../dto/pay-salary.dto";
-import { db } from "../../../db";
-import { employeeAdvances, employeeSalary, employeeSalaryPayments } from "../../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { and, eq } from 'drizzle-orm';
+import { db } from '../../../db';
+import {
+  employeeSalary,
+  employeeSalaryPayments,
+  employeeAdvances,
+} from '../../../db/schema';
+import { PaySalaryDto } from '../dto/pay-salary.dto';
 
 @Injectable()
 export class SalaryPaymentsService {
-
   async pay(dto: PaySalaryDto) {
-    // 1️⃣ Fetch salary snapshot
     const [salary] = await db
       .select()
       .from(employeeSalary)
       .where(eq(employeeSalary.id, dto.salary_id));
 
     if (!salary) {
-      throw new Error('Salary record not found');
+      throw new BadRequestException('Salary record not found');
     }
 
-    // 2️⃣ Calculate already paid
     const payments = await db
       .select()
       .from(employeeSalaryPayments)
       .where(eq(employeeSalaryPayments.salary_id, salary.id));
 
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
 
     if (totalPaid + dto.amount > salary.net_salary) {
-      throw new Error('Payment exceeds net salary');
+      throw new BadRequestException('Payment exceeds net salary');
     }
 
-    // 3️⃣ Auto-settle advances
+    // settle advances
     let remaining = dto.amount;
 
     const advances = await db
@@ -47,17 +48,16 @@ export class SalaryPaymentsService {
     for (const adv of advances) {
       if (remaining <= 0) break;
 
-      const settleAmount = Math.min(adv.amount, remaining);
+      const settle = Math.min(adv.amount, remaining);
 
       await db
         .update(employeeAdvances)
         .set({ is_settled: true })
         .where(eq(employeeAdvances.id, adv.id));
 
-      remaining -= settleAmount;
+      remaining -= settle;
     }
 
-    // 4️⃣ Record salary payment
     const [payment] = await db
       .insert(employeeSalaryPayments)
       .values({
@@ -70,7 +70,6 @@ export class SalaryPaymentsService {
       })
       .returning();
 
-    // 5️⃣ Lock salary if fully paid
     if (totalPaid + dto.amount === salary.net_salary) {
       await db
         .update(employeeSalary)

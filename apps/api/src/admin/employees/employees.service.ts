@@ -37,63 +37,69 @@ export class EmployeesService {
   }
 
   async findOverview() {
-    const today = new Date().toISOString().slice(0, 10);
-    const month = today.slice(0, 7); // YYYY-MM
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7); // YYYY-MM
 
-    const result = await db.execute(sql`
+  const result = await db.execute(sql`
+    SELECT
+      e.id,
+      e.name,
+      e.email,
+      e.designation,
+      e.department,
+      e.is_active,
+      e.base_salary,
+
+      -- attendance (today)
+      a.status AS attendance_status,
+      a.check_in,
+      a.check_out,
+
+      -- salary snapshot
+      s.id AS salary_id,
+      s.net_salary,
+
+      -- outstanding advance (UNSETTLED ONLY)
+      COALESCE(adv.total_advance, 0) AS advance_balance,
+
+      -- net due AFTER payments (NOT after advance)
+      COALESCE(s.net_salary, e.base_salary)
+        - COALESCE(paid.total_paid, 0) AS net_due
+
+    FROM employees e
+
+    LEFT JOIN employee_attendance a
+      ON a.employee_id = e.id
+      AND a.date = ${today}
+
+    LEFT JOIN employee_salary s
+      ON s.employee_id = e.id
+      AND s.month = ${month}
+
+    -- 🔑 ADVANCE SUBQUERY (NO MULTIPLICATION)
+    LEFT JOIN (
       SELECT
-        e.id,
-        e.name,
-        e.email,
-        e.designation,
-        e.department,
-        e.is_active,
-        e.base_salary,
+        employee_id,
+        SUM(amount) AS total_advance
+      FROM employee_advances
+      WHERE is_settled = false
+      GROUP BY employee_id
+    ) adv ON adv.employee_id = e.id
 
-        -- attendance
-        a.status AS attendance_status,
-        a.check_in,
+    -- 🔑 PAYMENT SUBQUERY (NO MULTIPLICATION)
+    LEFT JOIN (
+      SELECT
+        sp.salary_id,
+        SUM(sp.amount) AS total_paid
+      FROM employee_salary_payments sp
+      GROUP BY sp.salary_id
+    ) paid ON paid.salary_id = s.id
 
-        -- advances
-        COALESCE(SUM(
-          CASE WHEN adv.is_settled = false THEN adv.amount ELSE 0 END
-        ), 0) AS advance_balance,
+    ORDER BY e.name ASC
+  `);
 
-        -- salary
-        COALESCE(s.net_salary, e.base_salary)
-          - COALESCE(SUM(sp.amount), 0) AS net_due
-
-      FROM employees e
-
-      -- today's attendance
-      LEFT JOIN employee_attendance a
-        ON a.employee_id = e.id
-        AND a.date = ${today}
-
-      -- advances
-      LEFT JOIN employee_advances adv
-        ON adv.employee_id = e.id
-
-      -- salary snapshot (current month)
-      LEFT JOIN employee_salary s
-        ON s.employee_id = e.id
-        AND s.month = ${month}
-
-      -- salary payments
-      LEFT JOIN employee_salary_payments sp
-        ON sp.salary_id = s.id
-
-      GROUP BY
-        e.id,
-        a.status,
-        a.check_in,
-        s.net_salary
-
-      ORDER BY e.name ASC
-    `);
-
-    return result.rows || result;
-  }
+  return result.rows ?? result;
+}
 
   async create(dto: CreateEmployeeDto) {
     // 1. Await the code generation

@@ -1,14 +1,21 @@
-import { Injectable } from "@nestjs/common";
-import { GenerateSalaryDto } from "../dto/generate-salary.dto";
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../../db';
-import { employees, employeeLeaves, employeeAttendance, employeeSalary } from '../../../db/schema';
-import { eq, like, and } from "drizzle-orm";
+import {
+  employees,
+  employeeAttendance,
+  employeeLeaves,
+  employeeSalary,
+} from '../../../db/schema';
+import { GenerateSalaryDto } from '../dto/generate-salary.dto';
 
 @Injectable()
 export class SalaryService {
   async generate(dto: GenerateSalaryDto) {
     const [year, month] = dto.month.split('-').map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
+    const startDate = `${dto.month}-01`;
+    const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
 
     const employeeList = dto.employee_id
       ? await db
@@ -17,17 +24,38 @@ export class SalaryService {
           .where(eq(employees.id, dto.employee_id))
       : await db.select().from(employees).where(eq(employees.is_active, true));
 
+    if (employeeList.length === 0) {
+      throw new BadRequestException('Employee not found');
+    }
+
     const results = [];
 
     for (const emp of employeeList) {
+      // prevent duplicate generation
+      const existing = await db
+        .select()
+        .from(employeeSalary)
+        .where(
+          and(
+            eq(employeeSalary.employee_id, emp.id),
+            eq(employeeSalary.month, dto.month),
+          ),
+        );
+
+      if (existing.length > 0) {
+        results.push(existing[0]);
+        continue;
+      }
+
       const attendance = await db
         .select()
         .from(employeeAttendance)
         .where(
           and(
             eq(employeeAttendance.employee_id, emp.id),
-            like(employeeAttendance.date, `${dto.month}%`)
-          )
+            gte(employeeAttendance.date, startDate),
+            lte(employeeAttendance.date, endDate),
+          ),
         );
 
       const leaves = await db
@@ -37,21 +65,33 @@ export class SalaryService {
           and(
             eq(employeeLeaves.employee_id, emp.id),
             eq(employeeLeaves.status, 'approved'),
-            like(employeeLeaves.from_date, `${dto.month}%`)
-          )
+            gte(employeeLeaves.from_date, startDate),
+            lte(employeeLeaves.to_date, endDate),
+          ),
         );
 
-      const payableDays = this.calculatePayableDays(attendance, leaves);
+      const perDay = emp.base_salary / daysInMonth;
 
-      let gross = 0;
+      const absentDays = attendance.filter(
+        a => a.status === 'absent',
+      ).length;
 
-      if (emp.salary_type === 'monthly') {
-        gross = Math.round((emp.base_salary / daysInMonth) * payableDays);
+      let unpaidLeaveDays = 0;
+      for (const l of leaves) {
+        if (l.type === 'unpaid') {
+          unpaidLeaveDays +=
+            (new Date(l.to_date).getTime() -
+              new Date(l.from_date).getTime()) /
+              (1000 * 60 * 60 * 24) +
+            1;
+        }
       }
 
-      if (emp.salary_type === 'daily') {
-        gross = emp.base_salary * payableDays;
-      }
+      const deductionDays = absentDays + unpaidLeaveDays;
+      const deductions = Math.round(perDay * deductionDays);
+
+      const gross = emp.base_salary;
+      const net = gross - deductions;
 
       const [salary] = await db
         .insert(employeeSalary)
@@ -59,8 +99,9 @@ export class SalaryService {
           employee_id: emp.id,
           month: dto.month,
           gross_salary: gross,
-          deductions: emp.base_salary - gross,
-          net_salary: gross,
+          deductions,
+          net_salary: net,
+          is_locked: false,
         })
         .returning();
 
@@ -68,27 +109,5 @@ export class SalaryService {
     }
 
     return results;
-  }
-
-  private calculatePayableDays(attendance: any[], leaves: any[]) {
-    let days = 0;
-
-    for (const a of attendance) {
-      if (a.status === 'present') days += 1;
-      if (a.status === 'half_day') days += 0.5;
-      if (a.status === 'leave') days += 1;
-    }
-
-    for (const l of leaves) {
-      if (l.type === 'unpaid') {
-        const diff =
-          (new Date(l.to_date).getTime() - new Date(l.from_date).getTime()) /
-            (1000 * 60 * 60 * 24) +
-          1;
-        days -= diff;
-      }
-    }
-
-    return Math.max(days, 0);
   }
 }

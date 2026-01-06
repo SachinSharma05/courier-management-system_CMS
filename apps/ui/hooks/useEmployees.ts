@@ -12,6 +12,10 @@ export async function getEmployeesOverview() {
   return res.data;
 }
 
+export const deleteEmployee = async (id: number) => {
+  const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+  return res.json();
+};
 /* ================= ATTENDANCE ================= */
 export async function getAttendance() {
   const res = await api.get('/admin/employees/attendance');
@@ -43,6 +47,14 @@ export async function createAdvance(payload: {
 }
 
 /* ================= SALARY ================= */
+
+export async function generateSalary(payload: {
+  employee_id: number;
+  month: string;
+}) {
+  const res = await api.post('/admin/employees/salary/generate', payload);
+  return res.data;
+}
 
 export async function paySalary(payload: {
   employee_id: number;
