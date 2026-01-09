@@ -12,7 +12,7 @@ export class ProviderStatsService {
         count: sql<number>`count(*)`,
       })
       .from(consignments)
-      .where(eq(consignments.provider, provider.toLowerCase()))
+      .where(sql`LOWER(${consignments.provider}) = ${provider.toLowerCase()}`)
       .groupBy(consignments.current_status);
 
     let total = 0;

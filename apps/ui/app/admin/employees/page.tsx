@@ -20,6 +20,21 @@ import {
   generateSalary } from '@/hooks/useEmployees';
 
 /* ================= TYPES ================= */
+type AttendanceEntry = {
+  date: string;
+  status: 'present' | 'absent' | 'half_day' | 'leave';
+  check_in: string | null;
+  check_out: string | null;
+};
+
+type AdvanceEntry = {
+  id: number;
+  amount: number;
+  date: string;
+  remarks: string;
+  is_settled: boolean;
+};
+
 type Employee = {
   id: number;
   name: string;
@@ -28,13 +43,16 @@ type Employee = {
   department?: string;
   is_active: boolean;
   base_salary: number;
+  phone: string;
   attendance_status?: 'present' | 'absent' | 'half_day' | 'leave' | null;
   check_in?: string | null;
   check_out?: string | null;
-  advance_balance: number;
-  salary_id?: number;      // 🔑 REQUIRED
-  net_salary?: number;     // 🔑 REQUIRED (from employee_salary)
-  net_due: number;         // after payments
+  advance_balance: string | number; // API returns string "4500"
+  net_due: string | number;        // API returns string "30000"
+  salary_id?: number | null;
+  net_salary?: number | null;
+  attendance_list: AttendanceEntry[]; // 🆕 Added
+  advances: AdvanceEntry[];           // 🆕 Added
 };
 
 /* ================= PAGE ================= */
@@ -106,7 +124,7 @@ export default function EmployeesPage() {
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Attendance History</h3>
-                <p className="text-xs text-slate-500 font-medium">{selectedEmp.name} • {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+                <p className="text-xs text-slate-500 font-medium">{selectedEmp.name} • Full Logs</p>
               </div>
               <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-white rounded-full text-slate-400 shadow-sm border border-slate-100">
                 <X size={20} />
@@ -123,16 +141,27 @@ export default function EmployeesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   <tr className="text-xs">
-                    <td className="py-4 px-2 font-bold text-slate-700">{new Date().toLocaleDateString('en-IN')}</td>
-                    <td className="py-4 px-2">
-                      <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100 uppercase">
-                        {selectedEmp.attendance_status || 'PRESENT'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(selectedEmp.check_in)}</td>
-                    <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(selectedEmp.check_out)}</td>
-                  </tr>
+                  {/* 🆕 Loop through the real attendance_list from API */}
+                  {selectedEmp.attendance_list?.map((log, index) => (
+                    <tr key={index} className="text-xs hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-2 font-bold text-slate-700">
+                        {new Date(log.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="py-4 px-2">
+                        <span className={clsx(
+                          "px-2 py-1 rounded-lg text-[10px] font-black border uppercase",
+                          log.status === 'present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                        )}>
+                          {log.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(log.check_in)}</td>
+                      <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(log.check_out)}</td>
+                    </tr>
+                  ))}
+                  {(!selectedEmp.attendance_list || selectedEmp.attendance_list.length === 0) && (
+                    <tr><td colSpan={4} className="py-10 text-center text-slate-400">No logs found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -407,8 +436,7 @@ function EmployeeDrawer({
   type,
   employee,
   onClose,
-  onSaved,
-  stats
+  onSaved
 }: {
   type: 'edit' | 'attendance' | 'advance' | 'pay' | 'add' | 'holidays' | 'generate';
   employee: Employee;
@@ -587,7 +615,6 @@ function EmployeeDrawer({
               </button>
             </div>
 
-            {/* Form Fields - Reusing your Add logic but with 'value' binding */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
@@ -654,6 +681,26 @@ function EmployeeDrawer({
                     className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joining Date</label>
+                  <input 
+                    type="date"
+                    value={formData.joining_date}
+                    onChange={e => setFormData({...formData, joining_date: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Salary Type</label>
+                  <select 
+                    onChange={e => setFormData({...formData, salary_type: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
+                  >
+                    <option>Daily</option>
+                    <option>Weekly</option>
+                    <option>Monthly</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -661,12 +708,6 @@ function EmployeeDrawer({
 
         {type === 'attendance' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center gap-6 mb-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-    <SummaryItem label="Present" count={stats.present} color="text-emerald-600" />
-    <SummaryItem label="Absent" count={stats.absent} color="text-red-600" />
-    <SummaryItem label="Weekly Offs" count={stats.offs} color="text-blue-600" />
-    <SummaryItem label="Holidays" count={stats.holidays} color="text-purple-600" />
-  </div>
             {/* DATE SELECTOR - The Key Addition */}
             <div className="space-y-2 p-4 rounded-2xl bg-cyan-50 border border-cyan-100">
               <label className="text-[10px] font-black text-cyan-700 uppercase tracking-widest flex items-center gap-2">
@@ -722,25 +763,40 @@ function EmployeeDrawer({
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</label>
               <input onChange={e => setRemarks(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" placeholder="e.g. Medical, Travel" />
             </div>
-            <div className="space-y-2">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Advances</label>
-                <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
-                  {employee.advances?.map((adv) => (
-                    <div key={adv.id} className="flex justify-between items-center p-3 bg-white hover:bg-slate-50">
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">₹{adv.amount.toLocaleString()}</p>
-                        <p className="text-[10px] text-slate-400">{new Date(adv.date).toLocaleDateString('en-IN')}</p>
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 italic">"{adv.remarks || 'No remarks'}"</span>
-                    </div>
-                  ))}
-                  {(!employee.advances || employee.advances.length === 0) && (
-                    <p className="p-4 text-center text-xs text-slate-400">No advance history found.</p>
-                  )}
-                </div>
+            <div className="space-y-3">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction History</h3>
+      <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-white">
+        {/* 🆕 Loop through the real advances list from API */}
+        {employee.advances?.map((adv: AdvanceEntry) => (
+          <div key={adv.id} className="flex justify-between items-center p-4 hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className={clsx(
+                "h-8 w-8 rounded-full flex items-center justify-center",
+                adv.is_settled ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+              )}>
+                <HandCoins size={14} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">₹{Number(adv.amount).toLocaleString()}</p>
+                <p className="text-[10px] text-slate-400">{new Date(adv.date).toLocaleDateString('en-IN')}</p>
               </div>
             </div>
+            <div className="text-right">
+              <span className={clsx(
+                "text-[9px] font-black px-2 py-0.5 rounded uppercase",
+                adv.is_settled ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+              )}>
+                {adv.is_settled ? 'Settled' : 'Pending'}
+              </span>
+              <p className="text-[10px] text-slate-400 mt-1 italic">"{adv.remarks || 'General Advance'}"</p>
+            </div>
+          </div>
+        ))}
+        {(!employee.advances || employee.advances.length === 0) && (
+          <p className="p-6 text-center text-[10px] text-slate-400">No historical advances recorded.</p>
+        )}
+      </div>
+    </div>
           </div>
         )}
 
@@ -803,93 +859,6 @@ function EmployeeDrawer({
                 <Download size={16} /> Download Payslip
               </button>
             )}
-          </div>
-        )}
-
-        {/* ADD EMPLOYEE FORM */}
-        {type === 'add' && (
-          <div className="space-y-2">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
-              <input 
-                onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                placeholder="Enter full name" 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
-              <input 
-                onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                placeholder="email@company.com" 
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Designation</label>
-                <select 
-                  onChange={e => setFormData({...formData, designation: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                >
-                  <option>Manager</option>
-                  <option>Marketing Executive</option>
-                  <option>Computer Operator</option>
-                  <option>Delivery Boy</option>
-                  <option>Support</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</label>
-              <input 
-                onChange={e => setFormData({...formData, phone: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                placeholder="+91-9874563210" 
-              />
-            </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</label>
-                <select 
-                  onChange={e => setFormData({...formData, department: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                >
-                  <option>Operations</option>
-                  <option>Support</option>
-                  <option>Finance</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Salary</label>
-                <input 
-                  type="number"
-                  onChange={e => setFormData({...formData, base_salary: +e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                  placeholder="0" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joining Date</label>
-                <input 
-                  type="date"
-                  value={formData.joining_date}
-                  onChange={e => setFormData({...formData, joining_date: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Salary Type</label>
-                <select 
-                  onChange={e => setFormData({...formData, salary_type: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                >
-                  <option>Daily</option>
-                  <option>Weekly</option>
-                  <option>Monthly</option>
-                </select>
-              </div>
-            </div>
           </div>
         )}
 

@@ -7,6 +7,11 @@ import { DashboardService } from './dashboard.service';
 export class DashboardController {
   constructor(private readonly service: DashboardService) {}
 
+  @Get('awb-stats')
+  getAwbStats() {
+    return this.service.getAwbStats();
+  }
+
   @Get('summary')
   getSummary(
     @Query('clientId') clientId?: number,
@@ -26,4 +31,6 @@ export class DashboardController {
   getAlerts() {
     return this.service.getAlerts();
   }
+
+  
 }

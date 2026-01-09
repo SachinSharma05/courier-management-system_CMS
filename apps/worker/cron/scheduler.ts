@@ -1,19 +1,16 @@
-import cron from 'node-cron';
 import { trackingQueue } from '../queues/tracking.queue';
 
-export function startScheduler() {
-  // every 15 minutes
-  cron.schedule('*/15 * * * *', async () => {
-    console.log('[CRON] Enqueue tracking jobs');
+export async function startScheduler() {
+  console.log('[CRON] Registering poll job');
 
-    await trackingQueue.add(
-      'poll-tracking',
-      {},
-      {
-        removeOnComplete: true,
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 30000 },
-      }
-    );
-  });
+  await trackingQueue.add(
+    'DTDC_POLL_NO_DATA',
+    {},
+    {
+      repeat: { pattern: '*/10 * * * *' },
+      removeOnComplete: true,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 30000 },
+    }
+  );
 }

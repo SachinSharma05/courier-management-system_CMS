@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTracking } from '@/hooks/useTracking';
+import Link from 'next/link';
 
 export default function TrackingPage() {
   const [awb, setAwb] = useState('');
@@ -67,11 +68,12 @@ export default function TrackingPage() {
 
           <div className="hidden lg:block h-10 w-[1px] bg-slate-800 mx-2" />
 
-          <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-5 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all group">
-            <UploadCloud size={18} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Bulk Upload</span>
-            <input type="file" className="hidden" />
-          </label>
+          <Link href="/admin/tracking/bulk">
+            <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-5 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all group">
+              <UploadCloud size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Bulk Upload</span>
+            </label>
+          </Link>
         </div>
       </div>
 

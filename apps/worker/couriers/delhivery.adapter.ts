@@ -12,7 +12,7 @@ export const delhiveryAdapter: CourierAdapter = {
     // 🔐 Fetch & decrypt ONLY here
     const apiKey = await creds.getCredentials({
       clientId,
-      providerId: 1, // DTDC
+      provider: 'Delhivery', // DTDC
       key: 'api_key',
     });
 

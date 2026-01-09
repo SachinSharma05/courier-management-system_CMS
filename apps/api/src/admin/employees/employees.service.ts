@@ -49,34 +49,43 @@ export class EmployeesService {
       e.department,
       e.is_active,
       e.base_salary,
+      e.phone,
 
-      -- attendance (today)
-      a.status AS attendance_status,
-      a.check_in,
-      a.check_out,
+      -- today attendance summary
+      today.status AS attendance_status,
+      today.check_in,
+      today.check_out,
 
       -- salary snapshot
       s.id AS salary_id,
       s.net_salary,
 
-      -- outstanding advance (UNSETTLED ONLY)
+      -- outstanding advance total
       COALESCE(adv.total_advance, 0) AS advance_balance,
 
-      -- net due AFTER payments (NOT after advance)
+      -- net due after payments
       COALESCE(s.net_salary, e.base_salary)
-        - COALESCE(paid.total_paid, 0) AS net_due
+        - COALESCE(paid.total_paid, 0) AS net_due,
+
+      -- 🔥 FULL ATTENDANCE LIST (MONTH)
+      COALESCE(attendance_list.attendance, '[]'::json) AS attendance_list,
+
+      -- 🔥 FULL ADVANCE LIST
+      COALESCE(advance_list.advances, '[]'::json) AS advances
 
     FROM employees e
 
-    LEFT JOIN employee_attendance a
-      ON a.employee_id = e.id
-      AND a.date = ${today}
+    /* ---------- TODAY ATTENDANCE ---------- */
+    LEFT JOIN employee_attendance today
+      ON today.employee_id = e.id
+      AND today.date = ${today}
 
+    /* ---------- SALARY SNAPSHOT ---------- */
     LEFT JOIN employee_salary s
       ON s.employee_id = e.id
       AND s.month = ${month}
 
-    -- 🔑 ADVANCE SUBQUERY (NO MULTIPLICATION)
+    /* ---------- ADVANCE TOTAL ---------- */
     LEFT JOIN (
       SELECT
         employee_id,
@@ -86,14 +95,50 @@ export class EmployeesService {
       GROUP BY employee_id
     ) adv ON adv.employee_id = e.id
 
-    -- 🔑 PAYMENT SUBQUERY (NO MULTIPLICATION)
+    /* ---------- PAYMENT TOTAL ---------- */
     LEFT JOIN (
       SELECT
-        sp.salary_id,
-        SUM(sp.amount) AS total_paid
-      FROM employee_salary_payments sp
-      GROUP BY sp.salary_id
+        salary_id,
+        SUM(amount) AS total_paid
+      FROM employee_salary_payments
+      GROUP BY salary_id
     ) paid ON paid.salary_id = s.id
+
+    /* ---------- ATTENDANCE LIST ---------- */
+    LEFT JOIN (
+      SELECT
+        employee_id,
+        json_agg(
+          json_build_object(
+            'date', date,
+            'status', status,
+            'check_in', check_in,
+            'check_out', check_out
+          )
+          ORDER BY date
+        ) AS attendance
+      FROM employee_attendance
+      WHERE date BETWEEN ${month + '-01'} AND ${month + '-31'}
+      GROUP BY employee_id
+    ) attendance_list ON attendance_list.employee_id = e.id
+
+    /* ---------- ADVANCE LIST ---------- */
+    LEFT JOIN (
+      SELECT
+        employee_id,
+        json_agg(
+          json_build_object(
+            'id', id,
+            'amount', amount,
+            'date', date,
+            'remarks', remarks,
+            'is_settled', is_settled
+          )
+          ORDER BY date DESC
+        ) AS advances
+      FROM employee_advances
+      GROUP BY employee_id
+    ) advance_list ON advance_list.employee_id = e.id
 
     ORDER BY e.name ASC
   `);

@@ -1,0 +1,1 @@
+export * from './dtdc/dtdc.bulk.adapter';

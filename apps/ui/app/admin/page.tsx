@@ -8,7 +8,7 @@ import {
   Zap,
   BarChart3,
   Timer,
-  Truck
+  Truck,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { 
@@ -17,6 +17,18 @@ import {
   getAlerts
  } from '@/lib/api/dashboard.api';
 import { useEffect, useRef, useState } from 'react';
+import WorkerStatsCard from '@/components/WorkerStatsCard'
+
+interface StatCardProps {
+  label: string;
+  value: any;
+  icon: any;
+  color: string;
+  bg?: string; // Icon background color (e.g., bg-blue-50)
+  trend?: string;
+  isLoading?: boolean;
+  isDark?: boolean; // New prop to toggle theme
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -69,36 +81,38 @@ export default function AdminDashboard() {
         <StatCard label="Aggregator Margin" value={stats.margin} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" />
         <StatCard label="Critical DLQ" value={stats.dlqCount} icon={AlertCircle} color="text-red-600" bg="bg-red-50" />
       </section>
+      
+      <WorkerStatsCard />
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-  {/* Weight Discrepancy Widget */}
-  <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-    <div className="flex justify-between items-center mb-6">
-      <h3 className="font-black text-slate-800 tracking-tight">Weight Discrepancies</h3>
-      <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded-lg">High Risk</span>
-    </div>
-    <div className="space-y-4">
-      <div className="flex justify-between text-sm">
-        <span className="text-slate-500">Total Flagged AWBs</span>
-        <span className="font-bold text-slate-900">142</span>
-      </div>
-      <div className="flex justify-between text-sm">
-        <span className="text-slate-500">Potential Loss</span>
-        <span className="font-bold text-rose-600">₹12,450</span>
-      </div>
-    </div>
-  </div>
+        {/* Weight Discrepancy Widget */}
+        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-black text-slate-800 tracking-tight">Weight Discrepancies</h3>
+            <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded-lg">High Risk</span>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Total Flagged AWBs</span>
+              <span className="font-bold text-slate-900">142</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Potential Loss</span>
+              <span className="font-bold text-rose-600">₹12,450</span>
+            </div>
+          </div>
+        </div>
 
-  {/* NDR Recovery Widget */}
-  <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-    <h3 className="font-black text-slate-800 tracking-tight mb-6">NDR Recovery Rate</h3>
-    <div className="flex items-end gap-2">
-      <span className="text-4xl font-black text-indigo-600">64%</span>
-      <span className="text-xs font-bold text-emerald-500 mb-2">↑ 4% this week</span>
-    </div>
-    <p className="text-xs text-slate-400 mt-2 font-medium">Out of 500 NDRs, 320 were successfully delivered.</p>
-  </div>
-</section>
+        {/* NDR Recovery Widget */}
+        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <h3 className="font-black text-slate-800 tracking-tight mb-6">NDR Recovery Rate</h3>
+          <div className="flex items-end gap-2">
+            <span className="text-4xl font-black text-indigo-600">64%</span>
+            <span className="text-xs font-bold text-emerald-500 mb-2">↑ 4% this week</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2 font-medium">Out of 500 NDRs, 320 were successfully delivered.</p>
+        </div>
+      </section>
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* PROVIDER LEADERBOARD */}
@@ -124,13 +138,28 @@ export default function AdminDashboard() {
 }
 
 // ───────────────── UPDATED STAT CARD ─────────────────
-function StatCard({ label, value, icon: Icon, color, bg, trend, isLoading }: any) {
+function StatCard({ 
+  label, value, icon: Icon, color, bg, trend, isLoading, isDark = false 
+}: StatCardProps) {
   return (
-    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+    <div className={clsx(
+      "p-4 rounded-[2.5rem] border transition-all duration-300",
+      // Switch background and border based on theme
+      isDark 
+        ? "bg-slate-950/50 border-slate-800 text-white" 
+        : "bg-white border-slate-100 shadow-sm text-slate-900"
+    )}>
       <div className="flex justify-between items-start mb-4">
-        <div className={clsx("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", bg, color)}>
-          <Icon size={20} />
+        {/* Icon Container */}
+        <div className={clsx(
+          "p-3 rounded-2xl transition-transform hover:scale-110 duration-300",
+          bg, // Background for the icon circle
+          color // Text color for the icon
+        )}>
+          {Icon && <Icon size={20} />}
         </div>
+        
+        {/* Trend badge */}
         {trend && !isLoading && (
           <div className={clsx(
             "text-[10px] font-black px-2 py-1 rounded-lg",
@@ -142,11 +171,17 @@ function StatCard({ label, value, icon: Icon, color, bg, trend, isLoading }: any
       </div>
       
       <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className={clsx(
+          "text-[10px] font-bold uppercase tracking-widest",
+          isDark ? "text-slate-500" : "text-slate-400"
+        )}>
+          {label}
+        </p>
+        
         {isLoading ? (
-          <div className="h-8 w-24 bg-slate-50 animate-pulse rounded-xl mt-1" />
+          <div className="h-8 w-24 bg-slate-100 animate-pulse rounded-xl mt-1" />
         ) : (
-          <h3 className="text-2xl font-black mt-1 text-slate-900">
+          <h3 className="text-2xl font-black mt-1">
             {value?.toLocaleString() || 0}
           </h3>
         )}

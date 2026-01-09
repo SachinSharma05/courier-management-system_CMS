@@ -8,7 +8,7 @@ const CACHE_TTL = 60 * 60; // 1 hour
 export class CredentialsService{
   async getCredentials(params: {
     clientId: number;
-    providerId: number;
+    provider: string;
     key: string;
   }): Promise<string>    
   {
@@ -19,7 +19,7 @@ export class CredentialsService{
       .where(
         and(
           eq(clientCredentials.client_id, params.clientId),
-          eq(clientCredentials.provider_id, params.providerId),
+          eq(clientCredentials.provider, params.provider),
           eq(clientCredentials.env_key, params.key),
           eq(clientCredentials.is_active, true)
         )
@@ -28,10 +28,12 @@ export class CredentialsService{
 
     if (!rows.length) {
       throw new Error(
-        `Missing credentials for client ${params.clientId}, provider ${params.providerId}`
+        `Missing credentials for client ${params.clientId}, provider ${params.provider}`
       );
     }
 
     return decrypt(rows[0].encrypted_value);
   }
 }
+
+export const credentialsService = new CredentialsService();

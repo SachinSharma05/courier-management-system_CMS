@@ -2,11 +2,12 @@
   "name": "api",
   "private": true,
   "scripts": {
-    "start": "node dist/main.js",
-    "start:dev": "nest start --watch",
+    "start": "node dist/api/src/main.js",
+    "start:dev": "nest start api --watch",
     "build": "nest build"
   },
   "dependencies": {
+    "@cms/shared": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
@@ -24,13 +25,16 @@
     "class-validator": "^0.14.3",
     "csv-stringify": "^6.6.0",
     "dayjs": "^1.11.19",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "fastify": "^5.6.2",
-    "ioredis": "^5.8.2",
+    "fetch-cookie": "^3.2.0",
+    "node-fetch": "^3.3.2",
     "passport-jwt": "^4.0.1",
     "pdfkit": "^0.17.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "tough-cookie": "^6.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.14",

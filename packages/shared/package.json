@@ -1,0 +1,16 @@
+{
+  "name": "@cms/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "node-fetch": "^2.7.0",
+    "fetch-cookie": "^2.2.0",
+    "tough-cookie": "^4.1.3"
+  }
+}
