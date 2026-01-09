@@ -19,6 +19,7 @@ import { RateCardModule } from './admin/rate-cards/rate-cards.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { UsersModule } from './admin/users/users.module';
 import { EmployeesModule } from './admin/employees/employees.module';
+import { DelhiveryModule } from './admin/tracking/delhivery/delhivery.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { EmployeesModule } from './admin/employees/employees.module';
     CredentialsModule,
     UsersModule,
     EmployeesModule,
+    DelhiveryModule,
   ],
   providers:[
     {
