@@ -4,6 +4,6 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["**/*.ts"],
+  "include": ["index.ts", "cron/**/*.ts", "processors/**/*.ts", "queues/**/*.ts", "scripts/**/*.ts", "db/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

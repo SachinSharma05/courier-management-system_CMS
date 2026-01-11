@@ -2,9 +2,9 @@
   "name": "api",
   "private": true,
   "scripts": {
-    "start": "node dist/api/src/main.js",
-    "start:dev": "nest start api --watch",
-    "build": "nest build"
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@cms/shared": "workspace:*",

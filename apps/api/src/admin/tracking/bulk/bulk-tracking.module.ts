@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BulkTrackingController } from './bulk-tracking.controller';
 import { BulkTrackingService } from './bulk-tracking.service';
-import { DtdcBulkAdapter } from './providers/dtdc.bulk.adapter';
+import { DtdcBulkAdapter } from '@cms/shared';
 
 @Module({
     controllers: [BulkTrackingController],

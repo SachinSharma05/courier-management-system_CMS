@@ -8,8 +8,8 @@ import {
 } from "../../../db/schema";
 import { decrypt } from "../../../utils/crypto";
 import { eq, inArray, sql } from "drizzle-orm";
-import { DtdcBulkAdapter } from "./providers/dtdc.bulk.adapter";
-import { trackingQueue } from "../../../../../worker/queues/tracking.queue";
+import { DtdcBulkAdapter } from '@cms/shared';
+import { trackingQueue } from '../../../queues/tracking.queue';
 
 function parseDtdcDate(raw: string | null): string | null {
   if (!raw || raw.length !== 8) return null;

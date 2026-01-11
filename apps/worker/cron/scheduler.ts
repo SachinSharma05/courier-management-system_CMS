@@ -4,10 +4,13 @@ export async function startScheduler() {
   console.log('[CRON] Registering poll job');
 
   // DTDC Cron
+  console.log('[CRON] Enqueue DTDC no-data poll');
+
   await trackingQueue.add(
     'DTDC_POLL_NO_DATA',
     {},
     {
+      jobId: 'DTDC_POLL_NO_DATA',
       repeat: { pattern: '*/10 * * * *' },
       removeOnComplete: true,
       attempts: 3,
@@ -22,6 +25,7 @@ export async function startScheduler() {
     'DELHIVERY_POLL_NO_DATA',
     {},
     {
+      jobId: 'DELHIVERY_POLL_NO_DATA',
       repeat: { pattern: '*/10 * * * *' },
       removeOnComplete: true,
       attempts: 3,

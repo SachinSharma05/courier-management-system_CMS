@@ -82,8 +82,10 @@ export default function AdminDashboard() {
         <StatCard label="Critical DLQ" value={stats.dlqCount} icon={AlertCircle} color="text-red-600" bg="bg-red-50" />
       </section>
       
+      {/* ───────────────── KEY METRICS ───────────────── */}
       <WorkerStatsCard />
 
+      {/* ───────────────── SPECIAL FOCUS WIDGETS ───────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
         {/* Weight Discrepancy Widget */}
         <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">

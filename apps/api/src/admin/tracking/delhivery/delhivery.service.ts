@@ -6,7 +6,7 @@ import { DelhiveryBulkAdapter } from '@cms/shared';
 
 @Injectable()
 export class DelhiveryService {
-  private adapter = new DelhiveryBulkAdapter();
+  constructor(private readonly delhivery: DelhiveryBulkAdapter) {}
 
   async processBulk(clientId: number, awbs: string[]) {
     if (!awbs?.length) {
@@ -18,12 +18,11 @@ export class DelhiveryService {
 
     // 2️⃣ Chunk (Delhivery safe limit)
     const batches = this.chunk(uniqueAwbs, 25);
-
     const normalized: NormalizedDelhivery[] = [];
 
     for (const batch of batches) {
       try {
-        const json = await this.adapter.trackBulk(batch);
+        const json = await this.delhivery.trackBulk(batch);
         normalized.push(...this.normalize(json));
       } catch (err) {
         console.error('Delhivery bulk failed', batch, err);
@@ -50,6 +49,7 @@ export class DelhiveryService {
           awb: n.awb,
           provider: 'DELHIVERY',
           client_id: clientId,
+          booked_at: n.booked_at,
           current_status: n.current_status,
           origin: n.origin,
           destination: n.destination,
@@ -62,6 +62,7 @@ export class DelhiveryService {
         .onConflictDoUpdate({
           target: consignments.awb,
           set: {
+            booked_at: sql`excluded.booked_at`,
             current_status: sql`excluded.current_status`,
             origin: sql`excluded.origin`,
             destination: sql`excluded.destination`,
@@ -113,39 +114,56 @@ export class DelhiveryService {
      NORMALIZER
   ======================= */
   private normalize(json: any): NormalizedDelhivery[] {
-    const data = json?.ShipmentData ?? [];
+    const shipments = json?.ShipmentData ?? [];
 
-    return data
+    return shipments
       .map((x: any) => {
         const s = x?.Shipment;
-        if (!s?.Waybill) return null;
+        if (!s?.AWB) return null; // ✅ FIXED
+
+        const events =
+          Array.isArray(s.Scans)
+            ? s.Scans
+                .map((sc: any) => {
+                  const d = sc?.ScanDetail;
+                  if (!d?.ScanDateTime) return null;
+
+                  return {
+                    status: d.Scan ?? '',
+                    location: d.ScannedLocation ?? null,
+                    remarks: d.Instructions ?? null,
+                    event_time: new Date(d.ScanDateTime),
+                  };
+                })
+                .filter(Boolean)
+            : [];
 
         return {
-          awb: s.Waybill,
+          awb: s.AWB, // ✅ FIXED
           origin: s.Origin ?? null,
-          destination: s.Destination ?? null,
+          destination: s.Destination ?? s.Consignee?.City ?? null,
           reference_number: s.ReferenceNo ?? null,
           current_status: s.Status?.Status ?? null,
+          booked_at: s.PickedupDate
+            ? new Date(s.PickedupDate)
+            : s.PickUpDate
+            ? new Date(s.PickUpDate)
+            : s.Status?.StatusDateTime
+            ? new Date(s.Status.StatusDateTime)
+            : null,
           last_status_at: s.Status?.StatusDateTime
             ? new Date(s.Status.StatusDateTime)
             : null,
           expected_delivery_date: s.PromisedDeliveryDate
             ? new Date(s.PromisedDeliveryDate)
             : null,
-          invoice_amount: s.InvoiceAmount ?? null,
-          events: (s.Scans ?? [])
-            .map((sc: any) => {
-              const d = sc.ScanDetail;
-              if (!d?.ScanDateTime) return null;
-
-              return {
-                status: d.Scan ?? '',
-                location: d.ScannedLocation ?? null,
-                remarks: d.Instructions ?? null,
-                event_time: new Date(d.ScanDateTime),
-              };
-            })
-            .filter(Boolean),
+          invoice_amount:
+            typeof s.InvoiceAmount === 'number'
+              ? s.InvoiceAmount
+              : s.InvoiceAmount
+              ? Number(s.InvoiceAmount)
+              : null,
+          events,
         };
       })
       .filter(Boolean);
@@ -169,6 +187,7 @@ type NormalizedDelhivery = {
   destination: string | null;
   reference_number: string | null;
   current_status: string | null;
+  booked_at: Date | null;
   last_status_at: Date | null;
   expected_delivery_date: Date | null;
   invoice_amount: number | null;

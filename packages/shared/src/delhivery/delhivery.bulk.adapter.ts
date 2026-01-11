@@ -1,8 +1,16 @@
+import { Injectable } from '@nestjs/common';
 import fetch from 'node-fetch';
+import fetchCookie from 'fetch-cookie';
+import { CookieJar } from 'tough-cookie';
 
+const jar = new CookieJar();
+const fetchWithCookies = fetchCookie(fetch, jar);
+
+@Injectable()
 export class DelhiveryBulkAdapter {
-  private BASE = (process.env.DELHIVERY_C2C_BASE || 'https://track.delhivery.com').replace(/\/$/, '');
-  private TOKEN = (process.env.DELHIVERY_C2C_TOKEN || '').trim();
+
+  private BASE='https://track.delhivery.com'
+  private TOKEN='fdf1ec596cae5feec6685c57a7285f7637b771f5'
 
   private async call(
     path: string,
@@ -11,7 +19,6 @@ export class DelhiveryBulkAdapter {
     query?: Record<string, any>
   ) {
     const url = new URL(this.BASE + path);
-
     if (query) {
       for (const [k, v] of Object.entries(query)) {
         if (v !== undefined && v !== null) {
@@ -20,21 +27,14 @@ export class DelhiveryBulkAdapter {
       }
     }
 
-    const headers: Record<string, string> = {
+    const headers = {
       Authorization: `Token ${this.TOKEN}`,
+      "Content-Type": "application/json",
     };
 
-    let payload: any;
-
-    if (method !== 'GET') {
-      headers['Content-Type'] = 'application/json';
-      payload = body ? JSON.stringify(body) : undefined;
-    }
-
-    const res = await fetch(url.toString(), {
+    const res = await fetchWithCookies(url.toString(), {
       method,
       headers,
-      body: payload,
     });
 
     const text = await res.text();
@@ -45,18 +45,12 @@ export class DelhiveryBulkAdapter {
     }
   }
 
-  /* =======================
-     BULK TRACK (25 max)
-  ======================= */
-  trackBulk(awbs: string[]) {
+  async trackBulk(awbs: string[]) {
     return this.call('/api/v1/packages/json/', 'GET', undefined, {
       waybill: awbs.join(','),
     });
   }
 
-  /* =======================
-     SINGLE TRACK (worker)
-  ======================= */
   trackSingle(awb: string) {
     return this.call('/api/v1/packages/json/', 'GET', undefined, {
       waybill: awb,

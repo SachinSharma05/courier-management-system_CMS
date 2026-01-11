@@ -46,28 +46,12 @@ new Worker(
       case 'DTDC_SINGLE_TRACK':
         return processDtdcSingleTrack(job);
 
-      default:
-        throw new Error(`Unknown job: ${job.name}`);
-    }
-  },
-  {
-    connection: redis,
-    concurrency: 10,
-  },
-);
-
-new Worker(
-  'tracking',
-  async job => {
-    switch (job.name) {
-
       case 'DELHIVERY_POLL_NO_DATA':
         return pollDelhiveryNoData(job);
 
       case 'DELHIVERY_SINGLE_TRACK':
         return processDelhiverySingleTrack(job);
 
-      // existing DTDC jobs
       default:
         throw new Error(`Unknown job: ${job.name}`);
     }

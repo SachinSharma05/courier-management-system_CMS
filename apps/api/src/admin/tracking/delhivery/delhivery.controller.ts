@@ -7,14 +7,6 @@ import { DelhiveryService } from './delhivery.service';
 export class DelhiveryController {
   constructor(private readonly service: DelhiveryService) {}
 
-  /**
-   * Called after CSV / Excel upload
-   * Body:
-   * {
-   *   clientId: number,
-   *   awbs: string[]
-   * }
-   */
   @Post('bulk')
   async bulkTrack(
     @Body()

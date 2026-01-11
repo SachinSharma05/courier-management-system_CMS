@@ -28,8 +28,6 @@ export class DtdcBulkAdapter {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 25000);
 
-    console.log("token, customerCode", params.token, params.customerCode);
-
     const res = await fetch(this.AUTH_URL, {
       method: "POST",
       signal: controller.signal,
@@ -52,8 +50,6 @@ export class DtdcBulkAdapter {
 
     // 🔴 READ BODY ONLY ONCE
     const text = await res.text();
-
-    console.log("Auth API raw response:", text);
 
     if (!text) {
       throw new Error("DTDC AUTH empty response");

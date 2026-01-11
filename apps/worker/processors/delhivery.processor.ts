@@ -70,10 +70,16 @@ export async function processDelhiverySingleTrack(job: Job) {
   const latestTime = shipment.Status?.StatusDateTime
     ? new Date(shipment.Status.StatusDateTime)
     : events[0].event_time;
+  const bookedAt = shipment.PickUpDate
+    ? new Date(shipment.PickUpDate)
+    : shipment.PickedupDate
+    ? new Date(shipment.PickedupDate)
+    : null;
 
   await db
     .update(consignments)
     .set({
+      booked_at: bookedAt,
       current_status: latestStatus,
       last_status_at: latestTime,
     })

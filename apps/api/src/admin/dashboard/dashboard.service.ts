@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { db } from '../../db';
 import { sql, eq, and } from 'drizzle-orm';
 import { users } from '../../db/schema';
-import { trackingQueue } from '../../../../worker/queues/tracking.queue';
+import { trackingQueue } from '../../queues/tracking.queue';
 
 @Injectable()
 export class DashboardService {

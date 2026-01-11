@@ -22,7 +22,7 @@ export class ConsignmentsService {
     }
 
     if (provider) {
-      conditions.push(eq(consignments.provider, provider.toLowerCase()));
+      conditions.push(eq(consignments.provider, provider.toUpperCase()));
     }
 
     if (status) {
