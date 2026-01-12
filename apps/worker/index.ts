@@ -8,6 +8,7 @@ import { processDtdcSingleTrack } from './processors/dtdc.processor';
 import { pollNoDataFoundAwbs } from './processors/dtdc-track.processor';
 import { processDelhiverySingleTrack } from './processors/delhivery.processor';
 import { pollDelhiveryNoData } from './processors/delhivery.poller';
+import { cleanupOldConsignments } from './cleanup/cleanup.processor';
 
 /* -------------------- */
 /* Global startup logs */
@@ -52,8 +53,12 @@ new Worker(
       case 'DELHIVERY_SINGLE_TRACK':
         return processDelhiverySingleTrack(job);
 
+      case 'DELETE_OLD_CONSIGNMENTS':
+        return cleanupOldConsignments(); // fast + idempotent
+
       default:
-        throw new Error(`Unknown job: ${job.name}`);
+        console.log('Unknown job', { meta: job.name });
+        return;
     }
   },
   {

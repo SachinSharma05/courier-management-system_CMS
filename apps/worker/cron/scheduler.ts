@@ -15,6 +15,7 @@ export async function startScheduler() {
       removeOnComplete: true,
       attempts: 3,
       backoff: { type: 'exponential', delay: 30000 },
+      removeOnFail: false,
     }
   );
 
@@ -30,6 +31,20 @@ export async function startScheduler() {
       removeOnComplete: true,
       attempts: 3,
       backoff: { type: 'exponential', delay: 30000 },
+      removeOnFail: false,
+    },
+  );
+
+  await trackingQueue.add(
+    'DELETE_OLD_CONSIGNMENTS',
+    {},
+    {
+      jobId: 'DELETE_OLD_CONSIGNMENTS',
+      repeat: { pattern: '0 3 * * *'}, // Daily cleanup at 3 AM
+      removeOnComplete: true,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 60000 },
+      removeOnFail: false,
     },
   );
 }

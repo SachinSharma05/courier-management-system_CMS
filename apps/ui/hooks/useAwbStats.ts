@@ -25,7 +25,7 @@ export function useAwbStats() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 10000);
+    const interval = setInterval(fetchStats, 60000); // Refresh every 60 seconds
 
     return () => {
       alive = false;

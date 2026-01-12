@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { db } from '../../db';
-import { consignments, trackingEvents, users } from '../../db/schema';
+import { consignments, trackingEvents } from '../../db/schema';
 import { desc, eq, and } from 'drizzle-orm';
 import { computeMovement, computeTAT } from '../consignments/tat.engine';
 

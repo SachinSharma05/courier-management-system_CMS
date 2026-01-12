@@ -10,7 +10,7 @@ export function useConsignmentsSummary(clientId?: number) {
       });
       return res.data;
     },
-    enabled: !!clientId,        // 👈 IMPORTANT
+    enabled: true,        // 👈 IMPORTANT
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });

@@ -10,6 +10,14 @@ import { decrypt } from "../../../utils/crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { DtdcBulkAdapter } from '@cms/shared';
 import { trackingQueue } from '../../../queues/tracking.queue';
+import crypto from 'crypto';
+
+function makeJobId(provider: string, awb: string) {
+  return crypto
+    .createHash('sha1')
+    .update(`${provider}_${awb}`)
+    .digest('hex');
+}
 
 function parseDtdcDate(raw: string | null): string | null {
   if (!raw || raw.length !== 8) return null;
@@ -171,31 +179,35 @@ export class BulkTrackingService {
       // only AWBs that might have a timeline
       const needTimeline = deduped.filter(
         n =>
+          !!n.awb &&
           n.current_status !== 'NO DATA FOUND' &&
           (!n.events || n.events.length === 0),
       );
 
       if (needTimeline.length) {
-      await trackingQueue.addBulk(
-        needTimeline.map(n => ({
-          name: 'DTDC_SINGLE_TRACK',
-          data: {
-            awb: n.awb,
-            provider: 'DTDC',
-            clientId,
-          },
-          opts: {
-            jobId: `DTDC:${n.awb}`, // 🔴 idempotent
-            attempts: 5,
-            backoff: {
-              type: 'exponential',
-              delay: 60_000,
-            },
-            removeOnComplete: true,
-            removeOnFail: false,
-          },
-        })),
-      );
+      const jobs = needTimeline.map(n => ({
+        name: 'DTDC_SINGLE_TRACK',
+        data: {
+          awb: n.awb,
+          provider: 'DTDC',
+          clientId,
+        },
+        opts: {
+          jobId: makeJobId('DTDC', n.awb),
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 60_000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      }));
+
+      for (const chunk of this.chunk(jobs, 50)) {
+        try {
+          await trackingQueue.addBulk(chunk);
+        } catch (err) {
+          console.log('Bulk enqueue failed', err);
+        }
+      }
     }
 
       results.push({
@@ -328,18 +340,6 @@ export class BulkTrackingService {
     }
 
     return rows;
-  }
-
-  private normalizePublicSingle(json: any, awb: string) {
-    const statuses = Array.isArray(json?.statuses) ? json.statuses : [];
-    return statuses.map((s: any) => ({
-      status: s.statusDescription ?? "",
-      location: s.actCityName ?? s.actBranchName ?? null,
-      remarks: s.remarks ?? null,
-      event_time: s.statusTimestamp
-        ? new Date(s.statusTimestamp.replace(" ", "T"))
-        : null,
-    }));
   }
 
   private chunk<T>(arr: T[], size: number): T[][] {

@@ -20,6 +20,7 @@ import { CredentialsModule } from './credentials/credentials.module';
 import { UsersModule } from './admin/users/users.module';
 import { EmployeesModule } from './admin/employees/employees.module';
 import { DelhiveryModule } from './admin/tracking/delhivery/delhivery.module';
+import { RbacModule } from './rbac/rbac.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { DelhiveryModule } from './admin/tracking/delhivery/delhivery.module';
     UsersModule,
     EmployeesModule,
     DelhiveryModule,
+    RbacModule,
   ],
   providers:[
     {

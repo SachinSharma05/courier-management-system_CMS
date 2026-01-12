@@ -58,12 +58,24 @@ export async function processDtdcSingleTrack(job: Job) {
   await db.insert(trackingEvents).values(events);
 
   // 5️⃣ Update consignment status
-  const latest = events[0];
+  const sortedEvents = events
+    .filter(e => e.event_time)
+    .sort((a, b) =>
+      b.event_time!.getTime() - a.event_time!.getTime()
+    );
+
+  if (!sortedEvents.length) {
+    throw new Error('No valid events');
+  }
+
+  const latest = sortedEvents[0];
+
   await db
-    .update(consignments)
-    .set({
-      current_status: latest.status,
-      last_status_at: latest.event_time,
-    })
-    .where(eq(consignments.id, consignmentId));
+  .update(consignments)
+  .set({
+    current_status: latest.status,
+    last_status_at: latest.event_time,
+  })
+  .where(eq(consignments.id, consignmentId));
+
 }

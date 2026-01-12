@@ -1,188 +1,275 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  ShieldCheck, ShieldAlert, Key, Save, 
-  Search, ChevronRight, Lock, 
-  Settings, History
+import { useEffect, useState } from 'react';
+import {
+  ShieldCheck,
+  Save,
+  ChevronRight,
+  Lock,
+  Eye,
+  Edit3,
+  Unlock,
+  Loader2,
+  Search,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useRoles, useUpdateRole } from '@/hooks/useRbac';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import toast from 'react-hot-toast';
 
-// ... (ROLES and PERMISSIONS constants remain same)
-const ROLES = [
-  'SUPER_ADMIN',
-  'ADMIN',
-  'OPS',
-  'SUPPORT',
-  'FINANCE',
-  'CLIENT_ADMIN',
-  'CLIENT_USER',
-];
-
-const PERMISSIONS = [
-  'VIEW_DASHBOARD',
-  'VIEW_CONSIGNMENTS',
-  'TRACK_SHIPMENTS',
-  'MANAGE_CLIENTS',
-  'MANAGE_USERS',
-  'MANAGE_EMPLOYEES',
-  'MANAGE_PROVIDERS',
-  'MANAGE_PRICING',
-  'RETRY_DLQ',
-  'VIEW_AUDIT_LOGS',
-  'VIEW_SYSTEM',
-];
+type PermissionMatrix = {
+  permissionKey: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canFull: boolean;
+};
 
 export default function RolesPage() {
-  const [selectedRole, setSelectedRole] = useState('SUPER_ADMIN');
+  const { data: rolesData, isLoading } = useRoles();
+  const updateRole = useUpdateRole();
+
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [matrix, setMatrix] = useState<PermissionMatrix[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Fixed: Use permissionKey as per your API response
+  const loadMatrix = (role: any) => {
+    if (!role?.permissions) return;
+    setMatrix(
+      role.permissions.map((rp: any) => ({
+        permissionKey: rp.permissionKey, 
+        canRead: rp.canRead,
+        canWrite: rp.canWrite,
+        canFull: rp.canFull,
+      }))
+    );
+  };
+
+  useEffect(() => {
+    if (!rolesData?.length) return;
+    if (!selectedRoleId) {
+      const firstRole = rolesData[0];
+      setSelectedRoleId(firstRole.id);
+      loadMatrix(firstRole);
+    }
+  }, [rolesData]);
+
+  const onSelectRole = (role: any) => {
+    setSelectedRoleId(role.id);
+    loadMatrix(role);
+  };
+
+  // Fixed: toggle function ensures unique key matching
+  const toggle = (key: string, field: keyof Omit<PermissionMatrix, 'permissionKey'>) => {
+    setMatrix(prev =>
+      prev.map(p => {
+        if (p.permissionKey !== key) return p;
+
+        // Create the updated object
+        const updated = { ...p, [field]: !p[field] };
+
+        // LOGIC: If Full Access is toggled ON, turn on Read and Write
+        if (field === 'canFull' && updated.canFull) {
+          updated.canRead = true;
+          updated.canWrite = true;
+        }
+
+        // LOGIC: If Read or Write is toggled OFF, turn off Full Access
+        if ((field === 'canRead' || field === 'canWrite') && !updated[field]) {
+          updated.canFull = false;
+        }
+
+        return updated;
+      })
+    );
+  };
+
+  const onSave = async () => {
+    if (!selectedRoleId) return;
+    try {
+      await updateRole.mutateAsync({
+        roleId: selectedRoleId,
+        permissions: matrix,
+      });
+      toast.success('Permissions updated successfully');
+    } catch (err) {
+      toast.error('Failed to update permissions');
+    }
+  };
+
+  const filteredMatrix = matrix.filter(p => 
+    p.permissionKey.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="h-96 flex items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-600" size={32} />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500">
-      
-      {/* ───────────────── HEADER ───────────────── */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
-            <ShieldCheck size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Access Control (RBAC)</h1>
-            <p className="text-sm text-slate-500 font-medium">Define granular permissions for platform roles.</p>
-          </div>
-        </div>
-        <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95">
-          <Save size={18} /> Save Matrix
-        </button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen bg-[#f8fafc] p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* ───────────────── ROLE SELECTOR ───────────────── */}
-        <div className="w-full lg:w-72 shrink-0 space-y-4">
-          <div className="rounded-3xl border border-slate-100 bg-white p-2 shadow-sm">
-            <div className="px-4 py-3 mb-2">
-              <p className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">System Roles</p>
-            </div>
-            <div className="space-y-1">
-              {ROLES.map((role) => (
-                <button
-                  key={role}
-                  onClick={() => setSelectedRole(role)}
-                  className={clsx(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all group",
-                    selectedRole === role
-                      ? "bg-slate-900 text-white shadow-lg"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Key size={14} className={selectedRole === role ? "text-indigo-400" : "text-slate-300"} />
-                    {role.replace('_', ' ')}
-                  </div>
-                  <ChevronRight size={14} className={clsx(
-                    "transition-transform",
-                    selectedRole === role ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
-                  )} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-amber-50 border border-amber-100 p-4">
-            <div className="flex gap-3 text-amber-800">
-               <ShieldAlert size={18} className="shrink-0" />
-               <p className="text-[11px] font-medium leading-relaxed">
-                 Roles marked as <strong>System Default</strong> cannot be deleted. Changes to permissions sync across all associated users.
-               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ───────────────── PERMISSIONS MATRIX ───────────────── */}
-        <div className="flex-1 min-w-0 space-y-4">
-          <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-900">
-                    <Settings size={16} />
-                </div>
-                <h2 className="font-bold text-slate-900 underline decoration-indigo-500 decoration-2 underline-offset-4">
-                  {selectedRole.replace('_', ' ')} Permissions
-                </h2>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                <input 
-                  placeholder="Search permissions..." 
-                  className="bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/10"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50">
-                    <Th className="w-2/3">Capability</Th>
-                    <Th className="text-center">Read</Th>
-                    <Th className="text-center">Write</Th>
-                    <Th className="text-center">Full Access</Th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {PERMISSIONS.map((perm) => (
-                    <tr key={perm} className="group hover:bg-slate-50/50 transition-colors">
-                      <Td>
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-slate-200 group-hover:bg-indigo-500 transition-colors" />
-                            <div className="flex flex-col">
-                                <span className="font-bold text-slate-700 text-sm">{perm.replace(/_/g, ' ')}</span>
-                                <span className="text-[10px] text-slate-400 font-medium">Scope: platform.auth.{perm.toLowerCase()}</span>
-                            </div>
-                        </div>
-                      </Td>
-                      <Td className="text-center"><PermissionCheck /></Td>
-                      <Td className="text-center"><PermissionCheck /></Td>
-                      <Td className="text-center"><PermissionCheck /></Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-4 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                <div className="flex items-center gap-1"><History size={12}/> Last modified 2h ago</div>
-                <div className="flex items-center gap-1"><Lock size={12}/> End-to-end Encrypted</div>
-            </div>
-            <p className="text-[11px] text-slate-400 italic">
-              * Active sessions refresh every 15 minutes.
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <ShieldCheck className="text-indigo-600" size={36} />
+              Access Control
+            </h1>
+            <p className="text-slate-500 font-medium mt-1">
+              Defining granular permissions for <span className="text-indigo-600">
+                {rolesData?.find(r => r.id === selectedRoleId)?.name || 'Role'}
+              </span>
             </p>
           </div>
+
+          <Button 
+            onClick={onSave} 
+            disabled={updateRole.isPending}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-8 h-12 font-bold shadow-lg shadow-indigo-200 transition-all gap-2"
+          >
+            {updateRole.isPending ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            Save Changes
+          </Button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* --- SIDEBAR: ROLES --- */}
+          <aside className="w-full lg:w-72 space-y-3">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4">
+              Available Roles
+            </h2>
+            <div className="space-y-1">
+              {rolesData?.map((role: any) => {
+                const isActive = selectedRoleId === role.id;
+                return (
+                  <button
+                    key={role.id}
+                    onClick={() => onSelectRole(role)}
+                    className={clsx(
+                      'w-full flex items-center justify-between px-5 py-4 rounded-[1.5rem] transition-all duration-200 group',
+                      isActive 
+                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-[1.02]' 
+                        : 'bg-white border border-slate-100 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={clsx(
+                        "p-2 rounded-xl transition-colors",
+                        isActive ? "bg-slate-800" : "bg-slate-50 group-hover:bg-white"
+                      )}>
+                        <Lock size={16} className={isActive ? "text-indigo-400" : "text-slate-400"} />
+                      </div>
+                      <span className="font-bold text-sm tracking-tight capitalize">
+                        {role.name.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} className={clsx("transition-transform", isActive ? "translate-x-1" : "opacity-0 group-hover:opacity-100")} />
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* --- MAIN CONTENT --- */}
+          <main className="flex-1 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Input 
+                placeholder="Search permission modules..."
+                className="pl-12 h-12 rounded-2xl border-none shadow-sm bg-white font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="px-8 py-6 text-left text-xs font-black uppercase tracking-widest text-slate-400">Resource Module</th>
+                      <th className="px-6 py-6 text-center text-xs font-black uppercase tracking-widest text-slate-400">Read</th>
+                      <th className="px-6 py-6 text-center text-xs font-black uppercase tracking-widest text-slate-400">Write</th>
+                      <th className="px-6 py-6 text-center text-xs font-black uppercase tracking-widest text-slate-400">Full Access</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredMatrix.map((p) => (
+                      <tr key={p.permissionKey} className="hover:bg-slate-50/30 transition-colors group">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-mono text-[10px] font-bold">
+                              {p.permissionKey.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-bold text-slate-700 tracking-tight capitalize">
+                              {p.permissionKey.replace(/_/g, ' ').toLowerCase()}
+                            </span>
+                          </div>
+                        </td>
+                        
+                        <PermissionToggle 
+                          active={p.canRead} 
+                          icon={<Eye size={14} />}
+                          onClick={() => toggle(p.permissionKey, 'canRead')} 
+                        />
+                        
+                        <PermissionToggle 
+                          active={p.canWrite} 
+                          icon={<Edit3 size={14} />}
+                          onClick={() => toggle(p.permissionKey, 'canWrite')} 
+                        />
+                        
+                        <PermissionToggle 
+                          active={p.canFull} 
+                          icon={<Unlock size={14} />}
+                          highlight
+                          onClick={() => toggle(p.permissionKey, 'canFull')} 
+                        />
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </main>
         </div>
       </div>
     </div>
   );
 }
 
-/* ───────────────── MINI COMPONENTS ───────────────── */
-
-function PermissionCheck() {
-    return (
-        <div className="flex justify-center">
-            <label className="relative flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked />
-                <div className="w-9 h-5 bg-slate-100 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
+function PermissionToggle({ active, onClick, icon, highlight = false }: any) {
+  return (
+    <td className="px-6 py-5 text-center">
+      <button
+        onClick={onClick}
+        className={clsx(
+          "relative inline-flex items-center justify-center w-12 h-6 rounded-full transition-all duration-300 shadow-inner",
+          active 
+            ? (highlight ? "bg-indigo-600" : "bg-emerald-500") 
+            : "bg-slate-200"
+        )}
+      >
+        <div className={clsx(
+          "absolute w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm transition-all duration-300 transform",
+          active ? "translate-x-3" : "-translate-x-3"
+        )}>
+          <span className={clsx(
+            "scale-75",
+            active ? (highlight ? "text-indigo-600" : "text-emerald-500") : "text-slate-400"
+          )}>
+            {icon}
+          </span>
         </div>
-    );
-}
-
-function Th({ children, className }: any) {
-  return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-[2px] text-slate-400", className)}>{children}</th>;
-}
-
-function Td({ children, className }: any) {
-  return <td className={clsx("px-6 py-4 text-sm", className)}>{children}</td>;
+      </button>
+    </td>
+  );
 }

@@ -147,18 +147,19 @@ export class ConsignmentsService {
   }
 
   async getSummary(clientId?: number) {
-    const whereClause = clientId 
-    ? sql`WHERE ${consignments.client_id} = ${clientId}` 
-    : sql``;
+    // If clientId is provided, create the WHERE fragment; otherwise, stay empty
+    const whereFilter = clientId 
+      ? sql`WHERE ${consignments.client_id} = ${clientId}` 
+      : sql.raw(''); // Using sql.raw('') or just sql`` ensures no syntax error
 
     const rows = await db.execute(sql`
       SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE current_status = 'Delivered') as delivered,
-        COUNT(*) FILTER (WHERE current_status not in ('Delivered', 'RTO')) as pending,
+        COUNT(*) FILTER (WHERE current_status NOT IN ('Delivered', 'RTO')) as pending,
         COUNT(*) FILTER (WHERE current_status = 'RTO') as rto
-      FROM consignments
-      ${whereClause}
+      FROM ${consignments}
+      ${whereFilter}
     `);
 
     const r = rows.rows[0];

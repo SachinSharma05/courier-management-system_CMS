@@ -1,7 +1,8 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { pgTable, serial, text, varchar, timestamp, uuid, 
         integer, boolean, numeric, json, unique, jsonb, index, 
-        date} from "drizzle-orm/pg-core";
+        date,
+        primaryKey} from "drizzle-orm/pg-core";
 
 // CONSIGNMENTS
 export const consignments = pgTable(
@@ -155,6 +156,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 254 }).notNull().unique(),
   password_hash: text("password_hash").notNull(),
   role: text("role").notNull().default("client"), // client | super_admin
+  roleId: uuid('role_id').references(() => roles.id),
   company_name: text("company_name"),
   company_address: text("company_address"),
   contact_person: text("contact_person"),
@@ -331,6 +333,56 @@ export const holidays = pgTable('holidays', {
   is_optional: boolean('is_optional').default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+// db/schema/roles.ts
+export const roles = pgTable('roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 50 }).notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// db/schema/permissions.ts
+export const permissions = pgTable('permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: varchar('key', { length: 100 }).notNull().unique(), 
+  // e.g. VIEW_CONSIGNMENTS
+});
+
+// db/schema/role-permissions.ts
+export const rolePermissions = pgTable('role_permissions', {
+  roleId: uuid('role_id').references(() => roles.id).notNull(),
+  permissionId: uuid('permission_id').references(() => permissions.id).notNull(),
+
+  canRead: boolean('can_read').default(false),
+  canWrite: boolean('can_write').default(false),
+  canFull: boolean('can_full').default(false),
+},
+  t => ({
+    pk: primaryKey(t.roleId, t.permissionId),
+  }),
+);
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const rolePermissionsRelations = relations(
+  rolePermissions,
+  ({ one }) => ({
+    role: one(roles, {
+      fields: [rolePermissions.roleId],
+      references: [roles.id],
+    }),
+    permission: one(permissions, {
+      fields: [rolePermissions.permissionId],
+      references: [permissions.id],
+    }),
+  }),
+);
 
 export const RATE_SLAB_TYPES = {
   BASE: 'BASE',
