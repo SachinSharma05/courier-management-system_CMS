@@ -1,17 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { 
   Package, 
   User, 
-  MapPin, 
-  CreditCard, 
+  MapPin,
   Truck, 
   Info, 
-  Download, 
-  Plus, 
-  ExternalLink, 
+  Download,
   Loader2,
   AlertCircle,
   ArrowRight,
@@ -30,8 +26,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import { api } from '@/lib/api/axios';
 
 const DEFAULT_PICKUP_PIN = "452010";
 const generateOrderId = () => `VI-${Date.now()}`;
@@ -85,9 +81,15 @@ export default function CreateDelhiveryShipmentPage() {
     if (!/^\d{6}$/.test(pin)) return;
     setPinLoading(true);
     try {
-      const p = await fetch(`/api/admin/delhivery/pincode?pin=${pin}`).then(r => r.json());
+      const p = await api.get(`/providers/delhivery/pincode?pin=${pin}`).then(r => r.data);
       setPinInfo(p?.delivery_codes?.[0]?.postal_code ?? p ?? null);
-      const t = await fetch(`/api/admin/delhivery/tat?origin_pin=${DEFAULT_PICKUP_PIN}&destination_pin=${pin}&mot=S`).then(r => r.json());
+      const t = await api.get('/providers/delhivery/tat', {
+        params: {
+          origin_pin: DEFAULT_PICKUP_PIN,
+          destination_pin: pin,
+          mot: 'S',
+        },
+      }).then(r => r.data);
       setTatInfo(t?.data?.tat ?? null);
     } catch (err) {
       console.error(err);
@@ -138,7 +140,7 @@ export default function CreateDelhiveryShipmentPage() {
                     <Input 
                       value={form.channel} 
                       disabled 
-                      className="h-12 pl-12 rounded-xl border-slate-100 bg-slate-50 font-bold text-slate-700"
+                      className="h-12 pl-12 rounded-xl border-slate-100 bg-slate-50 font-bold text-slate-900"
                     />
                   </div>
                 </div>
@@ -147,7 +149,8 @@ export default function CreateDelhiveryShipmentPage() {
                   <Input 
                     value={form.order_id} 
                     onChange={v => update('order_id', v.target.value)} 
-                    className="h-12 rounded-xl border-slate-100 bg-slate-50/50 font-mono font-bold text-indigo-600"
+                    disabled
+                    className="h-12 rounded-xl border-slate-100 bg-slate-50/50 font-mono font-bold text-slate-900"
                   />
                 </div>
               </div>

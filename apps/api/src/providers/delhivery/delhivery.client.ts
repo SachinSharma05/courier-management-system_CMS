@@ -2,10 +2,21 @@ import axios, { AxiosInstance } from 'axios';
 
 export class DelhiveryClient {
   private client: AxiosInstance;
+  private DELHIVERY_BASE_URL='https://track.delhivery.com';
+  private track: AxiosInstance;
 
   constructor(token: string) {
     this.client = axios.create({
-      baseURL: process.env.DELHIVERY_BASE_URL,
+      baseURL: this.DELHIVERY_BASE_URL,
+      headers: {
+        Authorization: `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000,
+    });
+
+    this.track = axios.create({
+      baseURL: 'https://track.delhivery.com',
       headers: {
         Authorization: `Token ${token}`,
         'Content-Type': 'application/json',
@@ -20,5 +31,9 @@ export class DelhiveryClient {
 
   post<T>(url: string, data?: any): Promise<T> {
     return this.client.post(url, data).then(r => r.data);
+  }
+
+  trackGet<T>(url: string, params?: any) {
+    return this.track.get<T>(url, { params }).then(r => r.data);
   }
 }

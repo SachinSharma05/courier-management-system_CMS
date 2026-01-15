@@ -384,6 +384,31 @@ export const rolePermissionsRelations = relations(
   }),
 );
 
+export const pincodes = pgTable('pincodes', {
+  id: serial('id').primaryKey(),
+  provider: varchar('provider', { length: 50 }).notNull(), // dtdc, delhivery
+  pincode: varchar('pincode', { length: 10 }).notNull().unique(),
+  city: varchar('city', { length: 100 }),
+  state: varchar('state', { length: 100 }).notNull(),
+  cod_delivery: boolean('cod_delivery').default(false),
+  prepaid_delivery: boolean('prepaid_delivery').default(true),
+  pickup: boolean('pickup').default(true),
+  zone_group: varchar('zone_group', { length: 50 }), 
+  zone_code: varchar('zone_code', { length: 10 }),
+  // eg: METRO, ROE, NE, JNK
+  created_at: timestamp('created_at').defaultNow(),
+});
+
+export const zoneMappings = pgTable('zone_mappings', {
+  id: serial('id').primaryKey(),
+  provider: varchar('provider', { length: 50 }).notNull(), // delhivery, dtdc
+  service_type: varchar('service_type', { length: 30 }).notNull(), // surface, express
+  origin_group: varchar('origin_group', { length: 50 }).notNull(),
+  destination_group: varchar('destination_group', { length: 50 }).notNull(),
+  zone_code: varchar('zone_code', { length: 10 }).notNull(), // A, B, C1...
+  created_at: timestamp('created_at').defaultNow(),
+});
+
 export const RATE_SLAB_TYPES = {
   BASE: 'BASE',
   ADD_250: 'ADD_250',

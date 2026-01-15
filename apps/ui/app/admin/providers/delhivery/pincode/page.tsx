@@ -21,6 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import clsx from "clsx";
+import { api } from "@/lib/api/axios";
+
+const DEFAULT_PICKUP_PIN = "452010";
 
 export default function DelhiveryServiceability() {
   const [pin, setPin] = useState("");
@@ -37,9 +40,8 @@ export default function DelhiveryServiceability() {
     setLoading(true);
     setData(null);
     try {
-      const r = await fetch(`/api/admin/delhivery/pincode?pin=${pin}`);
-      const j = await r.json();
-      setData(j);
+      const r = await api.get(`/providers/delhivery/pincode?pin=${pin}`).then(r => r.data);
+      setData(r);
     } catch (e) {
       console.error(e);
     } finally {
@@ -51,9 +53,14 @@ export default function DelhiveryServiceability() {
     if (!tatOrigin || !tatDest) return;
     setTatLoading(true);
     try {
-      const r = await fetch(`/api/admin/delhivery/tat?origin_pin=${tatOrigin}&destination_pin=${tatDest}&mot=S`);
-      const j = await r.json();
-      if (j.success) setTatResult(j.data?.tat ?? null);
+      const r = await api.get('/providers/delhivery/tat', {
+        params: {
+          origin_pin: DEFAULT_PICKUP_PIN,
+          destination_pin: pin,
+          mot: 'S',
+        },
+      }).then(r => r.data);
+      if (r.success) setTatResult(r.data?.tat ?? null);
       else setTatResult(null);
     } catch (e) {
       console.error(e);

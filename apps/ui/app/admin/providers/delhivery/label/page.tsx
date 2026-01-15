@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api/axios";
 
 export default function LabelDownload() {
   const [awb, setAwb] = useState("");
@@ -30,29 +31,21 @@ export default function LabelDownload() {
     setPdfUrl(null);
 
     try {
-      const r = await fetch("/api/admin/delhivery/label", {
-        method: "POST",
-        body: JSON.stringify({ awb }),
-      });
-
-      const j = await r.json();
+      // Pass params in the config object
+      const response = await api.get(`/providers/delhivery/label?waybill=${awb}`).then(res => res.data);
+      
+      const j = response?.packages?.[0];
       setLoading(false);
 
-      if (j.link) {
-        setPdfUrl(j.link);
+      if (j.pdf_download_link) {
+        setPdfUrl(j.pdf_download_link);
         setFilename(`${awb}.pdf`);
-        return;
-      }
-
-      if (j.base64) {
+      } else if (j.base64) {
         setPdfBase64(j.base64);
         setFilename(`${awb}.pdf`);
-        return;
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.error("Label Error:", e);
     }
   }
 

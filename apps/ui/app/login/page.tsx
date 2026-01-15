@@ -19,6 +19,7 @@ export default function LoginPage() {
 
     // if using header token
     localStorage.setItem('access_token', res.data.access_token);
+    localStorage.setItem('user', JSON.stringify(res.data.user));
 
     window.location.href = '/admin';
   };

@@ -43,3 +43,8 @@ export function useProviderShipments(params: Params) {
     keepPreviousData: true,
   });
 }
+
+export async function providerPincode(pin: string){
+  const res = await api.get(`/providers/delhivery/pincode`, { params: { pin } });
+  return res.data;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Calculator, 
   MapPin, 
@@ -19,41 +20,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import clsx from 'clsx';
+import { api } from "@/lib/api/axios";
 
 export default function CostCalculator() {
   const [payload, setPayload] = useState({
-    origin_pincode: "",
-    destination_pincode: "",
+    originPin: "",
+    destinationPin: "",
     weight: "",
-    cod_amount: "",
-    service: "standard",
+    paymentType: "prepaid",
+    codAmount: 0,
+    serviceType: "standard",
   });
 
   const [cost, setCost] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   async function calculate() {
     setLoading(true);
     setCost(null);
 
     const body = {
-      origin_pin: payload.origin_pincode,
-      destination_pin: payload.destination_pincode,
-      cgm: Number(payload.weight) * 1000, 
-      mode: payload.service === "express" ? "E" : "S",
-      payment_type: payload.cod_amount ? "COD" : "Pre-paid",
-      cod_amount: payload.cod_amount ? Number(payload.cod_amount) : undefined,
-      client_code: "VARIABLEINSTINCT C2C",
+      originPin: payload.originPin,
+      destinationPin: payload.destinationPin,
+      weight: Number(payload.weight) * 1000, 
+      serviceType: payload.serviceType === "express" ? "express" : "surface",
+      paymentType: payload.paymentType === 'COD' ? "COD" : "PREPAID",
+      codAmount: payload.codAmount ? Number(payload.codAmount) : undefined,
+      client_id: user?.id ?? undefined,
+      provider: 'delhivery',
     };
 
     try {
-      const r = await fetch("/api/admin/delhivery/calculate-cost", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      const j = await r.json();
-      if (j?.success) {
-        setCost(simplifyCost(j.result));
+      const r = await api.post("/providers/delhivery/rate", body).then( r => r.data);
+      if (r && r.zone) {
+        setCost(simplifyCost(r));
       }
     } catch (err) {
       console.error("Calculation error", err);
@@ -83,15 +84,15 @@ export default function CostCalculator() {
                 icon={<MapPin size={16} />} 
                 label="Origin Pincode" 
                 placeholder="Ex: 452010"
-                value={payload.origin_pincode}
-                onChange={(v: string) => setPayload({ ...payload, origin_pincode: v })}
+                value={payload.originPin}
+                onChange={(v: string) => setPayload({ ...payload, originPin: v })}
               />
               <FloatingInput 
                 icon={<MapPin size={16} />} 
                 label="Destination" 
                 placeholder="Ex: 110001"
-                value={payload.destination_pincode}
-                onChange={(v: string) => setPayload({ ...payload, destination_pincode: v })}
+                value={payload.destinationPin}
+                onChange={(v: string) => setPayload({ ...payload, destinationPin: v })}
               />
             </div>
 
@@ -107,8 +108,8 @@ export default function CostCalculator() {
               icon={<Banknote size={16} />} 
               label="COD Amount (optional)" 
               placeholder="0.00"
-              value={payload.cod_amount}
-              onChange={(v: string) => setPayload({ ...payload, cod_amount: v })}
+              value={payload.codAmount}
+              onChange={(v: number) => setPayload({ ...payload, codAmount: Number(v) || 0 })}
             />
 
             <div className="space-y-2 pt-2">
@@ -117,10 +118,10 @@ export default function CostCalculator() {
                 {['standard', 'express'].map(mode => (
                   <button 
                     key={mode}
-                    onClick={() => setPayload({ ...payload, service: mode })}
+                    onClick={() => setPayload({ ...payload, serviceType: mode })}
                     className={clsx(
                       "flex-1 py-3 rounded-xl font-bold text-sm capitalize transition-all border",
-                      payload.service === mode 
+                      payload.serviceType === mode 
                         ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200" 
                         : "bg-white text-slate-500 border-slate-100 hover:border-slate-300"
                     )}
@@ -154,12 +155,16 @@ export default function CostCalculator() {
               <div className="relative z-10 space-y-8">
                 <div className="flex justify-between items-end">
                   <div>
-                    <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 mb-2 uppercase tracking-tighter">Zone {cost.zone}</Badge>
+                    {/* Using cost.zone from your response */}
+                    <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 mb-2 uppercase tracking-tighter">
+                      Zone {cost.zone}
+                    </Badge>
                     <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Freight Breakdown</h2>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Charged Weight</p>
-                    <p className="text-lg font-black text-slate-900">{cost.chargedWeight} kg</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Pricing Slab</p>
+                    {/* Using slab_type from your response */}
+                    <p className="text-lg font-black text-slate-900">{cost.slab}</p>
                   </div>
                 </div>
 
@@ -167,20 +172,20 @@ export default function CostCalculator() {
                   <SummaryRow label="Base Freight" value={cost.base_charge} />
                   <SummaryRow label="Fuel Surcharge" value={cost.fsc} />
                   <SummaryRow label="COD Charges" value={cost.cod_charge} />
-                  <SummaryRow label="CGST (9%)" value={cost.taxes.cgst} />
-                  <SummaryRow label="SGST (9%)" value={cost.taxes.sgst} />
-                  {cost.taxes.igst > 0 && <SummaryRow label="IGST (18%)" value={cost.taxes.igst} />}
+                  <SummaryRow label="CGST (9%)" value={cost.taxes.cgst.toFixed(2)} />
+                  <SummaryRow label="SGST (9%)" value={cost.taxes.sgst.toFixed(2)} />
                 </div>
 
                 <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Estimated Cost</p>
-                    <p className="text-5xl font-black text-slate-900 tracking-tighter">₹{cost.total}</p>
+                    {/* formatted to 2 decimal places for money */}
+                    <p className="text-5xl font-black text-slate-900 tracking-tighter">₹{cost.total.toFixed(2)}</p>
                   </div>
                   <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3 max-w-[240px]">
                     <ShieldCheck className="text-emerald-600 shrink-0" size={20} />
                     <p className="text-[10px] font-bold text-emerald-800 leading-tight">
-                      This is an estimated rate. Final billing depends on scanned weight.
+                      This is an estimated rate based on Zone {cost.zone}. Final billing depends on scanned weight.
                     </p>
                   </div>
                 </div>
@@ -204,7 +209,6 @@ export default function CostCalculator() {
 }
 
 // --- SUB COMPONENTS ---
-
 function FloatingInput({ label, icon, placeholder, value, onChange }: any) {
   return (
     <div className="space-y-2 group">
@@ -226,30 +230,41 @@ function FloatingInput({ label, icon, placeholder, value, onChange }: any) {
   );
 }
 
-function SummaryRow({ label, value }: { label: string, value: number }) {
+function SummaryRow({ label, value }: { label: string, value: any }) {
+  // Convert value to a number to ensure .toFixed works
+  const numericValue = Number(value) || 0;
+
   return (
     <div className="flex justify-between items-center group cursor-default">
-      <span className="text-sm font-bold text-slate-500 group-hover:text-slate-900 transition-colors">{label}</span>
-      <span className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">₹{value.toFixed(2)}</span>
+      <span className="text-sm font-bold text-slate-500 group-hover:text-slate-900 transition-colors">
+        {label}
+      </span>
+      <span className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+        ₹{numericValue.toFixed(2)}
+      </span>
     </div>
   );
 }
 
 // ---- Simplifier (Keep your logic, just clean the values) ----
-function simplifyCost(result: any[]) {
-  if (!Array.isArray(result) || !result.length) return null;
-  const r = result[0];
+function simplifyCost(r: any) {
+  if (!r) return null;
+  
+  // Tax logic: Calculate 9% for CGST/SGST from the total base
+  const cgst = r.breakdown.total * 0.09;
+  const sgst = r.breakdown.total * 0.09;
+
   return {
     zone: r.zone,
-    chargedWeight: r.charged_weight,
-    base_charge: r.charge_DL ?? 0,
-    fsc: r.charge_FSC ?? 0,
-    cod_charge: (r.charge_COD ?? 0) + (r.charge_CCOD ?? 0),
+    slab: r.slab_type, // "ADD_500" etc.
+    base_charge: r.breakdown.base,
+    fsc: 0, // Set to 0 if your current backend doesn't calculate it yet
+    cod_charge: 0, // Set to 0 or map if available
     taxes: {
-      cgst: r.tax_data?.CGST ?? 0,
-      sgst: r.tax_data?.SGST ?? 0,
-      igst: r.tax_data?.IGST ?? 0,
+      cgst: cgst,
+      sgst: sgst,
+      igst: 0,
     },
-    total: r.total_amount ?? 0,
+    total: r.breakdown.total + cgst + sgst, // Final amount including taxes
   };
 }

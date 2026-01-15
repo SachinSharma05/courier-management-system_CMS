@@ -14,12 +14,21 @@ export class DelhiveryController {
     return this.service.getPincodeTat(pin);
   }
 
+  @Get('tat')
+  async getTat(
+    @Query('origin_pin') origin_pin: string, 
+    @Query('destination_pin') destination_pin: string, 
+    @Query('mot') mot: string
+  ) {
+    return this.service.getTat(origin_pin, destination_pin, mot);
+  }
+
   @Post('rate')
   calculateRate(@Body() dto: CalculateRateDto) {
     return this.service.calculateRate(dto);
   }
 
-  @Post('shipment')
+  @Post('create')
   createShipment(@Body() dto: CreateShipmentDto) {
     return this.service.createShipment(dto);
   }
