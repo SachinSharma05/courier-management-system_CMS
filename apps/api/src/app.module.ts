@@ -22,6 +22,7 @@ import { EmployeesModule } from './admin/employees/employees.module';
 import { DelhiveryModule } from './admin/tracking/delhivery/delhivery.module';
 import { RbacModule } from './rbac/rbac.module';
 import { DelhiveryC2CModule } from './providers/delhivery/delhivery.module';
+import { DtdcModule } from './providers/dtdc/dtdc.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { DelhiveryC2CModule } from './providers/delhivery/delhivery.module';
     DelhiveryModule,
     RbacModule,
     DelhiveryC2CModule,
+    DtdcModule,
   ],
   providers:[
     {

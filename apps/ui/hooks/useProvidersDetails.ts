@@ -10,7 +10,6 @@ type Params = {
 };
 
 // types/provider-shipment.ts
-
 export type Shipment = {
   id: string;
   awb: string;
@@ -34,7 +33,7 @@ export function useProviderShipments(params: Params) {
     queryKey: ['provider-shipments', params],
     queryFn: async () => {
       const { data } = await api.get(
-        `/providers/${params.provider}/shipments`,
+        `/providers/${params.provider}/list`,
         { params },
       );
       console.log("Data", data);
@@ -42,9 +41,4 @@ export function useProviderShipments(params: Params) {
     },
     keepPreviousData: true,
   });
-}
-
-export async function providerPincode(pin: string){
-  const res = await api.get(`/providers/delhivery/pincode`, { params: { pin } });
-  return res.data;
 }

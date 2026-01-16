@@ -3,7 +3,6 @@ import { DelhiveryClient } from './delhivery.client';
 import { mapCreateShipment } from './delhivery.mapper';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { CalculateRateDto } from './dto/rate.dto';
-import { ResolveNdrDto } from './dto/ndr.dto';
 import { ListShipmentsDto } from './dto/list-shipments.dto';
 import { consignments, pincodes, rateCards, rateCardSlabs, zoneMappings } from '../../db/schema';
 import { sql, desc, eq, isNull, lte, or, gte, and } from 'drizzle-orm';
@@ -175,8 +174,6 @@ export class DelhiveryService {
     return mapping.zone_code;
   }
 
-  
-
   createShipment(dto: CreateShipmentDto) {
     const payload = mapCreateShipment(dto);
 
@@ -186,7 +183,6 @@ export class DelhiveryService {
     );
   }
 
-  // apps/api/src/providers/delhivery.service.ts
   async generateLabel(waybill: string) {
     if (!waybill) {
       throw new Error('Waybill is required');
@@ -204,25 +200,42 @@ export class DelhiveryService {
     return response;
   }
 
-  updateShipment(waybill: string, payload: any) {
-    return this.client.post(
-      '/api/cmu/update.json',
-      { waybill, ...payload },
-    );
+  async updateShipment(waybill: string, payload: any) {
+    try {
+      // 🔑 Delhivery expects FLAT payload
+      const data = {
+        waybill,
+        ...payload,
+      };
+
+      return await this.client.trackPost(
+        '/api/p/edit',
+        data,
+      );
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.response?.data || err.message || 'Delhivery update failed',
+      );
+    }
   }
 
-  getNdrDetails(waybill: string) {
-    return this.client.get(
-      '/api/ndr/v1/ndr_details/',
-      { waybill },
-    );
-  }
-
-  resolveNdr(dto: ResolveNdrDto) {
-    return this.client.post(
-      '/api/ndr/v1/resolve/',
-      dto,
-    );
+  async resolveNdr(
+    waybill: string,
+    act: 'RE-ATTEMPT' | 'PICKUP_RESCHEDULE',
+  ) {
+    try {
+      return await this.client.trackPost(
+        '/api/p/update',
+        {
+          waybill,
+          act, // EXACT key as per Delhivery docs
+        },
+      );
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.response?.data || err.message || 'Delhivery NDR failed',
+      );
+    }
   }
 
   async listShipments(provider: string, q: ListShipmentsDto) {
@@ -269,6 +282,103 @@ export class DelhiveryService {
         totalPages: Math.ceil(total / q.limit),
       },
     };
+  }
+
+  // apps/api/src/providers/delhivery/delhivery.service.ts
+  async getShipmentDetails(waybill: string, refId?: string) {
+    try {
+      const params: any = { waybill };
+
+      if (refId) {
+        params.ref_ids = refId;
+      }
+
+      const response = await this.client.trackGet(
+        '/api/v1/packages/json/',
+        params,
+      ) as {
+        ShipmentData?: Array<{
+          Shipment?: any;
+        }>;
+      };
+
+      const shipment = response?.ShipmentData?.[0]?.Shipment;
+
+      if (!shipment) {
+        throw new BadRequestException('Shipment not found');
+      }
+
+      return {
+        awb: shipment.AWB,
+        order_id: shipment.ReferenceNo,
+        status: shipment.Status?.Status,
+        status_type: shipment.Status?.StatusType,
+        pickup_date: shipment.PickupDate,
+        consignee: {
+          name: shipment.Consignee?.Name,
+          phone: shipment.Consignee?.Phone,
+          address: shipment.Consignee?.Address,
+          city: shipment.Consignee?.City,
+          pincode: shipment.Consignee?.Pincode,
+        },
+        shipper: {
+          name: shipment.Shipper?.Name,
+          city: shipment.Shipper?.City,
+          pincode: shipment.Shipper?.Pincode,
+        },
+        payment: {
+          type: shipment.Payment,
+          cod_amount: shipment.CODAmount,
+        },
+        // is_cancellable: this.isCancellable(pkg.Status?.Status),
+        raw: shipment, // keep full payload for UI debug
+      };
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.response?.data || err.message || 'Delhivery API error',
+      );
+    }
+  }
+
+  async cancelShipment(waybill: string) {
+    try {
+      const response = await this.client.trackPost(
+        '/api/p/edit',
+        {
+          waybill,
+          cancellation: 'true', // exact key as per Delhivery docs
+        },
+      );
+
+      return response;
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.response?.data || err.message || 'Delhivery cancel failed',
+      );
+    }
+  }
+
+  async createPickupRequest(payload: {
+    pickup_date: string;
+    pickup_time: string;
+    pickup_location: string;
+    expected_package_count: number;
+  }) {
+    try {
+      return await this.client.trackPost(
+        '/fm/request/new/',
+        {
+          pickup_date: payload.pickup_date,               // YYYY-MM-DD
+          pickup_time: payload.pickup_time,               // HH:mm:ss
+          pickup_location: payload.pickup_location,       // exact warehouse name
+          expected_package_count: payload.expected_package_count,
+        },
+      );
+    } catch (err: any) {
+      throw new BadRequestException(
+        err.response?.data || err.message || 'Delhivery pickup request failed',
+      );
+    }
   }
 
 }

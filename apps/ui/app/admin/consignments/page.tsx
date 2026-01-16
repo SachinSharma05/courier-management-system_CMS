@@ -256,21 +256,6 @@ function Td({ children }: any) {
   return <td className="px-4 py-3 text-sm">{children}</td>;
 }
 
-// function tatBadgeUI(t: string) {
-//   const styles: any = {
-//     "Delivered": "bg-green-100 text-green-700",
-//     "Sensitive": "bg-red-600 text-white",
-//     "Critical": "bg-red-200 text-red-800",
-//     "Warning": "bg-yellow-200 text-yellow-800",
-//     "default": "bg-slate-100 text-slate-600"
-//   };
-//   return <span className={clsx("px-1.5 py-0.5 rounded text-[9px] font-bold", styles[t] || styles.default)}>{t || 'On Time'}</span>;
-// }
-
-// function moveBadgeUI(t: string) {
-//   return <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">{t || 'Surface'}</span>;
-// }
-
 function tatBadgeUI(t: string) {
     switch (t) {
       case "Delivered":

@@ -36,4 +36,8 @@ export class DelhiveryClient {
   trackGet<T>(url: string, params?: any) {
     return this.track.get<T>(url, { params }).then(r => r.data);
   }
+
+  trackPost<T = any>(url: string, data?: any): Promise<T> {
+    return this.track.post(url, data).then(r => r.data);
+  }
 }

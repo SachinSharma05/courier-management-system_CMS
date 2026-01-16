@@ -1,8 +1,7 @@
-import { Controller, Get, Post, Query, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, BadRequestException } from '@nestjs/common';
 import { DelhiveryService } from './delhivery.service';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { CalculateRateDto } from './dto/rate.dto';
-import { ResolveNdrDto } from './dto/ndr.dto';
 import { ListShipmentsDto } from './dto/list-shipments.dto';
 
 @Controller('providers/delhivery')
@@ -39,23 +38,81 @@ export class DelhiveryController {
   }
 
   @Post('update')
-  updateShipment(@Body() body: { waybill: string; payload: any }) {
+  updateShipment(
+    @Body() body: { waybill: string; payload: any }
+  ) {
+    if (!body.waybill) {
+      throw new BadRequestException('waybill is required');
+    }
+
     return this.service.updateShipment(body.waybill, body.payload);
   }
 
-  @Get('ndr')
-  getNdr(@Query('waybill') waybill: string) {
-    return this.service.getNdrDetails(waybill);
+  @Post('ndr')
+  resolveNdr(
+    @Body() body: { waybill: string; act: 'RE-ATTEMPT' | 'PICKUP_RESCHEDULE' },
+  ) {
+    if (!body.waybill || !body.act) {
+      throw new BadRequestException('waybill and act are required');
+    }
+
+    return this.service.resolveNdr(body.waybill, body.act);
   }
 
-  @Post('ndr/resolve')
-  resolveNdr(@Body() dto: ResolveNdrDto) {
-    return this.service.resolveNdr(dto);
-  }
-
-  @Get('shipments')
+  @Get('list')
   getShipments(@Query() query: ListShipmentsDto) {
     return this.service.listShipments('DELHIVERY', query);
+  }
+
+  @Get('shipment')
+  getShipmentDetails(
+    @Query('waybill') waybill: string,
+    @Query('ref_id') refId?: string,
+  ) {
+    if (!waybill) {
+      throw new BadRequestException('waybill is required');
+    }
+
+    return this.service.getShipmentDetails(waybill, refId);
+  }
+
+  @Post('cancel')
+  cancelShipment(@Body() body: { waybill: string }) {
+    if (!body.waybill) {
+      throw new BadRequestException('waybill is required');
+    }
+
+    return this.service.cancelShipment(body.waybill);
+  }
+
+  @Post('pickup-request')
+  createPickupRequest(
+    @Body() body: {
+      pickup_date: string;              // YYYY-MM-DD
+      pickup_time: string;              // HH:mm:ss
+      pickup_location: string;          // registered warehouse name
+      expected_package_count: number;   // integer
+    },
+  ) {
+    const {
+      pickup_date,
+      pickup_time,
+      pickup_location,
+      expected_package_count,
+    } = body;
+
+    if (
+      !pickup_date ||
+      !pickup_time ||
+      !pickup_location ||
+      !expected_package_count
+    ) {
+      throw new BadRequestException(
+        'pickup_date, pickup_time, pickup_location, expected_package_count are required',
+      );
+    }
+
+    return this.service.createPickupRequest(body);
   }
 
 }
