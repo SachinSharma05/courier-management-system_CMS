@@ -28,6 +28,8 @@ export const consignments = pgTable(
     estimated_cost: numeric("estimated_cost", { precision: 12, scale: 2 }),
     invoice_amount: numeric("invoice_amount", { precision: 12, scale: 2 }),
     current_status: varchar("current_status", { length: 100 }),
+    normalized_status: varchar('normalized_status', { length: 30 }),
+    status_group: varchar('status_group', { length: 20 }),
     expected_delivery_date: timestamp("expected_delivery_date"),
     booked_at: timestamp("booked_at"),
     last_status_at: timestamp("last_status_at"),

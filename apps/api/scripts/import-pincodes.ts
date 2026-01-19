@@ -2,8 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
-import { db } from '../db'; // Use your existing DB instance
-import { pincodes } from '../db/schema';
+import { db } from '../src/db'; // Use your existing DB instance
+import { pincodes } from '../src/db/schema';
 
 async function run() {
   const csvFilePath = path.resolve(process.cwd(), '../data/pincodes.csv');

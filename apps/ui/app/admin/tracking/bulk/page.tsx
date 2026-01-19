@@ -47,7 +47,23 @@ export default function BulkTrackingPage() {
             const l = getLowerKeys(r);
             return {
               code: String(l['dsr_act_cust_code'] ?? l['dsr_act_code'] ?? '').trim(),
-              awb: String(l['dsr_cnno'] ?? l['awb'] ?? '').trim()
+              awb: String(l['dsr_cnno'] ?? l['awb'] ?? '').trim(),
+
+              booked_at: l['dsr_booking_date']
+                ? safeDate(l['dsr_booking_date'])
+                : null,
+
+              reference_number: l['dsr_refno']
+                ? String(l['dsr_refno']).trim()
+                : null,
+
+              origin_pincode: l['bkg_pincode']
+                ? String(l['bkg_pincode']).trim()
+                : null,
+
+              destination_pincode: l['dsr_dest_pin']
+                ? String(l['dsr_dest_pin']).trim()
+                : null,
             };
           }).filter(r => r.code && r.awb);
         } else {
@@ -209,4 +225,11 @@ export default function BulkTrackingPage() {
       </div>
     </div>
   );
+}
+
+function safeDate(d: string | Date | null): Date | null {
+  if (!d) return null;
+
+  const date = d instanceof Date ? d : new Date(d);
+  return isNaN(date.getTime()) ? null : date;
 }

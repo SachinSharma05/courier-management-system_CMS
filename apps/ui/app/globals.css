@@ -142,3 +142,13 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1; /* slate-300 */
 }
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

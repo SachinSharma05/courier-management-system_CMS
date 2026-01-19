@@ -31,6 +31,7 @@ async listShipments(provider: string, q: ListShipmentsDto) {
     db.select({
         id: consignments.id,
         awb: consignments.awb,
+        reference_number: consignments.reference_number,
         provider: consignments.provider,
         status: consignments.current_status,
         bookedAt: consignments.booked_at,

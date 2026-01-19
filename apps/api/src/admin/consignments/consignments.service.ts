@@ -147,28 +147,27 @@ export class ConsignmentsService {
   }
 
   async getSummary(clientId?: number) {
-    // If clientId is provided, create the WHERE fragment; otherwise, stay empty
-    const whereFilter = clientId 
-      ? sql`WHERE ${consignments.client_id} = ${clientId}` 
-      : sql.raw(''); // Using sql.raw('') or just sql`` ensures no syntax error
+    // Use the query builder for type safety and cleaner logic
+    const [r] = await db
+      .select({
+        total: sql<number>`count(*)`,
+        delivered: sql<number>`count(*) filter (where ${consignments.current_status} ilike '%Deliv%')`,
+        rto: sql<number>`count(*) filter (where ${consignments.current_status} ilike '%RTO%')`,
+        pending: sql<number>`count(*) filter (
+          where ${consignments.current_status} not ilike '%Deliv%' 
+          and ${consignments.current_status} not ilike '%RTO%'
+        )`,
+      })
+      .from(consignments)
+      .where(clientId ? eq(consignments.client_id, clientId) : undefined);
 
-    const rows = await db.execute(sql`
-      SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE current_status = 'Delivered') as delivered,
-        COUNT(*) FILTER (WHERE current_status NOT IN ('Delivered', 'RTO')) as pending,
-        COUNT(*) FILTER (WHERE current_status = 'RTO') as rto
-      FROM ${consignments}
-      ${whereFilter}
-    `);
-
-    const r = rows.rows[0];
-
+    // Drizzle returns undefined if no rows match, but count(*) always returns a row.
+    // We ensure the numbers are formatted correctly.
     return {
-      total: Number(r.total),
-      delivered: Number(r.delivered),
-      pending: Number(r.pending),
-      rto: Number(r.rto),
+      total: Number(r?.total || 0),
+      delivered: Number(r?.delivered || 0),
+      pending: Number(r?.pending || 0),
+      rto: Number(r?.rto || 0),
     };
   }
 }

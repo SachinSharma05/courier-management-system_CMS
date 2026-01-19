@@ -21,12 +21,18 @@ export class ProviderStatsService {
     let inTransit = 0;
     let ndr = 0;
 
-    // 1. Map rows to a breakdown array for the UI Chart/List
-    const breakdown = rows.map(r => ({
-      label: r.status || 'Unknown Status',
-      value: Number(r.count),
-      group: classifyStatus(r.status || '').toLowerCase() 
-    })).sort((a, b) => b.value - a.value); // Sort by highest count for better UX
+    const breakdown = rows
+      .map(r => {
+        const rawStatus = r.status?.trim() || 'Unknown Status';
+        const bucket = classifyStatus(rawStatus);
+
+        return {
+          label: rawStatus,
+          value: Number(r.count),
+          group: bucket.toLowerCase(),
+        };
+      })
+      .sort((a, b) => b.value - a.value);
 
     for (const r of rows) {
       const count = Number(r.count);
@@ -47,7 +53,7 @@ export class ProviderStatsService {
       inTransit,
       rto,
       ndr,
-      breakdown, // Add the breakdown to the final response
+      breakdown,
     };
   }
 }
@@ -59,20 +65,17 @@ function normalizeStatus(status?: string | null) {
 function classifyStatus(rawStatus: string) {
   const status = normalizeStatus(rawStatus);
 
-  // ✅ Delivered (highest priority)
-  if (status.includes('delivered') && !status.includes('rto')) {
-    return 'DELIVERED';
-  }
-
-  // 🔁 RTO (any return flow)
+  // 🔁 RTO (highest priority)
   if (
     status.includes('rto') ||
-    status.includes('return')
+    status.includes('return') ||
+    status.includes('rtb') ||
+    status.includes('misroute')
   ) {
     return 'RTO';
   }
 
-  // ⚠️ NDR / failed attempts
+  // ⚠️ NDR / failed delivery
   if (
     status.includes('undelivered') ||
     status.includes('not delivered') ||
@@ -81,12 +84,17 @@ function classifyStatus(rawStatus: string) {
     status.includes('non serviceable') ||
     status.includes('delivery attempted') ||
     status.includes('refused') ||
-    status.includes('mis route')
+    status.includes('contact customer')
   ) {
     return 'NDR';
   }
 
-  // 🚚 Active / in-transit
+  // ✅ Delivered (exact intent)
+  if (status === 'delivered') {
+    return 'DELIVERED';
+  }
+
+  // 🚚 In-transit / active
   if (
     status.includes('in transit') ||
     status.includes('out for delivery') ||
@@ -96,11 +104,12 @@ function classifyStatus(rawStatus: string) {
     status.includes('processing') ||
     status.includes('received') ||
     status.includes('reached') ||
+    status.includes('scheduled') ||
+    status.includes('destination') ||
     status.includes('stock scan')
   ) {
     return 'IN_TRANSIT';
   }
 
-  // 🟡 Everything else
   return 'OTHER';
 }
