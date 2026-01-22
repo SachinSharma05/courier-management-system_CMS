@@ -14,7 +14,7 @@ export type Consignment = {
   client: string;
 };
 
-export function useConsignments(params) {
+export function useConsignments(params: any) {
   return useQuery({
     queryKey: [
       'consignments',
@@ -31,8 +31,35 @@ export function useConsignments(params) {
       const res = await api.get('/admin/consignments', { params });
       return res.data;
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     staleTime: 30_000,          // 👈 important
     refetchOnWindowFocus: false
+  });
+}
+
+export function useConsignmentEvents(awb?: string) {
+  return useQuery({
+    queryKey: ['consignment-events', awb],
+    queryFn: async () => {
+      const res = await api.get(`/admin/consignments/${awb}/details`);
+      return res.data;
+    },
+    enabled: !!awb, 
+    staleTime: 1000 * 60 * 5, 
+  });
+}
+
+export function useConsignmentsSummary(clientId?: number) {
+  return useQuery({
+    queryKey: ['consignments-summary', clientId],
+    queryFn: async () => {
+      const res = await api.get('/admin/consignments/summary', {
+        params: clientId ? { clientId } : {},
+      });
+      return res.data;
+    },
+    enabled: true,        // 👈 IMPORTANT
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 }

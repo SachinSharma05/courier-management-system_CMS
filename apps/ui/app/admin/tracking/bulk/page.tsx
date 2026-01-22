@@ -57,22 +57,10 @@ export default function BulkTrackingPage() {
             return {
               code: String(l['dsr_act_cust_code'] ?? l['dsr_act_code'] ?? '').trim(),
               awb: String(l['dsr_cnno'] ?? l['awb'] ?? '').trim(),
-
-              booked_at: l['dsr_booking_date']
-                ? safeDate(l['dsr_booking_date'])
-                : null,
-
-              reference_number: l['dsr_refno']
-                ? String(l['dsr_refno']).trim()
-                : null,
-
-              origin_pincode: l['bkg_pincode']
-                ? String(l['bkg_pincode']).trim()
-                : null,
-
-              destination_pincode: l['dsr_dest_pin']
-                ? String(l['dsr_dest_pin']).trim()
-                : null,
+              booked_at: l['dsr_booking_date'] ? safeDate(l['dsr_booking_date']) : null,
+              reference_number: l['dsr_refno'] ? String(l['dsr_refno']).trim() : null,
+              origin_pincode: l['bkg_pincode'] ? String(l['bkg_pincode']).trim() : null,
+              destination_pincode: l['dsr_dest_pin'] ? String(l['dsr_dest_pin']).trim() : null,
             };
           }).filter(r => r.code && r.awb);
         } else {
@@ -216,8 +204,8 @@ export default function BulkTrackingPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-1.5">
                     {g.awbs.slice(0, 8).map(a => (
-                      <span key={a} className="px-2 py-1 bg-slate-50 border border-slate-100 text-[10px] font-mono font-bold text-slate-500 rounded-md">
-                        {a}
+                      <span key={a.awb} className="px-2 py-1 bg-slate-50 border border-slate-100 text-[10px] font-mono font-bold text-slate-500 rounded-md">
+                        {a.awb}
                       </span>
                     ))}
                     {g.awbs.length > 8 && <span className="text-[10px] text-slate-300 font-bold self-center">+{g.awbs.length - 8} more</span>}

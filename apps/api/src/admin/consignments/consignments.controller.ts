@@ -4,6 +4,8 @@ import {
   Query,
   Res,
   UseGuards,
+  BadRequestException,
+  Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -53,5 +55,13 @@ export class ConsignmentsController {
     return this.service.getSummary(
       clientId ? Number(clientId) : undefined
     );
+  }
+
+  // The URL will be: GET /admin/consignments/AWB12345/details
+  @Get(':awb/details')
+  @Roles('super_admin', 'admin')
+  async getDetails(@Param('awb') awb: string) {
+    if (!awb) throw new BadRequestException('AWB is required');
+    return this.service.getDetails(awb);
   }
 }

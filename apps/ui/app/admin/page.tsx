@@ -83,12 +83,12 @@ export default function AdminDashboard() {
       </section>
       
       {/* ───────────────── KEY METRICS ───────────────── */}
-      <WorkerStatsCard />
+      {/* <WorkerStatsCard /> */}
 
       {/* ───────────────── SPECIAL FOCUS WIDGETS ───────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+      {/* <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8"> */}
         {/* Weight Discrepancy Widget */}
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        {/* <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-black text-slate-800 tracking-tight">Weight Discrepancies</h3>
             <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded-lg">High Risk</span>
@@ -103,18 +103,18 @@ export default function AdminDashboard() {
               <span className="font-bold text-rose-600">₹12,450</span>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* NDR Recovery Widget */}
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        {/* <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
           <h3 className="font-black text-slate-800 tracking-tight mb-6">NDR Recovery Rate</h3>
           <div className="flex items-end gap-2">
             <span className="text-4xl font-black text-indigo-600">64%</span>
             <span className="text-xs font-bold text-emerald-500 mb-2">↑ 4% this week</span>
           </div>
           <p className="text-xs text-slate-400 mt-2 font-medium">Out of 500 NDRs, 320 were successfully delivered.</p>
-        </div>
-      </section>
+        </div> */}
+      {/* </section> */}
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* PROVIDER LEADERBOARD */}

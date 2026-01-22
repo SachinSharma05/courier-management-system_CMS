@@ -1,22 +1,19 @@
-'use client';
+"use client";
 
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Search, Calendar, Download, 
-  AlertCircle, Clock, CheckCircle2, Package,
-  ChevronLeft, ChevronRight, Loader2,
-  Box, Eye, ChevronsLeft, ChevronsRight,
-  X, MapPin, Truck
+  Box, Package, CheckCircle2, Clock, Download, Search, 
+  Calendar, ChevronRight, Eye, MapPin, Navigation, Truck,
+  ChevronsLeft, ChevronLeft, ChevronsRight, Loader2
 } from 'lucide-react';
-import clsx from 'clsx';
-import { useConsignments } from '@/hooks/useConsignments';
+import { clsx } from 'clsx';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useClients } from '@/hooks/useClients';
 import { useProviders } from '@/hooks/useProviders';
-import { useEffect, useState, useMemo } from 'react';
-import { Select } from '@/components/Select';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useConsignmentsSummary } from '@/hooks/useConsignmentsSummary';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import { useConsignments, useConsignmentsSummary, useConsignmentEvents } from '@/hooks/useConsignments';
 
 export default function ConsignmentsPage() {
   const { data: clients } = useClients();
@@ -27,83 +24,74 @@ export default function ConsignmentsPage() {
     clientId: '',
     provider: '',
     status: '',
+    tat: '', // Added TAT
     from: '',
     to: '',
   });
 
   const [page, setPage] = useState(1);
-  const [selectedAwb, setSelectedAwb] = useState<any>(null); // Drawer State
+  const [selectedAwb, setSelectedAwb] = useState<any>(null); 
   const limit = 50;
 
   const debounceAwb = useDebounce(filters.awb, 400);
 
   const normalizedFilters = useMemo(() => ({
+    page,
+    limit,
     awb: debounceAwb.trim() || undefined,
     clientId: filters.clientId ? Number(filters.clientId) : undefined,
     provider: filters.provider || undefined,
     status: filters.status || undefined,
+    tat: filters.tat || undefined,
     from: filters.from || undefined,
     to: filters.to || undefined,
-  }), [debounceAwb, filters]);
+  }), [debounceAwb, filters, page]);
 
-  const { data, isLoading, isFetching } = useConsignments({
-    page,
-    limit,
-    ...normalizedFilters,
-  });
+  // Main List - Optimized with placeholderData in hook
+  const { data, isLoading, isFetching } = useConsignments(normalizedFilters);
+
+  // Detail Events - Only fetches when drawer opens
+  const { data: events, isLoading: isEventsLoading } = useConsignmentEvents(selectedAwb?.awb);
 
   const selectedClientId = filters.clientId ? Number(filters.clientId) : undefined;
   const { data: summary, isLoading: isSummaryLoading } = useConsignmentsSummary(selectedClientId);
 
-  useEffect(() => { setPage(1); }, [normalizedFilters]);
+  // Reset to page 1 when any filter changes
+  useEffect(() => { setPage(1); }, [debounceAwb, filters.clientId, filters.provider, filters.status, filters.tat, filters.from, filters.to]);
 
-  // Pagination Helper Calculations
-  const totalRecords = data?.meta.total || 0;
-  const totalPages = data?.meta.pages || 1;
+  const totalRecords = data?.meta?.total || 0;
+  const totalPages = data?.meta?.pages || 1;
   const startRange = (page - 1) * limit + 1;
   const endRange = Math.min(page * limit, totalRecords);
-
-  const exportCSV = () => {
-    const params = new URLSearchParams();
-    Object.entries(normalizedFilters).forEach(([key, val]) => {
-      if (val) params.append(key, String(val));
-    });
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/admin/consignments/export?${params.toString()}`, '_blank');
-  };
-
-  // const { data: events, isLoading: isEventsLoading } = useConsignmentEvents(selectedAwb?.awb);
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] p-6 space-y-4 overflow-hidden bg-slate-50/50">
       
-      {/* ───────────────── HEADER ───────────────── */}
+      {/* ───────────────── HEADER & SUMMARY ───────────────── */}
       <div className="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-200">
+          <div className="h-14 w-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl">
             <Box size={28} />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Consignments</h1>
-            <p className="text-sm text-slate-500 font-bold uppercase tracking-tight">Global Tracking Operations</p>
+            <p className="text-sm text-slate-500 font-bold uppercase tracking-tight">Real-time Logistics</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2">
           <StatusCard label="Total" value={summary?.total} icon={Package} variant="black" loading={isSummaryLoading} />
           <StatusCard label="Delivered" value={summary?.delivered} icon={CheckCircle2} variant="green" loading={isSummaryLoading} />
           <StatusCard label="In Transit" value={summary?.pending} icon={Clock} variant="yellow" loading={isSummaryLoading} />
-          
-          <div className="h-10 w-px bg-slate-200 mx-2 hidden md:block" />
-          
-          <Button onClick={exportCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl px-6 shadow-lg shadow-indigo-100 gap-2 uppercase text-xs">
-            <Download size={16} /> Export CSV
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl px-6 shadow-lg shadow-indigo-100 gap-2 uppercase text-xs">
+            <Download size={16} /> Export
           </Button>
         </div>
       </div>
 
       {/* ───────────────── FILTERS ───────────────── */}
       <div className="shrink-0 rounded-2xl bg-white p-2 shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[250px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             placeholder="Search AWB or Reference..."
@@ -112,22 +100,49 @@ export default function ConsignmentsPage() {
             className="w-full rounded-xl border-none bg-slate-50 pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500/10 outline-none"
           />
         </div>
-        
-        <div className="flex flex-wrap items-center gap-2 pr-2">
-          <Select value={filters.clientId} onChange={v => setFilters(f => ({ ...f, clientId: v }))} className="h-11 font-bold text-xs">
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select 
+            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
+            value={filters.clientId} 
+            onChange={e => setFilters(f => ({ ...f, clientId: e.target.value }))}
+          >
             <option value="">All Clients</option>
-            {clients?.map(c => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
-          </Select>
-          <Select value={filters.provider} onChange={v => setFilters(f => ({ ...f, provider: v }))} className="h-11 font-bold text-xs">
+            {clients?.map((c: any) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+          </select>
+
+          <select 
+            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
+            value={filters.provider} 
+            onChange={e => setFilters(f => ({ ...f, provider: e.target.value }))}
+          >
             <option value="">All Providers</option>
-            {providers?.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-          </Select>
-          <Select value={filters.status} onChange={v => setFilters(f => ({ ...f, status: v }))} className="h-11 font-bold text-xs">
+            {providers?.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
+
+          <select 
+            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
+            value={filters.status} 
+            onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+          >
             <option value="">Status</option>
             <option value="Delivered">Delivered</option>
             <option value="In Transit">In Transit</option>
-          </Select>
-          
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Picked Up">Picked Up</option>
+          </select>
+
+          <select 
+            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
+            value={filters.tat} 
+            onChange={e => setFilters(f => ({ ...f, tat: e.target.value }))}
+          >
+            <option value="">TAT Filter</option>
+            <option value="On Time">On Time</option>
+            <option value="Delayed">Delayed</option>
+            <option value="Critical">Critical</option>
+          </select>
+
           <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 h-11 border border-slate-100">
             <Calendar size={14} className="text-slate-400" />
             <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value}))} className="bg-transparent text-[11px] font-black outline-none text-slate-600 uppercase" />
@@ -138,9 +153,18 @@ export default function ConsignmentsPage() {
       </div>
 
       {/* ───────────────── TABLE AREA ───────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col rounded-[2rem] border border-slate-100 bg-white shadow-2xl shadow-slate-200/50 relative overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col rounded-[2.5rem] border border-slate-100 bg-white shadow-2xl relative overflow-hidden">
         
-        <div className="flex-1 overflow-auto scrollbar-hide relative">
+        {/* BLUR EFFECT DURING FETCHING */}
+        {(isFetching && !isLoading) && (
+          <div className="absolute inset-0 z-30 bg-white/30 backdrop-blur-[2px] pointer-events-none flex items-center justify-center">
+             <div className="bg-slate-900 text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl">
+                <Loader2 size={14} className="animate-spin" /> Updating List...
+             </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-auto no-scrollbar relative">
           <table className="w-full text-left border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-slate-50/90 backdrop-blur-md">
               <tr>
@@ -149,45 +173,34 @@ export default function ConsignmentsPage() {
                 <Th className="text-center">Live Status</Th>
                 <Th>Timelines</Th>
                 <Th>Route</Th>
-                <Th>Performance</Th>
+                <Th>TAT / Movement</Th>
                 <Th className="text-right">Actions</Th>
               </tr>
             </thead>
-            <tbody className={clsx(
-              "divide-y divide-slate-50",
-              (isLoading || isFetching) ? "opacity-40" : "opacity-100"
-            )}>
-              {data?.data.map((c) => (
+            <tbody className={clsx("divide-y divide-slate-50", isLoading ? "opacity-0" : "opacity-100")}>
+              {data?.data?.map((c: any) => (
                 <tr key={c.id} className="group hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-mono font-black text-slate-900 text-sm tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg">
-                        {c.awb}
-                    </span>
+                    <span className="font-mono font-black text-slate-900 text-sm tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg">{c.awb}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-black text-slate-800 text-sm">{c.client}</span>
+                      <span className="font-black text-slate-800 text-sm truncate max-w-[150px]">{c.client}</span>
                       <span className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">{c.provider}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-slate-400 w-10">BOOKED</span>
-                        <span className="text-[11px] font-bold text-slate-700">{new Date(c.bookedAt).toLocaleDateString('en-GB', {day: '2-digit', month: 'short'})}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-indigo-400 w-10">UPDATE</span>
-                        <span className="text-[11px] font-bold text-slate-700">{new Date(c.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      </div>
+                    <div className="flex flex-col gap-1 text-[11px] font-bold text-slate-600">
+                       <span className="flex items-center gap-1"><Clock size={10}/> {new Date(c.bookedAt).toLocaleDateString()}</span>
+                       <span className="text-[9px] text-slate-400 uppercase font-black">Tracked At: {new Date(c.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-black text-slate-600 uppercase">{c.origin}</span>
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase">
+                        <span className="text-slate-600">{c.origin || '---'}</span>
                         <ChevronRight size={12} className="text-slate-300" />
-                        <span className="text-[11px] font-black text-indigo-600 uppercase">{c.destination}</span>
+                        <span className="text-indigo-600">{c.destination || '---'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -197,11 +210,7 @@ export default function ConsignmentsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button 
-                      onClick={() => setSelectedAwb(c)}
-                      variant="outline" 
-                      className="h-9 px-4 rounded-xl border-slate-200 font-bold text-[11px] uppercase tracking-tighter hover:bg-slate-900 hover:text-white transition-all gap-2"
-                    >
+                    <Button onClick={() => setSelectedAwb(c)} variant="outline" className="h-9 px-4 rounded-xl border-slate-200 font-bold text-[11px] uppercase tracking-tighter hover:bg-slate-900 hover:text-white transition-all gap-2">
                       <Eye size={14} /> Details
                     </Button>
                   </td>
@@ -211,104 +220,53 @@ export default function ConsignmentsPage() {
           </table>
         </div>
 
-        {/* PAGINATION FOOTER */}
+        {/* ───────────────── PAGINATION ───────────────── */}
         <div className="shrink-0 border-t border-slate-100 px-8 py-4 flex items-center justify-between bg-white">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">
-            Showing <span className="text-slate-900 font-black">{totalRecords === 0 ? 0 : startRange}–{endRange}</span> of <span className="text-slate-900 font-black">{totalRecords}</span> Shipments
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Showing <span className="text-slate-900">{startRange}–{endRange}</span> of {totalRecords} Records
           </span>
-          
-          <div className="flex items-center gap-1">
-            <PaginationButton onClick={() => setPage(1)} disabled={page === 1} icon={<ChevronsLeft size={16} />} />
-            <PaginationButton onClick={() => setPage(p => p - 1)} disabled={page === 1} icon={<ChevronLeft size={16} />} />
-            
-            <div className="px-5 py-1.5 mx-2 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg">
-              {page} / {totalPages}
-            </div>
-
-            <PaginationButton onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} icon={<ChevronRight size={16} />} />
-            <PaginationButton onClick={() => setPage(totalPages)} disabled={page >= totalPages} icon={<ChevronsRight size={16} />} />
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(1)} disabled={page === 1}><ChevronsLeft size={16}/></Button>
+            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={16}/></Button>
+            <div className="px-4 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-200">{page} / {totalPages}</div>
+            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><ChevronRight size={16}/></Button>
+            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(totalPages)} disabled={page >= totalPages}><ChevronsRight size={16}/></Button>
           </div>
         </div>
       </div>
 
-      {/* ───────────────── SIDE DRAWER (DETAILS) ───────────────── */}
+      {/* ───────────────── SIDE DRAWER ───────────────── */}
       <Sheet open={!!selectedAwb} onOpenChange={() => setSelectedAwb(null)}>
-        <SheetContent className="sm:max-w-md w-full p-0 border-l border-slate-100 shadow-2xl">
+        <SheetContent className="sm:max-w-md w-full p-0 border-l border-slate-100 shadow-2xl flex flex-col">
           <div className="h-full flex flex-col bg-slate-50/50">
-            <SheetHeader className="p-6 bg-white border-b border-slate-100">
-              <SheetTitle className="flex items-center justify-between">
-                <div className="flex flex-col">
+            <SheetHeader className="p-6 bg-white border-b border-slate-100 shrink-0">
+              <SheetTitle className="flex flex-col">
                   <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Shipment Identity</span>
                   <span className="text-2xl font-black text-slate-900 font-mono tracking-tighter">{selectedAwb?.awb}</span>
-                </div>
               </SheetTitle>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Status Section */}
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Current Progress</h3>
-                    <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                            <Truck size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-lg font-black text-slate-900">{selectedAwb?.status}</span>
-                            <span className="text-xs font-bold text-slate-500 uppercase">Last updated: {new Date(selectedAwb?.lastUpdatedAt).toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Route Section */}
+            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-5 rounded-3xl border border-slate-100">
-                        <MapPin size={16} className="text-slate-400 mb-2" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase block">Origin</span>
-                        <span className="text-sm font-black text-slate-800">{selectedAwb?.origin}</span>
-                    </div>
-                    <div className="bg-white p-5 rounded-3xl border border-slate-100">
-                        <MapPin size={16} className="text-indigo-500 mb-2" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase block">Destination</span>
-                        <span className="text-sm font-black text-indigo-600">{selectedAwb?.destination}</span>
-                    </div>
+                    <DetailCard label="Origin" value={selectedAwb?.origin} icon={MapPin} />
+                    <DetailCard label="Destination" value={selectedAwb?.destination} icon={Navigation} />
                 </div>
 
-                {/* Meta Data */}
-                <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Client Name</span>
-                        <span className="text-sm font-black">{selectedAwb?.client}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Carrier Provider</span>
-                        <span className="text-sm font-black">{selectedAwb?.provider}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Booking Date</span>
-                        <span className="text-sm font-black">{new Date(selectedAwb?.bookedAt).toLocaleDateString()}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-              <div className="flex flex-col space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tracking History</h3>
-                      <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[9px] font-black">
-                          {events?.length || 0} EVENTS
-                      </span>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tracking Timeline</h3>
+                    <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase">
+                        {isEventsLoading ? 'Syncing...' : `${events?.length || 0} Events`}
+                    </span>
                   </div>
-                  
-                  <div className="bg-white rounded-3xl border border-slate-100 p-6 max-h-[400px] overflow-y-auto shadow-inner bg-gradient-to-b from-white to-slate-50/30">
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm min-h-[300px]">
                       <ShipmentTimeline events={events || []} isLoading={isEventsLoading} />
                   </div>
-              </div>
-            </div> */}
+                </div>
+            </div>
             
-            <div className="p-6 bg-white border-t border-slate-100">
-                <Button onClick={() => setSelectedAwb(null)} className="w-full h-12 rounded-2xl bg-slate-100 text-slate-900 font-black uppercase tracking-widest hover:bg-slate-200">
-                    Close Details
-                </Button>
+            <div className="p-6 bg-white border-t border-slate-100 shrink-0">
+                <Button onClick={() => setSelectedAwb(null)} className="w-full h-12 rounded-2xl bg-slate-100 text-slate-900 font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Close Drawer</Button>
             </div>
           </div>
         </SheetContent>
@@ -317,117 +275,102 @@ export default function ConsignmentsPage() {
   );
 }
 
-/* ───────────────── MINI COMPONENTS ───────────────── */
+/* ───────────────── SUB-COMPONENTS ───────────────── */
 
-function PaginationButton({ onClick, disabled, icon }: any) {
+function Th({ children, className }: any) { 
+    return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>; 
+}
+
+function DetailCard({ label, value, icon: Icon }: any) {
     return (
-      <Button 
-        variant="outline" 
-        size="sm" 
-        disabled={disabled}
-        onClick={onClick}
-        className="h-9 w-9 p-0 rounded-lg border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 transition-all shadow-none"
-      >
-        {icon}
-      </Button>
+        <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+            <Icon size={14} className="text-slate-400 mb-1" />
+            <span className="text-[9px] font-black text-slate-400 uppercase block">{label}</span>
+            <span className="text-xs font-black text-slate-800 uppercase truncate">{value || '---'}</span>
+        </div>
     );
 }
 
 function StatusCard({ label, value, icon: Icon, variant, loading }: any) {
-  const themes: any = {
-    black: "bg-slate-900 border-slate-900 text-white shadow-slate-200",
-    green: "bg-white border-slate-100 text-emerald-600",
-    yellow: "bg-white border-slate-100 text-amber-600",
-  };
-  return (
-    <div className={clsx("flex items-center gap-3 px-4 py-2 rounded-2xl border shadow-sm min-w-[140px]", themes[variant])}>
-      <Icon size={18} className={variant === 'black' ? 'text-slate-400' : 'text-current'} />
-      <div className="flex flex-col">
-        <span className={clsx("text-[9px] font-black uppercase tracking-widest opacity-60", variant === 'black' ? 'text-slate-400' : 'text-slate-500')}>{label}</span>
-        <span className="text-base font-black leading-none mt-1">
-          {loading ? <Loader2 size={14} className="animate-spin" /> : (value ?? 0).toLocaleString()}
-        </span>
+    const themes: any = {
+      black: "bg-slate-900 border-slate-900 text-white shadow-indigo-100",
+      green: "bg-white border-slate-100 text-emerald-600 shadow-slate-200",
+      yellow: "bg-white border-slate-100 text-amber-600 shadow-slate-200",
+    };
+    return (
+      <div className={clsx("flex items-center gap-3 px-4 py-2 rounded-2xl border shadow-sm min-w-[130px] transition-all", themes[variant])}>
+        <Icon size={18} />
+        <div className="flex flex-col">
+          <span className="text-[9px] font-black uppercase opacity-60 tracking-widest">{label}</span>
+          <span className="text-base font-black leading-none mt-1">{loading ? '...' : (value || 0)}</span>
+        </div>
       </div>
-    </div>
-  );
+    );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const colors: any = {
-    'Delivered': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    'In Transit': 'bg-blue-50 text-blue-700 border-blue-200',
-    'default': 'bg-slate-50 text-slate-600 border-slate-100'
-  };
-  return (
-    <span className={clsx("px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider", colors[status] || colors.default)}>
-      {status}
-    </span>
-  );
+function StatusBadge({ status }: any) {
+    const styles: any = {
+      'Delivered': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      'In Transit': 'bg-blue-50 text-blue-700 border-blue-200',
+      'Out for Delivery': 'bg-amber-50 text-amber-700 border-amber-200',
+      'default': 'bg-slate-50 text-slate-600 border-slate-100'
+    };
+    return <span className={clsx("px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest", styles[status] || styles.default)}>{status || 'Unknown'}</span>;
 }
-
-function Th({ children, className }: any) {
-  return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>;
-}
-
-function tatBadgeUI(t: string) {
-    const common = "text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-tighter text-center block w-20 border";
-    switch (t) {
-      case "Delivered":
-        return <span className={clsx(common, "bg-green-50 text-green-700 border-green-100")}>Delivered</span>;
-      case "Sensitive":
-        return <span className={clsx(common, "bg-red-600 text-white border-red-700")}>Sensitive</span>;
-      case "Critical":
-        return <span className={clsx(common, "bg-red-50 text-red-800 border-red-100")}>Critical</span>;
-      case "Warning":
-        return <span className={clsx(common, "bg-yellow-50 text-yellow-800 border-yellow-100")}>Warning</span>;
-      default:
-        return <span className={clsx(common, "bg-slate-50 text-slate-600 border-slate-100")}>On Time</span>;
-    }
-}
-
-function moveBadgeUI(t: string) { return tatBadgeUI(t); }
 
 function ShipmentTimeline({ events, isLoading }: { events: any[], isLoading: boolean }) {
-  if (isLoading) return <div className="p-4 text-center text-xs font-bold animate-pulse text-slate-400">FETCHING TIMELINE...</div>;
-  if (!events?.length) return <div className="p-8 text-center border-2 border-dashed border-slate-100 rounded-3xl text-slate-400 text-xs font-bold">NO HISTORY TRACKED YET</div>;
-
+  if (isLoading) return <div className="py-20 text-center text-[10px] font-black animate-pulse text-slate-400 tracking-widest uppercase">Fetching Live Data...</div>;
+  if (!events?.length) return <div className="py-20 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No tracking updates recorded</div>;
+  
   return (
-    <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-500 before:via-slate-200 before:to-transparent">
+    <div className="relative space-y-8 before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
       {events.map((event, idx) => (
-        <div key={idx} className="relative flex items-start gap-4 group">
-          {/* Dot */}
-          <div className={clsx(
-            "mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white shadow-sm z-10",
-            idx === 0 ? "bg-indigo-600 ring-4 ring-indigo-50" : "bg-slate-300"
-          )} />
-          
-          <div className="flex flex-col flex-1 pb-2 border-b border-slate-50 last:border-0">
-            <div className="flex justify-between items-start">
-              <span className={clsx("text-sm font-black uppercase tracking-tight", idx === 0 ? "text-indigo-600" : "text-slate-800")}>
+        <div key={idx} className="relative flex items-start gap-5">
+          {/* Animated Dot for latest status */}
+          <div className="relative flex items-center justify-center">
+            <div className={clsx(
+                "h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white z-10 transition-all", 
+                idx === 0 ? "bg-indigo-600 ring-4 ring-indigo-50" : "bg-slate-300"
+            )} />
+            {idx === 0 && <div className="absolute h-5 w-5 bg-indigo-400/20 rounded-full animate-ping" />}
+          </div>
+
+          <div className="flex flex-col flex-1 pb-6 border-b border-slate-50 last:border-0">
+            <div className="flex justify-between items-start mb-1">
+              <span className={clsx("text-xs font-black uppercase tracking-tight", idx === 0 ? "text-indigo-600" : "text-slate-800")}>
                 {event.status}
               </span>
-              <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded">
-                {new Date(event.event_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded">
+                {new Date(event.event_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
               </span>
             </div>
-            
-            <div className="flex items-center gap-1 mt-1">
-              <MapPin size={10} className="text-slate-400" />
-              <span className="text-[11px] font-bold text-slate-500 uppercase">{event.location || 'Location Unknown'}</span>
+            <div className="flex items-center gap-1.5 mb-2">
+                <MapPin size={10} className="text-slate-300" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{event.location || 'Hub Center'}</span>
             </div>
-            
-            {event.remarks && (
-              <p className="mt-2 text-[11px] text-slate-400 font-medium italic leading-relaxed">
-                {event.remarks}
-              </p>
-            )}
-            
-            <span className="text-[9px] font-black text-slate-300 mt-1 uppercase">
-              {new Date(event.event_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </span>
+            {event.remarks && <p className="text-[10px] text-slate-400 font-medium italic border-l-2 border-slate-100 pl-3 leading-relaxed">"{event.remarks}"</p>}
+            <span className="text-[9px] font-black text-slate-300 uppercase mt-3">{new Date(event.event_time).toLocaleDateString()}</span>
           </div>
         </div>
       ))}
     </div>
   );
 }
+
+function tatBadgeUI(t: string) {
+  const common = "text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-tighter text-center block w-20 border";
+  switch (t) {
+    case "Delivered":
+      return <span className={clsx(common, "bg-green-50 text-green-700 border-green-100")}>Delivered</span>;
+    case "Sensitive":
+      return <span className={clsx(common, "bg-red-600 text-white border-red-700")}>Sensitive</span>;
+    case "Critical":
+      return <span className={clsx(common, "bg-red-50 text-red-800 border-red-100")}>Critical</span>;
+    case "Warning":
+      return <span className={clsx(common, "bg-yellow-50 text-yellow-800 border-yellow-100")}>Warning</span>;
+    default:
+      return <span className={clsx(common, "bg-slate-50 text-slate-600 border-slate-100")}>On Time</span>;
+  }
+}
+
+function moveBadgeUI(t: string) { return tatBadgeUI(t); }
