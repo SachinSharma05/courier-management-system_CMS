@@ -21,7 +21,7 @@ type Client = {
 };
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Partial<Client>[]>([]);
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'manage' | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
