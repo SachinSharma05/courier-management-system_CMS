@@ -74,7 +74,7 @@ export default function ClientsPage() {
             <tbody className="divide-y divide-slate-50">
               {clients.map((c) => (
                 <tr key={c.id} className="group hover:bg-slate-50/80 transition-colors">
-                  <Td className="font-mono text-xs font-bold text-slate-400">#{c.id.toString().padStart(3, '0')}</Td>
+                  <Td className="font-mono text-xs font-bold text-slate-400">#{c.id ?? 0}</Td>
                   <Td>
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 border border-slate-200">
@@ -97,7 +97,7 @@ export default function ClientsPage() {
                       {c.is_active ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </Td>
-                  <Td className="text-xs font-medium text-slate-500">{new Date(c.created_at).toLocaleDateString()}</Td>
+                  <Td className="text-xs font-medium text-slate-500">{c.created_at ? new Date(c.created_at).toLocaleDateString() : new Date()}</Td>
                   <Td className="text-right space-x-2">
                     <button 
                       onClick={() => { setSelectedClient(c); setDrawerMode('edit'); }}
