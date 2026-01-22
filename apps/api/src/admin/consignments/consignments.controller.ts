@@ -6,6 +6,7 @@ import {
   UseGuards,
   BadRequestException,
   Param,
+  Post,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -63,5 +64,12 @@ export class ConsignmentsController {
   async getDetails(@Param('awb') awb: string) {
     if (!awb) throw new BadRequestException('AWB is required');
     return this.service.getDetails(awb);
+  }
+
+  // consignment.controller.ts
+  @Post(':awb/sync')
+  async syncOne(@Param('awb') awb: string) {
+    const result = await this.service.syncWithDtdcPublic(awb);
+    return result;
   }
 }

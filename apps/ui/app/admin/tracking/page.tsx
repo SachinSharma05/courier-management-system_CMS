@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { 
-  Box, Search, ArrowRight, UploadCloud, Clock, CheckCircle2, 
-  MapPin, Terminal, Info, PackageCheck, History, ShieldAlert,
+  Box, Search, ArrowRight, UploadCloud, Clock, 
+  MapPin, PackageCheck, History,
   Calendar, Navigation, Hash, ShieldCheck
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -193,27 +193,4 @@ function DetailRow({ label, value, icon, isBold }: any) {
       </div>
     </div>
   );
-}
-
-/* ───────────────── COMPONENTS ───────────────── */
-
-function StatusBadge({ status }: { status: string }) {
-  const isDelivered = status === 'Delivered' || status === 'Out for Delivery';
-  return (
-    <span className={clsx(
-      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold border ring-4 ring-white shadow-sm",
-      isDelivered ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
-    )}>
-      {isDelivered ? <PackageCheck size={12}/> : <Truck size={12}/>}
-      {status.toUpperCase()}
-    </span>
-  );
-}
-
-function Th({ children }: any) {
-  return <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">{children}</th>;
-}
-
-function Td({ children, className }: any) {
-  return <td className={clsx("px-6 py-4 text-sm text-slate-600", className)}>{children}</td>;
 }

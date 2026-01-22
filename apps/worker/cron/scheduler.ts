@@ -33,7 +33,7 @@ export async function startScheduler() {
     'DELHIVERY_POLL_NO_DATA',
     {},
     {
-      jobId: 'DELHIVERY_POLL_NO_DATA_CRON',
+      jobId: 'DELHIVERY_POLL_CRON',
       repeat: { pattern: '*/10 * * * *' },
       attempts: 3,
       backoff: { type: 'exponential', delay: 30000 },

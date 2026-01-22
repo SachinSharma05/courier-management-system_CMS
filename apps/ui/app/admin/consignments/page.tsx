@@ -4,7 +4,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Box, Package, CheckCircle2, Clock, Download, Search, 
   Calendar, ChevronRight, Eye, MapPin, Navigation, Truck,
-  ChevronsLeft, ChevronLeft, ChevronsRight, Loader2
+  ChevronsLeft, ChevronLeft, ChevronsRight, Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,9 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useClients } from '@/hooks/useClients';
 import { useProviders } from '@/hooks/useProviders';
 import { useConsignments, useConsignmentsSummary, useConsignmentEvents } from '@/hooks/useConsignments';
+import toast from 'react-hot-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api/axios';
 
 export default function ConsignmentsPage() {
   const { data: clients } = useClients();
@@ -64,6 +68,21 @@ export default function ConsignmentsPage() {
   const startRange = (page - 1) * limit + 1;
   const endRange = Math.min(page * limit, totalRecords);
 
+  // Inside your ConsignmentsPage function
+  const queryClient = useQueryClient();
+
+  const liveSync = useMutation({
+    mutationFn: async (awb: string) => {
+      const res = await api.post(`/admin/consignments/${awb}/sync`);
+      return res.data;
+    },
+    onSuccess: (data, awb) => {
+      toast.success(`AWB ${awb} Sync Complete`);
+      queryClient.invalidateQueries({ queryKey: ['consignments'] });
+      queryClient.invalidateQueries({ queryKey: ['consignment-events', awb] });
+    },
+  });
+
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] p-6 space-y-4 overflow-hidden bg-slate-50/50">
       
@@ -83,6 +102,8 @@ export default function ConsignmentsPage() {
           <StatusCard label="Total" value={summary?.total} icon={Package} variant="black" loading={isSummaryLoading} />
           <StatusCard label="Delivered" value={summary?.delivered} icon={CheckCircle2} variant="green" loading={isSummaryLoading} />
           <StatusCard label="In Transit" value={summary?.pending} icon={Clock} variant="yellow" loading={isSummaryLoading} />
+          <StatusCard label="NDR" value={summary?.ndr} icon={Clock} variant="red" loading={isSummaryLoading} />
+          <StatusCard label="RTO" value={summary?.rto} icon={Clock} variant="blue" loading={isSummaryLoading} />
           <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl px-6 shadow-lg shadow-indigo-100 gap-2 uppercase text-xs">
             <Download size={16} /> Export
           </Button>
@@ -126,10 +147,11 @@ export default function ConsignmentsPage() {
             onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
           >
             <option value="">Status</option>
-            <option value="Delivered">Delivered</option>
-            <option value="In Transit">In Transit</option>
-            <option value="Out for Delivery">Out for Delivery</option>
-            <option value="Picked Up">Picked Up</option>
+            <option value="delivered">Delivered</option>
+            <option value="in_transit">In Transit</option>
+            <option value="rto">RTO</option>
+            <option value="ndr">NDR</option>
+            <option value="other">Other</option>
           </select>
 
           <select 
@@ -168,51 +190,106 @@ export default function ConsignmentsPage() {
           <table className="w-full text-left border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-slate-50/90 backdrop-blur-md">
               <tr>
-                <Th>AWB Identity</Th>
+                <Th className="pl-8">AWB Identity</Th>
                 <Th>Client & Provider</Th>
                 <Th className="text-center">Live Status</Th>
                 <Th>Timelines</Th>
                 <Th>Route</Th>
                 <Th>TAT / Movement</Th>
-                <Th className="text-right">Actions</Th>
+                <Th className="text-right pr-8">Actions</Th>
               </tr>
             </thead>
             <tbody className={clsx("divide-y divide-slate-50", isLoading ? "opacity-0" : "opacity-100")}>
               {data?.data?.map((c: any) => (
                 <tr key={c.id} className="group hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="font-mono font-black text-slate-900 text-sm tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg">{c.awb}</span>
+                  {/* AWB Identity */}
+                  <td className="px-6 py-4 align-middle pl-8">
+                    <span className="font-mono font-black text-slate-900 text-sm tracking-tighter bg-slate-100 px-2.5 py-1.5 rounded-lg inline-block">
+                      {c.awb}
+                    </span>
                   </td>
-                  <td className="px-6 py-4">
+
+                  {/* Client & Provider */}
+                  <td className="px-6 py-4 align-middle">
                     <div className="flex flex-col">
-                      <span className="font-black text-slate-800 text-sm truncate max-w-[150px]">{c.client}</span>
-                      <span className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">{c.provider}</span>
+                      <span className="font-black text-slate-800 text-[13px] leading-tight truncate max-w-[180px]">
+                        {c.client}
+                      </span>
+                      <span className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mt-0.5">
+                        {c.provider}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
-                  <td className="px-6 py-4">
+
+                  {/* Status */}
+                  <td className="px-6 py-4 align-middle text-center">
+                    <StatusBadge status={c.status} />
+                  </td>
+
+                  {/* Timelines */}
+                  <td className="px-6 py-4 align-middle">
                     <div className="flex flex-col gap-1 text-[11px] font-bold text-slate-600">
-                       <span className="flex items-center gap-1"><Clock size={10}/> {new Date(c.bookedAt).toLocaleDateString()}</span>
-                       <span className="text-[9px] text-slate-400 uppercase font-black">Tracked At: {new Date(c.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-slate-400" /> {new Date(c.bookedAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-[9px] text-slate-400 uppercase font-black tracking-tight">
+                        Tracked At: {new Date(c.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-[11px] font-black uppercase">
-                        <span className="text-slate-600">{c.origin || '---'}</span>
-                        <ChevronRight size={12} className="text-slate-300" />
-                        <span className="text-indigo-600">{c.destination || '---'}</span>
+
+                  {/* Route */}
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter">
+                      <span className="text-slate-600 truncate max-w-[100px]">{c.origin || '---'}</span>
+                      <ChevronRight size={14} className="text-slate-300 shrink-0" />
+                      <span className="text-indigo-600 truncate max-w-[100px]">{c.destination || '---'}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
+
+                  {/* TAT / Movement */}
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex flex-col gap-1.5">
                       {tatBadgeUI(c.tat)}
                       {moveBadgeUI(c.movement)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <Button onClick={() => setSelectedAwb(c)} variant="outline" className="h-9 px-4 rounded-xl border-slate-200 font-bold text-[11px] uppercase tracking-tighter hover:bg-slate-900 hover:text-white transition-all gap-2">
-                      <Eye size={14} /> Details
-                    </Button>
+
+                  {/* Actions - FIXED ALIGNMENT */}
+                  <td className="px-6 py-4 align-middle text-right pr-8">
+                    <div className="flex items-center justify-end gap-2 min-w-[180px]">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          liveSync.mutate(c.awb);
+                        }}
+                        disabled={liveSync.isPending && liveSync.variables === c.awb}
+                        className={clsx(
+                          "flex items-center justify-center gap-2 px-3 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0",
+                          liveSync.isPending && liveSync.variables === c.awb
+                            ? "bg-slate-100 text-slate-400" 
+                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100"
+                        )}
+                      >
+                        {liveSync.isPending && liveSync.variables === c.awb ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={12} />
+                        )}
+                        <span className="hidden xl:inline">
+                          {liveSync.isPending && liveSync.variables === c.awb ? "Syncing..." : "Live Sync"}
+                        </span>
+                      </button>
+
+                      <Button 
+                        onClick={() => setSelectedAwb(c)} 
+                        variant="outline" 
+                        className="h-9 px-4 rounded-xl border-slate-200 font-black text-[11px] uppercase tracking-tighter hover:bg-slate-900 hover:text-white transition-all gap-2 shrink-0 shadow-sm"
+                      >
+                        <Eye size={14} /> 
+                        <span className="hidden xl:inline">Details</span>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

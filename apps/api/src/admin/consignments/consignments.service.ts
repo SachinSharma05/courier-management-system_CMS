@@ -5,6 +5,7 @@ import { and, eq, ilike, desc, gte, lte, sql } from 'drizzle-orm';
 import { computeMovement, computeTAT } from './tat.engine';
 import { stringify } from 'csv-stringify/sync';
 import { ListConsignmentsDto } from './dto/list-consignments.dto';
+import { mapDtdcStatus } from '@cms/shared';
 
 @Injectable()
 export class ConsignmentsService {
@@ -17,14 +18,11 @@ export class ConsignmentsService {
     if (awb) conditions.push(ilike(consignments.awb, `%${awb}%`));
     if (clientId) conditions.push(eq(consignments.client_id, clientId));
     if (provider) conditions.push(eq(consignments.provider, provider.toUpperCase()));
-    if (status) conditions.push(eq(consignments.current_status, status));
+    if (status) conditions.push(eq(consignments.status_group, status));
     if (from) conditions.push(gte(consignments.created_at, new Date(from)));
     if (to) conditions.push(lte(consignments.created_at, new Date(to)));
 
     const where = conditions.length ? and(...conditions) : undefined;
-
-    // 1. Parallel Execution (Optional but faster)
-    // We run count and data fetch simultaneously
     const [rows, countResult] = await Promise.all([
       db
         .select({
@@ -82,7 +80,7 @@ export class ConsignmentsService {
     if (awb) conditions.push(ilike(consignments.awb, `%${awb}%`));
     if (clientId) conditions.push(eq(consignments.client_id, Number(clientId)));
     if (provider) conditions.push(eq(consignments.provider, provider.toUpperCase()));
-    if (status) conditions.push(eq(consignments.current_status, status.toUpperCase()));
+    if (status) conditions.push(eq(consignments.status_group, status));
     if (from) conditions.push(gte(consignments.created_at, new Date(from)));
     if (to) conditions.push(lte(consignments.created_at, new Date(to)));
 
@@ -125,21 +123,101 @@ export class ConsignmentsService {
     const [r] = await db
       .select({
         total: sql<number>`count(*)`,
-        delivered: sql<number>`count(*) filter (where ${consignments.current_status} ilike '%Deliv%')`,
-        rto: sql<number>`count(*) filter (where ${consignments.current_status} ilike '%RTO%')`,
-        pending: sql<number>`count(*) filter (
-          where ${consignments.current_status} not ilike '%Deliv%' 
-          and ${consignments.current_status} not ilike '%RTO%'
-        )`,
+        delivered: sql<number>`count(*) filter (where ${consignments.status_group} = 'delivered')`,
+        inTransit: sql<number>`count(*) filter (where ${consignments.status_group} = 'in_transit')`,
+        ndr: sql<number>`count(*) filter (where ${consignments.status_group} = 'ndr')`,
+        rto: sql<number>`count(*) filter (where ${consignments.status_group} = 'rto')`,
       })
       .from(consignments)
       .where(clientId ? eq(consignments.client_id, clientId) : undefined);
 
     return {
-      total: Number(r?.total || 0),
-      delivered: Number(r?.delivered || 0),
-      pending: Number(r?.pending || 0),
-      rto: Number(r?.rto || 0),
+      total: Number(r?.total ?? 0),
+      delivered: Number(r?.delivered ?? 0),
+      pending: Number(r?.inTransit ?? 0),
+      ndr: Number(r?.ndr ?? 0),
+      rto: Number(r?.rto ?? 0),
+    };
+  }
+
+  async syncWithDtdcPublic(awb: string) {
+    const response = await fetch(
+      'https://www.dtdc.com/wp-json/custom/v1/domestic/track',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackType: 'cnno',
+          trackNumber: awb,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`DTDC PUBLIC failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // ✅ CORRECT CHECK
+    if (!result?.header || result?.statusCode !== 200) {
+      return {
+        ok: true,
+        status: 'NO_DATA',
+        message: 'No tracking data available yet from DTDC',
+      };
+    }
+
+    const latestStatus = result.header.currentStatusDescription;
+    const lastStatusAt = new Date(
+      `${result.header.currentStatusDate} ${result.header.currentStatusTime}`
+    );
+
+    const { normalized, group } = mapDtdcStatus(latestStatus);
+
+    // 1️⃣ Update consignment
+    await db
+      .update(consignments)
+      .set({
+        origin: result.header.originCity || consignments.origin,
+        destination: result.header.destinationCity || consignments.destination,
+        origin_pincode: result.header.originPincode || consignments.origin_pincode,
+        destination_pincode:
+          result.header.destinationPincode || consignments.destination_pincode,
+        booked_at: result.header.bookingDate
+          ? new Date(result.header.bookingDate)
+          : consignments.booked_at,
+        current_status: latestStatus,
+        normalized_status: normalized,
+        status_group: group,
+        last_status_at: lastStatusAt,
+        tracking_locked_at: sql`NOW()`,
+      })
+      .where(eq(consignments.awb, awb));
+
+    // 2️⃣ Insert milestones (idempotent)
+    if (Array.isArray(result.milestones) && result.milestones.length) {
+      await db
+        .insert(trackingEvents)
+        .values(
+          result.milestones
+            .filter(m => m.mileStatusDateTime)
+            .map(m => ({
+              awb,
+              status: m.mileName,
+              location: m.branchName || m.mileLocationName || null,
+              event_time: new Date(m.mileStatusDateTime),
+              provider: 'DTDC',
+            }))
+        )
+        .onConflictDoNothing();
+    }
+
+    return {
+      ok: true,
+      status: 'SYNCED',
+      latestStatus,
+      eventsInserted: result.milestones?.length ?? 0,
     };
   }
 }

@@ -9,8 +9,8 @@ import {
   processDtdcSingleTrack,
 } from './processors/dtdc.processor';
 import { pollNoDataFoundAwbs } from './processors/dtdc-track.processor';
-import { processDelhiverySingleTrack } from './processors/delhivery.processor';
-import { pollDelhiveryNoData } from './processors/delhivery.poller';
+import { processDelhiveryBulk, processDelhiverySingleTrack } from './processors/delhivery.processor';
+import { pollDelhivery } from './processors/delhivery.poller';
 import { cleanupOldConsignments } from './cleanup/cleanup.processor';
 import { startScheduler } from './cron/scheduler';
 
@@ -47,7 +47,8 @@ async function bootstrap() {
     async job => {
       switch (job.name) {
         case 'DTDC_POLL_NO_DATA':        return pollNoDataFoundAwbs();
-        case 'DELHIVERY_POLL_NO_DATA':   return pollDelhiveryNoData(job);
+        case 'DELHIVERY_POLL':           return pollDelhivery(job);
+        case 'DELHIVERY_BULK_TRACK':     return processDelhiveryBulk(job);
         case 'DTDC_AUTH_SINGLE':          return processDtdcAuthSingle(job);
         case 'DTDC_PUBLIC_BATCH':        return processDtdcPublicBatch(job);
         case 'DELETE_OLD_CONSIGNMENTS':  return cleanupOldConsignments();
@@ -57,7 +58,7 @@ async function bootstrap() {
     },
     { 
       connection: redis, 
-      concurrency: 5, 
+      concurrency: 2, 
       name: 'batch-worker',
       autorun: true 
     }

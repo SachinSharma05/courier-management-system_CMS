@@ -1,8 +1,8 @@
 import { Job } from 'bullmq';
 import { db } from '../db';
 import { consignments, trackingEvents } from '../db/schema';
-import { eq } from 'drizzle-orm';
-import { DelhiveryBulkAdapter } from '@cms/shared';
+import { eq, sql, inArray } from 'drizzle-orm';
+import { DelhiveryBulkAdapter, mapDelhiveryStatus } from '@cms/shared';
 
 const delhivery = new DelhiveryBulkAdapter();
 
@@ -84,4 +84,74 @@ export async function processDelhiverySingleTrack(job: Job) {
       last_status_at: latestTime,
     })
     .where(eq(consignments.id, consignmentId));
+}
+
+export async function processDelhiveryBulk(job: Job) {
+  const { awbs } = job.data as { awbs: string[] };
+
+  // 1️⃣ Lock consignments
+  await db
+    .update(consignments)
+    .set({ tracking_locked_at: sql`NOW()` })
+    .where(inArray(consignments.awb, awbs));
+
+  // 2️⃣ Call bulk API
+  const json = await delhivery.trackBulk(awbs);
+  const shipments = json?.ShipmentData ?? [];
+
+  for (const s of shipments) {
+    const shipment = s?.Shipment;
+    if (!shipment) continue;
+
+    const awb = shipment.Waybill;
+    const scans = shipment.Scans ?? [];
+    if (!scans.length) continue;
+
+    // 3️⃣ Events (idempotent insert)
+    const events = scans
+      .map(sc => {
+        const d = sc.ScanDetail;
+        if (!d?.ScanDateTime) return null;
+
+        return {
+          awb,
+          provider: 'DELHIVERY',
+          status: d.Scan,
+          location: d.ScannedLocation ?? null,
+          remarks: d.Instructions ?? null,
+          event_time: new Date(d.ScanDateTime),
+        };
+      })
+      .filter(Boolean);
+
+    if (events.length) {
+      await db
+        .insert(trackingEvents)
+        .values(events)
+        .onConflictDoNothing();
+    }
+
+    // 4️⃣ Normalize status
+    const rawStatus = shipment.Status?.Status ?? events[0]?.status;
+    const statusTime = shipment.Status?.StatusDateTime
+      ? new Date(shipment.Status.StatusDateTime)
+      : events[0]?.event_time;
+
+    const { normalized, group } = mapDelhiveryStatus(rawStatus);
+
+    // 5️⃣ Update consignment
+    await db
+      .update(consignments)
+      .set({
+        current_status: rawStatus,
+        normalized_status: normalized,
+        status_group: group,
+        last_status_at: statusTime,
+        tracking_locked_at: null,
+        updated_at: sql`NOW()`,
+      })
+      .where(eq(consignments.awb, awb));
+  }
+
+  return { processed: awbs.length };
 }

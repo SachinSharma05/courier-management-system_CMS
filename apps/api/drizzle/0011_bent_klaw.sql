@@ -1,0 +1,1 @@
+ALTER TABLE "consignments" ADD COLUMN "tracking_locked_at" timestamp;

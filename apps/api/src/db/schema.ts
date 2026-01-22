@@ -32,6 +32,7 @@ export const consignments = pgTable(
     status_group: varchar('status_group', { length: 20 }),
     expected_delivery_date: timestamp("expected_delivery_date"),
     booked_at: timestamp("booked_at"),
+    tracking_locked_at: timestamp("tracking_locked_at"),
     last_status_at: timestamp("last_status_at"),
     created_at: timestamp("created_at").defaultNow(),
     updated_at: timestamp("updated_at").defaultNow(),
