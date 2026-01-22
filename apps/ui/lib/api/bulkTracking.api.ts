@@ -3,6 +3,10 @@ import { api } from '@/lib/api/axios';
 export type BulkGroup = {
   code: string;
   awbs: string[];
+  reference_number: string;
+  origin_pincode: string;
+  destination_pincode: string;
+  booked_at: string;
 };
 
 export async function bulkTrackDtdc(groups: BulkGroup[]) {

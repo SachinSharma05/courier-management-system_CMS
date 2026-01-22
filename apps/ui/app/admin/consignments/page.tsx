@@ -71,6 +71,8 @@ export default function ConsignmentsPage() {
     window.open(`${process.env.NEXT_PUBLIC_API_URL}/admin/consignments/export?${params.toString()}`, '_blank');
   };
 
+  // const { data: events, isLoading: isEventsLoading } = useConsignmentEvents(selectedAwb?.awb);
+
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] p-6 space-y-4 overflow-hidden bg-slate-50/50">
       
@@ -287,6 +289,21 @@ export default function ConsignmentsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+              <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tracking History</h3>
+                      <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[9px] font-black">
+                          {events?.length || 0} EVENTS
+                      </span>
+                  </div>
+                  
+                  <div className="bg-white rounded-3xl border border-slate-100 p-6 max-h-[400px] overflow-y-auto shadow-inner bg-gradient-to-b from-white to-slate-50/30">
+                      <ShipmentTimeline events={events || []} isLoading={isEventsLoading} />
+                  </div>
+              </div>
+            </div> */}
             
             <div className="p-6 bg-white border-t border-slate-100">
                 <Button onClick={() => setSelectedAwb(null)} className="w-full h-12 rounded-2xl bg-slate-100 text-slate-900 font-black uppercase tracking-widest hover:bg-slate-200">
@@ -369,3 +386,48 @@ function tatBadgeUI(t: string) {
 }
 
 function moveBadgeUI(t: string) { return tatBadgeUI(t); }
+
+function ShipmentTimeline({ events, isLoading }: { events: any[], isLoading: boolean }) {
+  if (isLoading) return <div className="p-4 text-center text-xs font-bold animate-pulse text-slate-400">FETCHING TIMELINE...</div>;
+  if (!events?.length) return <div className="p-8 text-center border-2 border-dashed border-slate-100 rounded-3xl text-slate-400 text-xs font-bold">NO HISTORY TRACKED YET</div>;
+
+  return (
+    <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-500 before:via-slate-200 before:to-transparent">
+      {events.map((event, idx) => (
+        <div key={idx} className="relative flex items-start gap-4 group">
+          {/* Dot */}
+          <div className={clsx(
+            "mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white shadow-sm z-10",
+            idx === 0 ? "bg-indigo-600 ring-4 ring-indigo-50" : "bg-slate-300"
+          )} />
+          
+          <div className="flex flex-col flex-1 pb-2 border-b border-slate-50 last:border-0">
+            <div className="flex justify-between items-start">
+              <span className={clsx("text-sm font-black uppercase tracking-tight", idx === 0 ? "text-indigo-600" : "text-slate-800")}>
+                {event.status}
+              </span>
+              <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded">
+                {new Date(event.event_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1 mt-1">
+              <MapPin size={10} className="text-slate-400" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase">{event.location || 'Location Unknown'}</span>
+            </div>
+            
+            {event.remarks && (
+              <p className="mt-2 text-[11px] text-slate-400 font-medium italic leading-relaxed">
+                {event.remarks}
+              </p>
+            )}
+            
+            <span className="text-[9px] font-black text-slate-300 mt-1 uppercase">
+              {new Date(event.event_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

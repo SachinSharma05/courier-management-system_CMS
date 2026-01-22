@@ -11,11 +11,13 @@ export async function pollNoDataFoundAwbs() {
       c.awb,
       c.client_id,
       MAX(CASE WHEN cc.env_key = 'api_token' THEN cc.encrypted_value END) AS token,
-      MAX(CASE WHEN cc.env_key = 'DTDC_CUSTOMER_CODE' THEN cc.encrypted_value END) AS customer_code
+      MAX(CASE WHEN cc.env_key = 'DTDC_CUSTOMER_CODE' THEN cc.encrypted_value END) AS customer_code,
+      c.normalized_status,
+      c.last_status_at
     FROM consignments c
     LEFT JOIN client_credentials cc
       ON cc.client_id = c.client_id
-      AND cc.provider = 'dtdc'
+     AND cc.provider = 'dtdc'
     WHERE
       c.provider = 'DTDC'
       AND COALESCE(c.normalized_status, 'UNKNOWN') NOT IN (
@@ -27,84 +29,79 @@ export async function pollNoDataFoundAwbs() {
       AND (
         c.last_status_at IS NULL
         OR c.last_status_at < NOW() - INTERVAL '6 hours'
-        OR (
-          c.normalized_status = 'IN_TRANSIT'
-          AND c.last_status_at < NOW() - INTERVAL '7 days'
-        )
       )
-    GROUP BY c.awb, c.client_id
-    ORDER BY MIN(c.last_status_at) ASC NULLS FIRST
+      AND (
+        c.tracking_locked_at IS NULL
+        OR c.tracking_locked_at < NOW() - INTERVAL '30 minutes'
+      )
+    GROUP BY c.awb, c.client_id, c.normalized_status, c.last_status_at
+    ORDER BY c.last_status_at ASC NULLS FIRST
     LIMIT 500
   `);
 
-  const rows = result.rows as DtdcPollRow[];
+  const rows = result.rows as Array<{
+    awb: string;
+    client_id: number;
+    token: string | null;
+    customer_code: string | null;
+  }>;
 
   if (!rows.length) {
     console.log('[POLL] Nothing to process');
     return;
   }
 
-  const authBuckets = new Map<number, {
-    awbs: string[];
-    token: string;
-    customerCode: string;
-  }>();
+  // 🔒 lock rows
+  await db.execute(sql`
+    UPDATE consignments
+    SET tracking_locked_at = NOW()
+    WHERE awb IN (${sql.join(rows.map(r => r.awb), sql`,`)})
+  `);
 
   const publicBatch: string[] = [];
-  const publicSingle: string[] = [];
+
+  let authSingles = 0;
 
   for (const r of rows) {
-    if (r.token && r.customer_code) {
-      if (!authBuckets.has(r.client_id)) {
-        authBuckets.set(r.client_id, {
-          awbs: [],
-          token: decrypt(r.token),
-          customerCode: decrypt(r.customer_code),
-        });
-      }
-      authBuckets.get(r.client_id)!.awbs.push(r.awb);
-    } else {
-      // PUBLIC: always batch first
-      publicBatch.push(r.awb);
+    const hasAuth = r.token && r.customer_code;
 
-      // 🔥 ALSO enqueue for single (timeline fetch)
-      publicSingle.push(r.awb);
+    if (hasAuth) {
+      // ✅ AUTH = SINGLE AWB ONLY
+      await trackingQueue.add(
+        'DTDC_AUTH_SINGLE',
+        {
+          awb: r.awb,
+          token: decrypt(r.token!),
+          customerCode: decrypt(r.customer_code!),
+        },
+        {
+          removeOnComplete: true,
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 60_000 },
+          delay: Math.floor(Math.random() * 2000),
+        }
+      );
+      authSingles++;
+    } else {
+      publicBatch.push(r.awb);
     }
   }
 
-  // 🔴 PUBLIC SINGLE (TIMELINE – REQUIRED)
-  for (const awb of publicSingle) {
+  // 🌐 PUBLIC BATCH (summary only)
+  for (let i = 0; i < publicBatch.length; i += 25) {
     await trackingQueue.add(
-      'DTDC_SINGLE_TRACK',
-      { awb },
-      { removeOnComplete: true }
+      'DTDC_PUBLIC_BATCH',
+      { awbs: publicBatch.slice(i, i + 25) },
+      {
+        removeOnComplete: true,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 30_000 },
+      }
     );
   }
 
-  // 🔐 AUTH BATCH (25 AWBs)
-  for (const bucket of authBuckets.values()) {
-    for (let i = 0; i < bucket.awbs.length; i += 25) {
-      await trackingQueue.add('DTDC_AUTH_BATCH', {
-        awbs: bucket.awbs.slice(i, i + 25),
-        token: bucket.token,
-        customerCode: bucket.customerCode,
-      });
-    }
-  }
-
-  // 🌐 PUBLIC BATCH (25 AWBs, status-only)
-  for (let i = 0; i < publicBatch.length; i += 25) {
-    await trackingQueue.add('DTDC_PUBLIC_BATCH', {
-      awbs: publicBatch.slice(i, i + 25),
-    });
-  }
-
-  console.log('[POLL] DTDC jobs enqueued');
+  console.log('[POLL] DTDC jobs enqueued', {
+    authSingles,
+    publicAwbs: publicBatch.length,
+  });
 }
-
-type DtdcPollRow = {
-  awb: string;
-  client_id: number;
-  token: string | null;
-  customer_code: string | null;
-};

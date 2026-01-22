@@ -18,51 +18,58 @@ export class DtdcBulkAdapter {
   "https://www.dtdc.com/wp-json/custom/v1/domestic/track";
 
   /* ----------------------------------
-     AUTH TRACK (BATCH)
+     AUTH TRACK (SINGLE AWB)
   ---------------------------------- */
-  async trackAuthBatch(params: {
-  awbs: string[];
+  async trackAuthSingle(params: {
+  awb: string;
   token: string;
   customerCode: string;
   }) {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 25_000);
 
-    const res = await fetch(this.AUTH_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Access-Token": params.token,
-      },
-      body: JSON.stringify({
-        trkType: "cnno",
-        strcnno: params.awbs.join(","),
-        addtnlDtl: "Y",
-        customerCode: params.customerCode,
-      }),
-    });
-
-    // DTDC AUTH returns 200 / 206 for batch
-    if (![200, 206].includes(res.status)) {
-      throw new Error(`DTDC AUTH failed: ${res.status}`);
-    }
-
-    // 🔴 READ BODY ONLY ONCE
-    const text = await res.text();
-
-    if (!text) {
-      throw new Error("DTDC AUTH empty response");
-    }
-
-    let json: any;
     try {
-      json = JSON.parse(text);
-    } catch (e) {
-      throw new Error("DTDC AUTH invalid JSON");
-    }
+      const res = await fetch(this.AUTH_URL, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Access-Token": params.token,
+        },
+        body: JSON.stringify({
+          trkType: "cnno",
+          strcnno: params.awb,          // ✅ SINGLE AWB
+          addtnlDtl: "Y",
+          customerCode: params.customerCode,
+        }),
+      });
 
-    return json;
+      if (!res.ok) {
+        // 206 is still a valid DTDC response
+        if (res.status !== 206) {
+          throw new Error(`DTDC AUTH failed: ${res.status}`);
+        }
+      }
+
+      const text = await res.text();
+      if (!text) return null;
+
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error("DTDC AUTH invalid JSON");
+      }
+
+      // 🚫 Guard: DTDC returns FAILED with empty payload
+      if (json.statusFlag === false) return null;
+      if (!json.trackHeader) return null;
+
+      return json;
+
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /* ----------------------------------

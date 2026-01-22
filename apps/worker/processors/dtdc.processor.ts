@@ -10,58 +10,55 @@ const dtdc = new DtdcBulkAdapter();
 export async function processDtdcSingleTrack(job: Job) {
   const { awb } = job.data as { awb: string };
 
-  const row = await db
-    .select({
-      id: consignments.id,
-      normalized_status: consignments.normalized_status,
-      last_status_at: consignments.last_status_at,
-    })
+  const [row] = await db
+    .select()
     .from(consignments)
     .where(eq(consignments.awb, awb))
     .limit(1);
 
-  if (!row.length) return;
-
   if (
-    ['DELIVERED', 'RTO_DELIVERED', 'CANCELLED', 'LOST']
-      .includes(row[0].normalized_status ?? '')
+    !row ||
+    ['DELIVERED','RTO_DELIVERED','CANCELLED','LOST']
+      .includes(row.normalized_status ?? '')
   ) return;
 
-  const consignmentId = row[0].id;
-  const lastKnownTime = row[0].last_status_at?.getTime() ?? 0;
-
   const json = await dtdc.trackPublicSingle(awb);
-  if (!json || !Array.isArray(json.statuses) || json.statuses.length < 2) {
-    return;
-  }
 
-  const events = json.statuses
-    .map(s => ({
-      consignment_id: consignmentId,
-      awb,
-      provider: 'DTDC',
-      status: s.statusDescription ?? '',
-      location: s.actCityName ?? s.actBranchName ?? null,
-      remarks: s.remarks ?? null,
-      event_time: s.statusTimestamp
-        ? new Date(s.statusTimestamp.replace(' ', 'T'))
-        : null,
-    }))
-    .filter(e => e.event_time)
+  // 🔴 FIX: Public single uses `details[]`
+  if (!Array.isArray(json?.details) || json.details.length < 1) return;
+
+  const lastKnownTime = row.last_status_at?.getTime() ?? 0;
+
+  const events = json.details
+    .map(d => {
+      const ts =
+        d.strActionDate && d.strActionTime
+          ? new Date(
+              `${d.strActionDate.split('-').reverse().join('-')}T${d.strActionTime}`
+            )
+          : null;
+
+      return ts && ts.getTime() > lastKnownTime
+        ? {
+            consignment_id: row.id,
+            awb,
+            provider: 'DTDC',
+            status: d.strAction ?? '',
+            location: d.strDestination ?? d.strOrigin ?? null,
+            remarks: d.sTrRemarks ?? null,
+            event_time: ts,
+            raw: d,
+          }
+        : null;
+    })
+    .filter(Boolean)
     .sort((a, b) => a.event_time!.getTime() - b.event_time!.getTime());
 
-  const newEvents = events.filter(
-    e => e.event_time!.getTime() > lastKnownTime
-  );
+  if (!events.length) return;
 
-  if (!newEvents.length) return;
+  await db.insert(trackingEvents).values(events).onConflictDoNothing();
 
-  await db
-    .insert(trackingEvents)
-    .values(newEvents)
-    .onConflictDoNothing();
-
-  const latest = newEvents[newEvents.length - 1];
+  const latest = events[events.length - 1];
   const { normalized, group } = mapDtdcStatus(latest.status);
 
   await db.update(consignments).set({
@@ -69,59 +66,102 @@ export async function processDtdcSingleTrack(job: Job) {
     normalized_status: normalized,
     status_group: group,
     last_status_at: latest.event_time,
-  }).where(eq(consignments.id, consignmentId));
+    origin: row.origin ?? json.header?.strOrigin ?? null,
+    destination: row.destination ?? json.header?.strDestination ?? null,
+  }).where(eq(consignments.id, row.id));
 }
 
-export async function processDtdcAuthBatch(job: Job) {
-  const { awbs, token, customerCode } = job.data as {
-    awbs: string[];
-    token: string;
-    customerCode: string;
-  };
+export async function processDtdcAuthSingle(job: Job) {
+  const { awb, token, customerCode } = job.data;
 
-  const res = await dtdc.trackAuthBatch({
-    awbs,
+  const res = await dtdc.trackAuthSingle({
+    awb,
     token,
     customerCode,
   });
 
-  if (!Array.isArray(res?.consignment)) return;
+  if (!res?.trackHeader || !Array.isArray(res.trackDetails)) return;
 
-  const timelines = res.consignment
-    .filter(c => Array.isArray(c.tracking) && c.tracking.length >= 2)
-    .map(c => ({
-      awb: c.cnno,
-      origin: c.strOrigin ?? null,
-      destination: c.strDestination ?? null,
-      events: c.tracking,
-    }));
+  const [row] = await db
+    .select()
+    .from(consignments)
+    .where(eq(consignments.awb, awb))
+    .limit(1);
 
-  await processTimelinesBatch(timelines);
+  if (
+    !row ||
+    ['DELIVERED','RTO_DELIVERED','CANCELLED','LOST']
+      .includes(row.normalized_status ?? '')
+  ) return;
+
+  /* ---------------- HEADER ---------------- */
+  const header = res.trackHeader;
+
+  const bookedAt = parseDtdcDateTime(
+    header.strBookedDate,
+    header.strBookedTime
+  );
+
+  const lastStatusAt = parseDtdcDateTime(
+    header.strStatusTransOn,
+    header.strStatusTransTime
+  );
+
+  const { normalized, group } = mapDtdcStatus(header.strStatus);
+
+  /* ---------------- EVENTS ---------------- */
+  const lastKnown = row.last_status_at?.getTime() ?? 0;
+
+  const events = res.trackDetails
+    .map(t => ({
+      consignment_id: row.id,
+      provider: 'DTDC',
+      awb,
+      status: t.strAction ?? '',
+      location: t.strOrigin ?? null,
+      remarks: t.sTrRemarks ?? t.strRemarks ?? null,
+      event_time: parseDtdcDateTime(
+        t.strActionDate,
+        t.strActionTime
+      ),
+    }))
+    .filter(e => e.event_time && e.event_time.getTime() > lastKnown)
+    .sort((a, b) => a.event_time!.getTime() - b.event_time!.getTime());
+
+  if (events.length) {
+    await db.insert(trackingEvents).values(events).onConflictDoNothing();
+  }
+
+  /* ---------------- CONSIGNMENT UPDATE ---------------- */
+  await db.update(consignments).set({
+    reference_number: row.reference_number ?? header.strRefNo ?? null,
+    origin: row.origin ?? header.strOrigin ?? null,
+    destination: row.destination ?? header.strDestination ?? null,
+    booked_at: row.booked_at ?? parseDtdcDateTime(header.strBookedDate) ?? bookedAt,
+    expected_delivery_date: header.strExpectedDeliveryDate
+      ? parseDtdcDateTime(header.strExpectedDeliveryDate)
+      : null,
+    current_status: header.strStatus,
+    normalized_status: normalized,
+    status_group: group,
+    last_status_at: lastStatusAt,
+    tracking_locked_at: null,
+    updated_at: sql`NOW()`,
+  }).where(eq(consignments.id, row.id));
 }
 
 export async function processDtdcPublicBatch(job: Job) {
-  const { awbs } = job.data as { awbs: string[] };
+  const { awbs } = job.data;
 
   const res = await dtdc.trackPublicBatch(awbs);
   if (!Array.isArray(res.headers)) return;
 
-  const updates: Array<{
-    awb: string;
-    current_status: string;
-    normalized_status: string;
-    status_group: string;
-    last_status_at: Date;
-  }> = [];
-
+  const updates = [];
   const escalate: string[] = [];
 
   for (const h of res.headers) {
     const awb = String(h.shipmentNo).trim();
-    const status =
-      h.currentStatusDescription ??
-      h.status ??
-      '';
-
+    const status = h.currentStatusDescription ?? h.status ?? '';
     if (!awb || !status) continue;
 
     const { normalized, group } = mapDtdcStatus(status);
@@ -131,152 +171,82 @@ export async function processDtdcPublicBatch(job: Job) {
       current_status: status,
       normalized_status: normalized,
       status_group: group,
-      last_status_at: null,
+      last_status_at: new Date(), // ✅ FIX
     });
 
-    // Escalate ONLY for terminal states
-    if (!['DELIVERED', 'RTO_DELIVERED', 'CANCELLED', 'LOST'].includes(normalized)) {
+    if (!['DELIVERED','RTO_DELIVERED','CANCELLED','LOST'].includes(normalized)) {
       escalate.push(awb);
     }
   }
 
-  /* -------------------------------
-     1️⃣ Bulk UPDATE (ONCE)
-  ------------------------------- */
   if (updates.length) {
     await bulkUpdatePublicConsignments(updates);
   }
 
-  /* -------------------------------
-     2️⃣ Escalate to SINGLE (RARE)
-  ------------------------------- */
   for (const awb of escalate) {
-    await trackingQueue.add(
-      'DTDC_SINGLE_TRACK',
-      { awb },
-      { removeOnComplete: true }
-    );
+    await trackingQueue.add('DTDC_SINGLE_TRACK', { awb });
   }
 }
 
-async function processTimelinesBatch(
-  timelines: Array<{
+async function bulkUpdatePublicConsignments(
+  updates: Array<{
     awb: string;
-    origin: string | null;
-    destination: string | null;
-    events: Array<{
-      statusDescription?: string;
-      actCityName?: string;
-      actBranchName?: string;
-      remarks?: string;
-      statusTimestamp?: string;
-    }>;
-  }>
-) {
-  if (!timelines.length) return;
-
-  const awbs = timelines.map(t => t.awb);
-
-  /* -------------------------------
-     1️⃣ Load consignments in ONE query
-  ------------------------------- */
-  const consignmentsRows = await db
-    .select({
-      id: consignments.id,
-      awb: consignments.awb,
-      normalized_status: consignments.normalized_status,
-      last_status_at: consignments.last_status_at,
-    })
-    .from(consignments)
-    .where(inArray(consignments.awb, awbs));
-
-  const consignmentMap = new Map(
-    consignmentsRows.map(r => [r.awb, r]),
-  );
-
-  const newEvents: typeof trackingEvents.$inferInsert[] = [];
-  const updates: Array<{
-    id: number;
-    origin: string | null;
-    destination: string | null;
     current_status: string;
     normalized_status: string;
     status_group: string;
     last_status_at: Date;
-  }> = [];
+  }>
+) {
+  if (!updates.length) return;
 
-  /* -------------------------------
-     2️⃣ Build events + updates in memory
-  ------------------------------- */
-  for (const { awb, events, origin, destination } of timelines) {
-    const row = consignmentMap.get(awb);
-    if (!row) continue;
+  const awbs = updates.map(u => u.awb);
 
-    if (
-      ['DELIVERED', 'RTO_DELIVERED', 'CANCELLED', 'LOST']
-        .includes(row.normalized_status ?? '')
-    ) continue;
+  const currentStatusCase = sql.join(
+    updates.map(
+      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.current_status}`
+    ),
+    sql` `
+  );
 
-    const lastKnownTime = row.last_status_at?.getTime() ?? 0;
+  const normalizedStatusCase = sql.join(
+    updates.map(
+      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.normalized_status}`
+    ),
+    sql` `
+  );
 
-    const parsed = events
-      .map(e => ({
-        consignment_id: row.id,
-        awb,
-        provider: 'DTDC',
-        status: e.statusDescription ?? '',
-        location: e.actCityName ?? e.actBranchName ?? null,
-        remarks: e.remarks ?? null,
-        event_time: e.statusTimestamp
-          ? new Date(e.statusTimestamp.replace(' ', 'T'))
-          : null,
-      }))
-      .filter(e => e.event_time)
-      .sort((a, b) => a.event_time!.getTime() - b.event_time!.getTime());
+  const statusGroupCase = sql.join(
+    updates.map(
+      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.status_group}`
+    ),
+    sql` `
+  );
 
-    const fresh = parsed.filter(
-      e => e.event_time!.getTime() > lastKnownTime,
-    );
+  const lastStatusAtCase = sql.join(
+    updates.map(
+      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.last_status_at}`
+    ),
+    sql` `
+  );
 
-    if (!fresh.length) continue;
-
-    newEvents.push(...fresh);
-
-    const latest = fresh[fresh.length - 1];
-    const { normalized, group } = mapDtdcStatus(latest.status);
-
-    updates.push({
-      id: Number(row.id),
-      origin,
-      destination,
-      current_status: latest.status,
-      normalized_status: normalized,
-      status_group: group,
-      last_status_at: latest.event_time!,
-    });
-  }
-
-  /* -------------------------------
-     3️⃣ Bulk INSERT events (ONCE)
-  ------------------------------- */
-  if (newEvents.length) {
-    await db
-      .insert(trackingEvents)
-      .values(newEvents)
-      .onConflictDoNothing();
-  }
-
-  /* -------------------------------
-     4️⃣ Bulk UPDATE consignments
-  ------------------------------- */
-  if (updates.length) {
-    await bulkUpdateConsignments(updates);
-  }
+  await db.execute(sql`
+    UPDATE ${consignments}
+    SET
+      current_status = CASE ${currentStatusCase} ELSE current_status END,
+      normalized_status = CASE ${normalizedStatusCase} ELSE normalized_status END,
+      status_group = CASE ${statusGroupCase} ELSE status_group END,
+      last_status_at = CASE ${lastStatusAtCase} ELSE last_status_at END
+    WHERE ${consignments.awb} IN (${sql.join(awbs, sql`, `)});
+  `);
 }
 
+
+// ------------------------------------------
+// PARSERS (UNCHANGED)
+// ------------------------------------------
 async function bulkUpdateConsignments(
   updates: Array<{
-    id: number;
+    id: string;
     origin: string | null;
     destination: string | null;
     current_status: string;
@@ -337,67 +307,28 @@ async function bulkUpdateConsignments(
       current_status = CASE ${currentStatusCase} ELSE current_status END,
       normalized_status = CASE ${normalizedStatusCase} ELSE normalized_status END,
       status_group = CASE ${statusGroupCase} ELSE status_group END,
-      last_status_at = CASE ${lastStatusAtCase} ELSE last_status_at END
-      origin = COALESCE(
-        CASE ${originCase} ELSE origin END,
-        origin
-      ),
-      destination = COALESCE(
-        CASE ${destinationCase} ELSE destination END,
-        destination
-      ),
+      last_status_at = CASE ${lastStatusAtCase} ELSE last_status_at END,
+
+      -- 🔒 Never overwrite existing origin/destination
+      origin = COALESCE(origin, CASE ${originCase} ELSE origin END),
+      destination = COALESCE(destination, CASE ${destinationCase} ELSE destination END),
+
+      updated_at = NOW()
     WHERE ${consignments.id} IN (${sql.join(ids, sql`, `)});
   `);
 }
 
-async function bulkUpdatePublicConsignments(
-  updates: Array<{
-    awb: string;
-    current_status: string;
-    normalized_status: string;
-    status_group: string;
-    last_status_at: Date;
-  }>
-) {
-  if (!updates.length) return;
+function parseDtdcDateTime(date?: string, time?: string): Date | null {
+  if (!date) return null;
 
-  const awbs = updates.map(u => u.awb);
+  // DDMMYYYY → YYYY-MM-DD
+  const d = date.slice(0, 2);
+  const m = date.slice(2, 4);
+  const y = date.slice(4, 8);
 
-  const currentStatusCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.current_status}`
-    ),
-    sql` `
-  );
+  const hh = time?.slice(0, 2) ?? '00';
+  const mm = time?.slice(2, 4) ?? '00';
 
-  const normalizedStatusCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.normalized_status}`
-    ),
-    sql` `
-  );
-
-  const statusGroupCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.status_group}`
-    ),
-    sql` `
-  );
-
-  const lastStatusAtCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.awb} = ${u.awb} THEN ${u.last_status_at}`
-    ),
-    sql` `
-  );
-
-  await db.execute(sql`
-    UPDATE ${consignments}
-    SET
-      current_status = CASE ${currentStatusCase} ELSE current_status END,
-      normalized_status = CASE ${normalizedStatusCase} ELSE normalized_status END,
-      status_group = CASE ${statusGroupCase} ELSE status_group END,
-      last_status_at = CASE ${lastStatusAtCase} ELSE last_status_at END
-    WHERE ${consignments.awb} IN (${sql.join(awbs, sql`, `)});
-  `);
+  const dt = new Date(`${y}-${m}-${d}T${hh}:${mm}:00`);
+  return isNaN(dt.getTime()) ? null : dt;
 }

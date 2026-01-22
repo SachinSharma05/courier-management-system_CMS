@@ -15,6 +15,15 @@ import { clsx } from 'clsx';
 
 type Provider = 'DTDC' | 'DELHIVERY';
 
+type ParsedRow = {
+  code: string;
+  awb: string;
+  reference_number?: string | null;
+  origin_pincode?: string | null;
+  destination_pincode?: string | null;
+  booked_at?: string | null;
+};
+
 export default function BulkTrackingPage() {
   const [provider, setProvider] = useState<Provider>('DTDC');
   const [groups, setGroups] = useState<BulkGroup[]>([]);
@@ -82,16 +91,23 @@ export default function BulkTrackingPage() {
         if (normalized.length === 0) throw new Error('No valid data found in Excel');
 
         // Grouping Logic
-        const map = new Map<string, string[]>();
+        const map = new Map<string, ParsedRow[]>();
+
         normalized.forEach(r => {
           const arr = map.get(r.code) ?? [];
-          arr.push(r.awb);
+          arr.push(r);
           map.set(r.code, arr);
         });
 
-        const grouped = Array.from(map.entries()).map(([code, awbs]) => ({
+        const grouped = Array.from(map.entries()).map(([code, rows]) => ({
           code,
-          awbs: Array.from(new Set(awbs))
+          awbs: rows.map(r => ({
+            awb: r.awb,
+            reference_number: r.reference_number ?? null,
+            origin_pincode: r.origin_pincode ?? null,
+            destination_pincode: r.destination_pincode ?? null,
+            booked_at: r.booked_at ?? null,
+          })),
         }));
 
         setGroups(grouped);
