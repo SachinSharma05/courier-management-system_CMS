@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/lib/api/axios';
 
 type Params = {
@@ -36,9 +36,9 @@ export function useProviderShipments(params: Params) {
         `/providers/${params.provider}/list`,
         { params },
       );
-      console.log("Data", data);
       return data;
     },
-    keepPreviousData: true,
+    // keepPreviousData: true, <-- Delete this
+    placeholderData: keepPreviousData, // 2. Use this instead
   });
 }
