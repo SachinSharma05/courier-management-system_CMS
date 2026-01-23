@@ -124,7 +124,7 @@ export default function RolesPage() {
             </h1>
             <p className="text-slate-500 font-medium mt-1">
               Defining granular permissions for <span className="text-indigo-600">
-                {rolesData?.find(r => r.id === selectedRoleId)?.name || 'Role'}
+                {rolesData?.find((r: any) => r.id === selectedRoleId)?.name || 'Role'}
               </span>
             </p>
           </div>
