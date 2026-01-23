@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@cms/shared": ["packages/shared/src"],
+      "@cms/shared/*": ["packages/shared/src/*"]
+    }
+  }
+}
