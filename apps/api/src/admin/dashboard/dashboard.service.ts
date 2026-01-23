@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { db } from '../../db';
 import { sql, eq, and } from 'drizzle-orm';
 import { users } from '../../db/schema';
-import { trackingQueue } from '../../queues/tracking.queue';
 
 @Injectable()
 export class DashboardService {
@@ -82,41 +81,5 @@ export class DashboardService {
       { type: 'DLQ', entity: 'DTDC', message: 'Tracking retry failed for 3 consignments', time: '2m ago' },
       { type: 'CREDENTIAL', entity: 'Client B', message: 'API key expired', time: '15m ago' },
     ];
-  }
-
-  async getAwbStats() {
-    const [
-      counts,
-      isPaused,
-      workers,
-      delayed,
-      repeatable,
-    ] = await Promise.all([
-      trackingQueue.getJobCounts(),
-      trackingQueue.isPaused(),
-      trackingQueue.getWorkers(),
-      trackingQueue.getDelayedCount(),
-      trackingQueue.getRepeatableJobs(),
-    ]);
-
-    return {
-      queue: 'tracking',
-      paused: isPaused,
-      workers: workers.length,
-      jobs: {
-        waiting: counts.waiting,
-        active: counts.active,
-        completed: counts.completed,
-        failed: counts.failed,
-        delayed: counts.delayed,
-      },
-      delayedCount: delayed,
-      repeatableJobs: repeatable.map(j => ({
-        name: j.name,
-        cron: j.pattern,
-        next: j.next,
-      })),
-      updatedAt: new Date().toISOString(),
-    };
   }
 }

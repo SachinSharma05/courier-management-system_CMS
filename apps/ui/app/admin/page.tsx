@@ -17,7 +17,6 @@ import {
   getAlerts
  } from '@/lib/api/dashboard.api';
 import { useEffect, useRef, useState } from 'react';
-import WorkerStatsCard from '@/components/WorkerStatsCard'
 
 interface StatCardProps {
   label: string;
@@ -81,9 +80,6 @@ export default function AdminDashboard() {
         <StatCard label="Aggregator Margin" value={stats.margin} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" />
         <StatCard label="Critical DLQ" value={stats.dlqCount} icon={AlertCircle} color="text-red-600" bg="bg-red-50" />
       </section>
-      
-      {/* ───────────────── KEY METRICS ───────────────── */}
-      {/* <WorkerStatsCard /> */}
 
       {/* ───────────────── SPECIAL FOCUS WIDGETS ───────────────── */}
       {/* <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8"> */}
