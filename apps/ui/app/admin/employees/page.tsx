@@ -112,6 +112,10 @@ export default function EmployeesPage() {
     setIsCalendarOpen(true);
   };
 
+  function handleDelete(id: number): void {
+    throw new Error('Function not implemented.');
+  }
+
   /* ================= UI ================= */
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 relative">
@@ -199,7 +203,22 @@ export default function EmployeesPage() {
           <button onClick={() => { setDrawerType('holidays'); setIsDrawerOpen(true); }} className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
             <Calendar size={16} /> Holidays
           </button>
-          <button onClick={() => { setSelectedEmp({ id: 0, name: '', is_active: true, base_salary: 0, advance_balance: 0, net_due: 0 }); setDrawerType('add'); setIsDrawerOpen(true); }} className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-md active:scale-95">
+          <button 
+            onClick={() => { 
+              setSelectedEmp({ 
+                id: 0, 
+                name: '', 
+                phone: '', // Added empty string for required field
+                is_active: true, 
+                base_salary: 0, 
+                advance_balance: 0, 
+                net_due: 0,
+                attendance_list: [], // Added empty array for required field
+                advances: []         // Added empty array for required field
+              } as Employee); 
+              setDrawerType('add'); 
+              setIsDrawerOpen(true); }} 
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-md active:scale-95">
             <UserPlus size={18} /> Add Staff Member
           </button>
         </div>
@@ -233,34 +252,6 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-
-      {/* ───────────────── QUICK DEPT SUMMARY ───────────────── */}
-      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <DeptStat label="Operations" count={14} color="blue" icon={<Briefcase size={16}/>} />
-        <DeptStat label="Support" count={8} color="green" icon={<Headphones size={16}/>} />
-        <DeptStat label="Finance" count={4} color="amber" icon={<Wallet size={16}/>} />
-        <DeptStat label="On Leave" count={2} color="purple" icon={<PlaneTakeoff size={16}/>} />
-      </div> */}
-
-      {/* ───────────────── FILTERS ───────────────── */}
-      {/* <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 border border-slate-100 shadow-sm">
-        <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            placeholder={`Search staff by name or email...`}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500/40 transition-all"
-          />
-        </div>
-        <select className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 outline-none bg-white hover:border-slate-300">
-          <option>All Departments</option>
-          <option>Operations</option>
-          <option>Customer Support</option>
-          <option>Finance</option>
-        </select>
-        <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all border border-slate-100">
-          <Settings2 size={18} />
-        </button>
-      </div> */}
 
       {/* ───────────────── EMPLOYEES TABLE ───────────────── */}
       <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
@@ -337,10 +328,10 @@ export default function EmployeesPage() {
                     <Td>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
-                            <span className={clsx("text-xs font-bold", getTimeStatus(e.check_in).isLate ? "text-amber-600" : "text-slate-700")}>
-                              {getTimeStatus(e.check_in).time}
+                            <span className={clsx("text-xs font-bold", getTimeStatus(e.check_in ?? null).isLate ? "text-amber-600" : "text-slate-700")}>
+                              {getTimeStatus(e.check_in ?? null).time}
                             </span>
-                            {getTimeStatus(e.check_in).isLate && (
+                            {getTimeStatus(e.check_in ?? null).isLate && (
                               <span className="bg-amber-100 text-[8px] font-black text-amber-700 px-1 rounded uppercase tracking-tighter">Late</span>
                             )}
                           </div>
@@ -349,7 +340,7 @@ export default function EmployeesPage() {
                       </Td>
                       <Td>
                         <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-700">{formatTime(e.check_out)}</span>
+                          <span className="text-xs font-bold text-slate-700">{formatTime(e.check_out ?? null)}</span>
                           <span className="text-[9px] text-slate-400 font-medium">CHECK-OUT</span>
                         </div>
                       </Td>
@@ -515,11 +506,11 @@ function EmployeeDrawer({
     setLoadingAction(true);
     await paySalary({
       employee_id: employee.id,
-      salary_id: employee.salary_id, // ✅ CORRECT
+      salary_id: employee.salary_id ?? 0, // ✅ CORRECT
       amount:
         amount ||
         (employee.net_salary ?? employee.base_salary) -
-          (employee.advance_balance ?? 0),
+          ((Number(employee.advance_balance) ?? 0)),
       payment_date: new Date().toISOString().slice(0, 10),
       mode: 'bank',
     });
@@ -545,20 +536,29 @@ function EmployeeDrawer({
   };
 
   useEffect(() => {
-  if (type === 'edit' && employee) {
-    setFormData({
-      name: employee.name || '',
-      email: employee.email || '',
-      designation: employee.designation || 'Support',
-      phone: (employee as any).phone || '',
-      department: employee.department || 'Operations',
-      base_salary: employee.base_salary || 0,
-      joining_date: (employee as any).joining_date || new Date().toISOString().slice(0, 10),
-      salary_type: (employee as any).salary_type || 'Monthly',
-      is_active: employee.is_active ?? true
-    });
-  }
-}, [employee, type]);
+    if (type === 'edit' && employee) {
+      setFormData({
+        // 1. Add the missing required property
+        employee_code: (employee as any).employee_code || '', 
+        
+        name: employee.name || '',
+        email: employee.email || '',
+        designation: employee.designation || 'Support',
+        
+        // 2. Use String() to ensure 'any' or 'null' becomes a 'string'
+        phone: String((employee as any).phone || ''),
+        
+        department: employee.department || 'Operations',
+        base_salary: Number(employee.base_salary) || 0,
+        
+        // 3. Ensure these match the 'string' requirement of your state
+        joining_date: String((employee as any).joining_date || new Date().toISOString().slice(0, 10)),
+        salary_type: String((employee as any).salary_type || 'Monthly'),
+        
+        is_active: !!employee.is_active // Double bang forces boolean
+      });
+    }
+  }, [employee, type]);
 
   const download = async () => {
   try{
