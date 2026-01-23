@@ -26,14 +26,14 @@ export class AuthController {
     res.setCookie('access_token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Security: only send over HTTPS in prod
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
     });
 
     res.setCookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
     });
 

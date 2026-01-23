@@ -25,7 +25,21 @@ async function bootstrap() {
   }
 
   await app.register(fastifyCors, {
-    origin: 'http://localhost:3000', // Next.js
+    origin: (origin, cb) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://courier-management-system-cms-ui.vercel.app', // 👈 your UI domain
+      ];
+
+      // allow server-to-server or curl requests (no origin)
+      if (!origin) return cb(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+
+      cb(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
