@@ -35,8 +35,8 @@ export default function DelhiveryShipmentsPage() {
   });
 
   // --- Pagination Logic ---
-  const totalRecords = data?.meta.total || 0;
-  const totalPages = data?.meta.totalPages || 1;
+  const totalRecords = (data as any)?.meta?.total || 0;
+  const totalPages = (data as any)?.meta?.totalPages || 1;
   const startRange = (page - 1) * 50 + 1;
   const endRange = Math.min(page * 50, totalRecords);
 
