@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException  } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../admin/users/users.service';
 import * as argon2 from 'argon2';
+import { FastifyReply } from 'fastify';
 
 @Injectable()
 export class AuthService {
@@ -9,18 +10,27 @@ export class AuthService {
     private jwt: JwtService,
     private users: UsersService) {}
 
-    login(user: { id: number; email: string; role: string }) {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    login(
+      user: { id: number; email: string; role: string },
+      res: FastifyReply,
+    ) {
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      };
 
-    return {
-      accessToken: this.jwt.sign(payload, { expiresIn: '150m' }),
-      refreshToken: this.jwt.sign(payload, { expiresIn: '7d' }),
-    };
-  }
+      const accessToken = this.jwt.sign(payload, { expiresIn: '150m' });
+
+      res.setCookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+      });
+
+      return { ok: true };
+    }
 
   async validateUser(email: string, password: string) {
     const user = await this.users.findByEmail(email);

@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api/axios';
 
 type User = {
-  userId: number;
+  sub: number;
   email: string;
   role: string;
 };
@@ -24,20 +24,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     api
       .get('/auth/me')
-      .then((res) => {
-        const u = res.data;
-        setUser({
-          userId: u.id,
-          email: u.email,
-          role: u.role,
-        });
-      })
+      .then((res) => setUser(res.data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('access_token');
+  const logout = async () => {
+    await api.post('/auth/logout');
     setUser(null);
     window.location.href = '/login';
   };

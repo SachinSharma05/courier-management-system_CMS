@@ -15,12 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const submit = async () => {
-    const res = await api.post('/auth/login', { email, password });
-
-    // if using header token
-    // localStorage.setItem('access_token', res.data.access_token);
-    // localStorage.setItem('user', JSON.stringify(res.data.user));
-
+    await api.post('/auth/login', { email, password });
     window.location.href = '/admin';
   };
 
