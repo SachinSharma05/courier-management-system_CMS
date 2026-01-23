@@ -17,6 +17,7 @@ export default function AdminAuthGuard({
       router.replace('/login');
     }
   }, [loading, user, router]);
+console.log('AUTH GUARD', { loading, user });
 
   if (loading) return null;
   if (!user) return null;

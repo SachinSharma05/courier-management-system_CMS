@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '@/lib/api/axios';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -16,7 +18,7 @@ export default function LoginPage() {
 
   const submit = async () => {
     await api.post('/auth/login', { email, password });
-    window.location.href = '/admin';
+    router.replace('/admin');
   };
 
   return (
