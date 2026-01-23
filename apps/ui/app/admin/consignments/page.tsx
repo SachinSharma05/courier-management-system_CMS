@@ -130,7 +130,7 @@ export default function ConsignmentsPage() {
           >
             <option value="">All Clients</option>
             {/* Access .data and then .map */}
-            {clients?.data?.map((c: any) => (
+            {(clients as any[])?.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.company_name}
               </option>
@@ -143,8 +143,8 @@ export default function ConsignmentsPage() {
             onChange={e => setFilters(f => ({ ...f, provider: e.target.value }))}
           >
             <option value="">All Providers</option>
-            {providers?.data?.map((p: any) => (
-              <option key={p.id} value={p.name}>
+            {(providers as any[])?.map((p) => (
+              <option key={p.id || p.name} value={p.name}>
                 {p.name}
               </option>
             ))}
