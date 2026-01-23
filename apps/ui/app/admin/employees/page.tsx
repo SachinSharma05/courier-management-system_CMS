@@ -456,7 +456,7 @@ function EmployeeDrawer({
 
   const submitAddEmployee = async () => {
     setLoadingAction(true);
-    await createEmployee(formData); 
+    await createEmployee(formData as any); 
     await onSaved(); // Refresh the list
     setLoadingAction(false);
     onClose();
@@ -525,7 +525,7 @@ function EmployeeDrawer({
     setLoadingAction(true);
     try {
       // Pass employee.id as the first argument, and the form data as the second
-      await updateEmployee(employee.id, formData); 
+      await updateEmployee(employee.id, formData as any); 
       await onSaved(); 
       onClose();
     } catch (error) {
@@ -823,7 +823,7 @@ function EmployeeDrawer({
                   <span>
                     ₹{(
                       (employee.net_salary ?? employee.base_salary) -
-                      (employee.advance_balance ?? 0)
+                      (Number(employee.advance_balance ?? 0))
                     ).toLocaleString()}
                   </span>
                 </div>
@@ -957,15 +957,6 @@ const getTimeStatus = (isoString: string | null) => {
   const minutes = parseInt(istTime.find(p => p.type === 'minute')?.value || '0');
   return { time: timeStr, isLate: hours > 10 || (hours === 10 && minutes > 30) };
 };
-
-function SummaryItem({ label, count, color }: any) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
-      <span className={clsx("text-lg font-black", color)}>{count}</span>
-    </div>
-  );
-}
 
 function Th({ children, className }: any) { return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>; }
 function Td({ children, className }: any) { return <td className={clsx("px-6 py-4 text-sm", className)}>{children}</td>; }
