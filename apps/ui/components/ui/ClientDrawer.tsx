@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Save, Shield, Building2, User as UserIcon, Phone } from 'lucide-react';
-import { createClient, updateClient } from '@/lib/api/clients.api';
+import { createClient, CreateClientDto, updateClient } from '@/lib/api/clients.api';
 
 export function ClientDrawer({ client, onClose, onRefresh }: any) {
   const isEdit = !!client?.id;
@@ -21,15 +21,29 @@ export function ClientDrawer({ client, onClose, onRefresh }: any) {
     }
   }, [client]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (isEdit) await updateClient(client.id, formData);
-      else await createClient(formData);
-      onRefresh();
-      onClose();
-    } catch (err) { alert("Failed to save client"); }
-  };
+  const handleSubmit = async () => {
+  try {
+    // Transform the data to match CreateClientDto exactly
+    const payload: CreateClientDto = {
+      companyName: formData.company_name, // Maps snake_case to camelCase
+      email: formData.email,
+      phone: formData.phone,
+      role: 'client',                     // Adds the missing required string
+      isActive: formData.is_active        // Maps is_active to isActive
+    };
+
+    if (isEdit) {
+      await updateClient(client.id, payload);
+    } else {
+      await createClient(payload);
+    }
+    
+    onRefresh();
+    onClose();
+  } catch (err) {
+    alert("Failed to save client");
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -45,15 +59,15 @@ export function ClientDrawer({ client, onClose, onRefresh }: any) {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            <Input label="Company Name" icon={<Building2 size={16}/>} value={formData.company_name} onChange={(v) => setFormData({...formData, company_name: v})} />
+            <Input label="Company Name" icon={<Building2 size={16}/>} value={formData.company_name} onChange={(v: any) => setFormData({...formData, company_name: v})} />
             {!isEdit && (
               <>
-                <Input label="Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v) => setFormData({...formData, username: v})} />
-                <Input label="Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v) => setFormData({...formData, password: v})} />
+                <Input label="Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v: any) => setFormData({...formData, username: v})} />
+                <Input label="Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v: any) => setFormData({...formData, password: v})} />
               </>
             )}
-            <Input label="Contact Person" value={formData.contact_person} onChange={(v) => setFormData({...formData, contact_person: v})} />
-            <Input label="Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v) => setFormData({...formData, phone: v})} />
+            <Input label="Contact Person" value={formData.contact_person} onChange={(v: any) => setFormData({...formData, contact_person: v})} />
+            <Input label="Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v: any) => setFormData({...formData, phone: v})} />
             
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
               <span className="text-sm font-bold text-slate-700">Account Active</span>
