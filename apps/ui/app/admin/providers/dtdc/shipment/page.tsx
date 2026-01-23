@@ -36,13 +36,13 @@ export default function ShipmentsListPage() {
   const handleExport = async () => {
     setIsExporting(true);
     await new Promise(res => setTimeout(res, 800)); 
-    exportToCSV(data?.data || []);
+    exportToCSV((data as any)?.data || []);
     setIsExporting(false);
   };
 
   // --- Pagination Logic ---
-  const totalRecords = data?.meta.total || 0;
-  const totalPages = data?.meta.totalPages || 1;
+  const totalRecords = (data as any)?.meta?.total || 0;
+  const totalPages = (data as any)?.meta?.totalPages || 1;
   const startRange = (page - 1) * 50 + 1;
   const endRange = Math.min(page * 50, totalRecords);
 
@@ -118,7 +118,7 @@ export default function ShipmentsListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {data?.data.map((s: any) => (
+              {(data as any)?.data?.map((s: any) => (
                 <tr key={s.id} className="group hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-3">
                     <div className="flex flex-col">
