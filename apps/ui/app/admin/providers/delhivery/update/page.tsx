@@ -234,10 +234,25 @@ export default function UpdateDelhiveryShipment() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consignee Details</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <FormGroup label="Consignee Name" value={form.name} onChange={(v) => setForm({...form, name: v})} disabled={!canEdit} />
-                  <FormGroup label="Phone Number" value={form.phone} onChange={(v) => setForm({...form, phone: v})} disabled={!canEdit} />
+                  <FormGroup 
+                    label="Consignee Name" 
+                    value={form.name} 
+                    onChange={(v: string) => setForm({...form, name: v})} 
+                    disabled={!canEdit} 
+                  />
+                  <FormGroup 
+                    label="Phone Number" 
+                    value={form.phone} 
+                    onChange={(v: string) => setForm({...form, phone: v})} 
+                    disabled={!canEdit} 
+                  />
                   <div className="md:col-span-2">
-                    <FormGroup label="Delivery Address" value={form.add} onChange={(v) => setForm({...form, add: v})} disabled={!canEdit} />
+                    <FormGroup 
+                      label="Delivery Address" 
+                      value={form.add} 
+                      onChange={(v: string) => setForm({...form, add: v})} 
+                      disabled={!canEdit} 
+                    />
                   </div>
                 </div>
               </div>
@@ -249,12 +264,12 @@ export default function UpdateDelhiveryShipment() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Package & Dimensions</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                   <FormGroup label="Weight (gms)" value={form.weight} onChange={(v) => setForm({...form, weight: v})} disabled={!canEdit} />
-                   <FormGroup label="Height (cm)" value={form.height} onChange={(v) => setForm({...form, height: v})} disabled={!canEdit} />
-                   <FormGroup label="Width (cm)" value={form.width} onChange={(v) => setForm({...form, width: v})} disabled={!canEdit} />
-                   <FormGroup label="Length (cm)" value={form.length} onChange={(v) => setForm({...form, length: v})} disabled={!canEdit} />
+                  <FormGroup label="Weight (gms)" value={form.weight} onChange={(v: any) => setForm({...form, weight: v})} disabled={!canEdit} />
+                  <FormGroup label="Height (cm)" value={form.height} onChange={(v: any) => setForm({...form, height: v})} disabled={!canEdit} />
+                  <FormGroup label="Width (cm)" value={form.width} onChange={(v: any) => setForm({...form, width: v})} disabled={!canEdit} />
+                  <FormGroup label="Length (cm)" value={form.length} onChange={(v: any) => setForm({...form, length: v})} disabled={!canEdit} />
                 </div>
-                <FormGroup label="Products Description" value={form.products_desc} onChange={(v) => setForm({...form, products_desc: v})} disabled={!canEdit} />
+                <FormGroup label="Products Description" value={form.products_desc} onChange={(v: any) => setForm({...form, products_desc: v})} disabled={!canEdit} />
               </div>
 
               {/* SECTION: PAYMENT */}
@@ -264,7 +279,7 @@ export default function UpdateDelhiveryShipment() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Patch</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <FormGroup label="COD Amount (₹)" value={form.cod_amount} onChange={(v) => setForm({...form, cod_amount: v})} disabled={!canEdit} />
+                  <FormGroup label="COD Amount (₹)" value={form.cod_amount} onChange={(v: any) => setForm({...form, cod_amount: v})} disabled={!canEdit} />
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Payment Mode (PT)</Label>
                     <select 
