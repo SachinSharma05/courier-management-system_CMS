@@ -231,7 +231,13 @@ export default function NDRPage() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="ghost" onClick={() => setConfirmOpen(false)} className="rounded-xl font-bold">Cancel</Button>
-              <Button onClick={executeAction} loading={loading} className="rounded-xl bg-indigo-600 text-white font-black">Confirm</Button>
+              <Button 
+                onClick={executeAction} 
+                disabled={loading} // Disable the button while loading
+                className="rounded-xl bg-indigo-600 text-white font-black"
+              >
+                {loading ? "Processing..." : "Confirm"} 
+              </Button>
             </div>
           </Card>
         </div>
