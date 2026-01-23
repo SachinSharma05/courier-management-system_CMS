@@ -29,7 +29,13 @@ export default function PricingPage() {
   const [clients, setClients] = useState<ClientOption[]>([]);
 
   useEffect(() => {
-    getClients().then(setClients);
+    getClients().then((data: any) => {
+      const formattedClients: ClientOption[] = data.map((c: any) => ({
+        id: c.id,
+        company_name: c.company_name || c.name || '' 
+      }));
+      setClients(formattedClients);
+    });
   }, []);
 
   // 1. First, fetch the data
