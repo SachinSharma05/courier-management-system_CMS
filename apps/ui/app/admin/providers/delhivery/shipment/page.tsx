@@ -43,7 +43,7 @@ export default function DelhiveryShipmentsPage() {
   const handleExport = async () => {
     setIsExporting(true);
     await new Promise(res => setTimeout(res, 800)); 
-    exportToCSV(data?.data || []);
+    exportToCSV((data as any)?.data || []);
     setIsExporting(false);
   };
 
@@ -120,7 +120,7 @@ export default function DelhiveryShipmentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {data?.data.map((s: any) => (
+              {(data as any)?.data?.map((s: any) => (
                 <tr key={s.awb} className="group hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
