@@ -91,7 +91,7 @@ export default function TrackingPage() {
             </div>
 
             <div className="max-h-[700px] overflow-y-auto pr-4 no-scrollbar space-y-4">
-              {timelineEvents.map((event, idx) => (
+              {timelineEvents.map((event: any, idx: number) => (
                 <div key={idx} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                   {event.isLatest && <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />}
                   
