@@ -18,8 +18,8 @@ export default function LoginPage() {
     const res = await api.post('/auth/login', { email, password });
 
     // if using header token
-    localStorage.setItem('access_token', res.data.access_token);
-    localStorage.setItem('user', JSON.stringify(res.data.user));
+    // localStorage.setItem('access_token', res.data.access_token);
+    // localStorage.setItem('user', JSON.stringify(res.data.user));
 
     window.location.href = '/admin';
   };
