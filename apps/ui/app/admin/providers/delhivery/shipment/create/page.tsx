@@ -160,13 +160,14 @@ export default function CreateDelhiveryShipmentPage() {
             <Card className="p-8 border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-white space-y-6">
               <SectionHeader icon={<User size={18} />} title="Customer Details" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FloatingInput label="Full Name" value={form.customer_name} onChange={v => update('customer_name', v)} />
-                <FloatingInput label="Phone Number" value={form.customer_phone} onChange={v => update('customer_phone', v)} />
+                {/* Fixed: Added :string type to v */}
+                <FloatingInput label="Full Name" value={form.customer_name} onChange={(v: string) => update('customer_name', v)} />
+                <FloatingInput label="Phone Number" value={form.customer_phone} onChange={(v: string) => update('customer_phone', v)} />
               </div>
-              <FloatingInput label="Full Delivery Address" value={form.customer_address} onChange={v => update('customer_address', v)} />
+              <FloatingInput label="Full Delivery Address" value={form.customer_address} onChange={(v: string) => update('customer_address', v)} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FloatingInput label="Pincode" value={form.customer_pincode} onChange={v => update('customer_pincode', v)} />
-                <FloatingInput label="Email (Optional)" value={form.customer_email} onChange={v => update('customer_email', v)} />
+                <FloatingInput label="Pincode" value={form.customer_pincode} onChange={(v: string) => update('customer_pincode', v)} />
+                <FloatingInput label="Email (Optional)" value={form.customer_email} onChange={(v: string) => update('customer_email', v)} />
               </div>
             </Card>
 
@@ -174,10 +175,10 @@ export default function CreateDelhiveryShipmentPage() {
             <Card className="p-8 border-none shadow-xl shadow-slate-200/50 rounded-[2rem] bg-white space-y-6">
               <SectionHeader icon={<Package size={18} />} title="Package Dimensions" />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <FloatingInput label="Length (cm)" value={form.length_cm} onChange={v => update('length_cm', v)} />
-                <FloatingInput label="Breadth (cm)" value={form.breadth_cm} onChange={v => update('breadth_cm', v)} />
-                <FloatingInput label="Height (cm)" value={form.height_cm} onChange={v => update('height_cm', v)} />
-                <FloatingInput label="Weight (kg)" value={form.weight_kg} onChange={v => update('weight_kg', v)} />
+                <FloatingInput label="Length (cm)" value={form.length_cm} onChange={(v: any) => update('length_cm', v)} />
+                <FloatingInput label="Breadth (cm)" value={form.breadth_cm} onChange={(v: any) => update('breadth_cm', v)} />
+                <FloatingInput label="Height (cm)" value={form.height_cm} onChange={(v: any) => update('height_cm', v)} />
+                <FloatingInput label="Weight (kg)" value={form.weight_kg} onChange={(v: any) => update('weight_kg', v)} />
               </div>
 
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
