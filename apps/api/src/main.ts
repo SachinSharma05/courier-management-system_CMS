@@ -6,6 +6,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
+import Redis from 'ioredis';
 
 async function bootstrap() {
   const adapter = new FastifyAdapter({
@@ -34,5 +35,23 @@ async function bootstrap() {
   await app.listen(4000, '0.0.0.0');
   
 }
+
+async function testRedis() {
+    const client = new Redis(
+      'rediss://default:ATLEAAIncDJlMzgxNjEwNjVmZDE0Y2YxYWU5YzI5NWEzNjExMmQ2OHAyMTI5OTY@prime-heron-12996.upstash.io:6379',
+      {
+        tls: {},              // 👈 IMPORTANT for Upstash
+        connectTimeout: 10_000,
+      }
+    );
+
+    await client.set('render-test', 'ok');
+    const val = await client.get('render-test');
+    console.log('[REDIS TEST]', val);
+
+    await client.quit();
+  }
+
+testRedis().catch(console.error);
 
 bootstrap();
