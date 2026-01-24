@@ -7,8 +7,11 @@ import {
   Shield, Phone, Save, Key 
 } from 'lucide-react';
 import clsx from 'clsx';
+// ✅ Actual API imports
+import { getClients, createClient, updateClient } from '@/lib/api/clients.api';
+import { useCreateCredential, useCredentials, useUpdateCredential } from '@/hooks/useCredentials';
 
-// 1. Ensure Client type matches your backend exactly
+// 1. Types
 type Client = {
   id: number;
   company_name: string;
@@ -20,13 +23,11 @@ type Client = {
 };
 
 export default function ClientsPage() {
-  // Fix: Set state to full Client array to match setSelectedClient expectations
   const [clients, setClients] = useState<Client[]>([]);
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'manage' | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
-  // Replace with your actual API imports
-  const refresh = () => getClients().then((data) => setClients(data as Client[]));
+  const refresh = () => getClients().then((data: any) => setClients(data || []));
   
   useEffect(() => { refresh(); }, []);
 
@@ -165,17 +166,12 @@ function ClientDrawer({ mode, client, onClose, onRefresh }: {
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
-                  <div className="grid grid-cols-2 gap-3">
-                    <QuickLink icon={<Activity size={14}/>} label="Audit Logs" />
-                    <QuickLink icon={<ExternalLink size={14}/>} label="View Store" />
-                  </div>
                   <Section title="Basic Info" icon={<Settings2 size={16} />}>
                     <div className="rounded-xl border p-4 space-y-2 bg-slate-50/50 text-xs">
                       <Row label="Email" value={client.email} />
                       <Row label="Status" value={client.is_active ? 'Active' : 'Inactive'} />
                     </div>
                   </Section>
-                  <RateLimitSection clientId={client.id} />
                   <CredentialsSection clientId={client.id} onConfigure={(p: string) => setActiveProvider(p)} />
                 </div>
               </div>
@@ -231,8 +227,10 @@ function ClientFormView({ client, mode, onClose, onRefresh }: {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === 'edit' && client) await updateClient(client.id, formData);
-      else await createClient(formData);
+      // Ensure role is sent if required by CreateClientDto
+      const payload = { ...formData, role: 'client' };
+      if (mode === 'edit' && client) await updateClient(client.id, payload as any);
+      else await createClient(payload as any);
       onRefresh();
       onClose();
     } catch (err) {
@@ -299,7 +297,6 @@ function CredentialFormView({
   provider: string;
   onBack: () => void;
 }) {
-  // Replace these with your actual hooks
   const { data: creds } = useCredentials(clientId, provider);
   const createMutation = useCreateCredential();
   const updateMutation = useUpdateCredential(clientId, provider);
@@ -436,17 +433,6 @@ function FormField({ label, value, onChange, type = "text", showToggle = false, 
   );
 }
 
-function RateLimitSection({ clientId }: { clientId: number }) {
-  return (
-    <Section title="API Rate Limits" icon={<Shield size={16} />}>
-      <div className="flex gap-2">
-        <input type="number" defaultValue={60} className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold outline-none focus:border-indigo-300 transition-all" />
-        <button className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black transition-all">Save</button>
-      </div>
-    </Section>
-  );
-}
-
 function CredentialsSection({
   onConfigure,
 }: {
@@ -477,7 +463,7 @@ function CredentialsSection({
   );
 }
 
-function QuickLink({ icon, label }: any) {
+function QuickLink({ icon, label }: { icon: React.ReactNode, label: string }) {
   return (
     <button className="flex items-center justify-center gap-2 rounded-xl border border-slate-100 py-3 px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95 transition-all">
       {icon} {label}
@@ -485,7 +471,7 @@ function QuickLink({ icon, label }: any) {
   );
 }
 
-function Section({ title, icon, children }: any) {
+function Section({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-slate-400">
@@ -497,25 +483,17 @@ function Section({ title, icon, children }: any) {
   );
 }
 
-function Row({ label, value }: any) {
+function Row({ label, value }: { label: string, value: string }) {
   return <div className="flex justify-between py-1">
     <span className="text-slate-500 font-medium">{label}</span>
     <span className="font-bold text-slate-900">{value}</span>
   </div>;
 }
 
-function Th({ children, className }: any) {
+function Th({ children, className }: { children: React.ReactNode, className?: string }) {
   return <th className={clsx("px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400", className)}>{children}</th>;
 }
 
-function Td({ children, className }: any) {
+function Td({ children, className }: { children: React.ReactNode, className?: string }) {
   return <td className={clsx("px-6 py-4 text-sm text-slate-600 font-medium", className)}>{children}</td>;
 }
-
-// Dummy/Placeholder API calls - Ensure these are imported from your actual service files
-async function getClients() { return []; }
-async function updateClient(id: number, data: any) { return; }
-async function createClient(data: any) { return; }
-function useCredentials(id: number, provider: string) { return { data: [] as any[], isLoading: false }; }
-function useCreateCredential() { return { mutate: (data: any) => {} }; }
-function useUpdateCredential(id: number, provider: string) { return { mutate: (data: any) => {} }; }

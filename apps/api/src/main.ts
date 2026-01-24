@@ -28,6 +28,7 @@ async function bootstrap() {
     origin: (origin, cb) => {
       const allowedOrigins = [
         'http://localhost:3000',
+        'http://127.0.0.1:3000',
         'https://courier-management-system-cms-ui.vercel.app', // 👈 your UI domain
       ];
 
@@ -45,7 +46,11 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  const port = Number(process.env.PORT) || 3000;
+  const port =
+    process.env.PORT            // Render / prod
+      ? Number(process.env.PORT)
+      : 4000;                   // Local default
+
   await app.listen(port, '0.0.0.0');
   
 }

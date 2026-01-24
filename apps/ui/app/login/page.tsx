@@ -8,6 +8,7 @@ import {
 import clsx from 'clsx';
 import { api } from '@/lib/api/axios';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,9 +16,19 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { setUser } = useAuth();
 
   const submit = async () => {
     await api.post('/auth/login', { email, password });
+
+    const me = await api.get('/auth/me');
+
+    setUser({
+      userId: me.data.id,
+      email: me.data.email,
+      role: me.data.role,
+    });
+
     router.replace('/admin');
   };
 

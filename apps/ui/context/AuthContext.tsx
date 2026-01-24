@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api/axios';
 
 type User = {
-  sub: number;
+  userId: number;
   email: string;
   role: string;
 };
@@ -12,6 +12,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  setUser: (user: User | null) => void;
   logout: () => void;
 };
 
@@ -24,7 +25,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     api
       .get('/auth/me')
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        const u = res.data;
+        setUser({
+          userId: u.id,
+          email: u.email,
+          role: u.role,
+        });
+      })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
@@ -36,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
