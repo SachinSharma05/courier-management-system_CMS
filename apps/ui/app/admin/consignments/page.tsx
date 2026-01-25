@@ -163,17 +163,6 @@ export default function ConsignmentsPage() {
             <option value="other">Other</option>
           </select>
 
-          <select 
-            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
-            value={filters.tat} 
-            onChange={e => setFilters(f => ({ ...f, tat: e.target.value }))}
-          >
-            <option value="">TAT Filter</option>
-            <option value="On Time">On Time</option>
-            <option value="Delayed">Delayed</option>
-            <option value="Critical">Critical</option>
-          </select>
-
           <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 h-11 border border-slate-100">
             <Calendar size={14} className="text-slate-400" />
             <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value}))} className="bg-transparent text-[11px] font-black outline-none text-slate-600 uppercase" />
@@ -237,13 +226,15 @@ export default function ConsignmentsPage() {
 
                   {/* Timelines */}
                   <td className="px-6 py-4 align-middle">
-                    <div className="flex flex-col gap-1 text-[11px] font-bold text-slate-600">
-                      <span className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-slate-400" /> {new Date(c.bookedAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-[9px] text-slate-400 uppercase font-black tracking-tight">
-                        Tracked At: {new Date(c.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-slate-400 w-10">BOOKED:</span>
+                        <span className="text-[10px] font-bold text-slate-700">{formatDateTime(c.bookedAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-indigo-400 w-10">UPDATE:</span>
+                        <span className="text-[10px] font-bold text-slate-700">{formatDateTime(c.lastUpdatedAt)}</span>
+                      </div>
                     </div>
                   </td>
 
@@ -362,6 +353,11 @@ export default function ConsignmentsPage() {
 }
 
 /* ───────────────── SUB-COMPONENTS ───────────────── */
+function formatDateTime(dateStr: string) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 function Th({ children, className }: any) { 
     return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>; 

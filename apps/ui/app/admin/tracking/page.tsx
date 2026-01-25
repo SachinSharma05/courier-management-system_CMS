@@ -1,38 +1,57 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
-  Box, Search, ArrowRight, UploadCloud, Clock, 
-  MapPin, PackageCheck, History,
-  Calendar, Navigation, Hash, ShieldCheck
+  Box, Search, ArrowRight, UploadCloud, History, 
+  PackageCheck, Clock, Hash, Navigation, MapPin, 
+  Calendar, ShieldCheck, ChevronDown, ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 import clsx from 'clsx';
 import { useTracking } from '@/hooks/useTracking';
-import Link from 'next/link';
 
-export default function TrackingPage() {
-  const [awb, setAwb] = useState('');
-  const [query, setQuery] = useState<string>();
+// ─── UTILITY FOR INPUT SANITIZATION ───
+const sanitizeAwbs = (input: string) => {
+  return input
+    .split(/[\s,\n]+/) // Split by space, comma, or newline
+    .filter(Boolean)
+    .slice(0, 25)
+    .join(',');
+};
+
+function TrackingContent() {
+  const searchParams = useSearchParams();
+  const [inputValue, setInputValue] = useState('');
+  const [query, setQuery] = useState<string>('');
+  const [expandedAwb, setExpandedAwb] = useState<string | null>(null);
 
   const { data, isLoading } = useTracking(query);
 
-  // 1. Change to singular 'consignment' to match your API response
-  const consignment = data?.consignment; 
+  // Sync URL params to State
+  useEffect(() => {
+    const awbFromUrl = searchParams.get('awb');
+    if (awbFromUrl) {
+      const sanitized = sanitizeAwbs(awbFromUrl);
+      setInputValue(sanitized);
+      setQuery(sanitized);
+    }
+  }, [searchParams]);
 
-  // 2. Add defensive checks for the description/remarks field
-  const timelineEvents = data?.timeline?.map((e: any, idx: number) => ({
-    status: e.status,
-    location: e.location || 'Location Unknown',
-    // Ensure the field name matches your API (description vs remarks)
-    remarks: e.description || e.remarks || 'No details provided', 
-    time: e.eventAt ? new Date(e.eventAt).toLocaleString() : 'Date Pending',
-    isLatest: idx === 0,
-  })) ?? [];
+  const results = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sanitized = sanitizeAwbs(inputValue);
+    setQuery(sanitized);
+    // Auto-expand the first result if multiple
+    setExpandedAwb(null); 
+  };
 
   return (
     <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6 animate-in fade-in duration-500">
       
-      {/* ───────────────── HEADER ───────────────── */}
+      {/* HEADER */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
@@ -40,157 +59,181 @@ export default function TrackingPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Consignment Tracking</h1>
-            <p className="text-sm text-slate-500 font-medium tracking-tight">Real-time status across multi-carrier networks</p>
+            <p className="text-sm text-slate-500 font-medium">Bulk support up to 25 AWBs</p>
           </div>
         </div>
       </div>
 
-      {/* ───────────────── TRACKING INPUT AREA ───────────────── */}
+      {/* TRACKING INPUT AREA */}
       <div className="rounded-3xl bg-slate-950 p-6 shadow-2xl border border-slate-800">
-        <div className="flex flex-col lg:flex-row items-center gap-4">
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row items-center gap-4">
           <div className="relative flex-1 w-full group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={20} />
-            <input
-              value={awb}
-              onChange={(e) => setAwb(e.target.value)}
-              placeholder="Enter AWB Number (e.g. 42315610020355)"
-              className="w-full bg-slate-900 border-slate-800 text-white rounded-2xl pl-12 pr-4 py-4 text-sm font-mono focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400" size={20} />
+            <textarea
+              rows={1}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Enter AWB Numbers (separated by comma, space or newline)"
+              className="w-full bg-slate-900 border-slate-800 text-white rounded-2xl pl-12 pr-4 py-4 text-sm font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none overflow-hidden"
+              onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSearch(e); }}}
             />
           </div>
-
-          <div className="flex items-center gap-3 w-full lg:w-auto">
-            <button 
-              onClick={() => setQuery(awb.trim())}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-4 text-sm font-bold text-white hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-500/20">
-              Track <ArrowRight size={18} />
-            </button>
-          </div>
-
-          <div className="hidden lg:block h-10 w-[1px] bg-slate-800 mx-2" />
-
+          <button 
+            type="submit"
+            disabled={isLoading}
+            className="w-full lg:w-auto flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-4 text-sm font-bold text-white hover:bg-indigo-700 transition-all disabled:opacity-50 min-w-[140px]"
+          >
+            {isLoading ? 'Searching...' : 'Track List'} <ArrowRight size={18} />
+          </button>
           <Link href="/admin/tracking/bulk">
-            <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-5 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all group">
+            <div className="flex items-center gap-2 cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-5 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all group">
               <UploadCloud size={18} className="group-hover:scale-110 transition-transform" />
               <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Bulk Upload</span>
-            </label>
+            </div>
           </Link>
-        </div>
+        </form>
       </div>
 
-      {consignment ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* ───────────────── LEFT: SCROLLABLE TIMELINE (8 Cols) ───────────────── */}
-          <div className="lg:col-span-8 space-y-4 order-2 lg:order-1">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase tracking-tight text-xs">
-                <History size={18} className="text-indigo-600" /> 
-                Live Activity Timeline
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded tracking-widest">AUTO-REFRESHING</span>
+      {/* RESULTS SECTION */}
+      <div className="space-y-4">
+        {results.length > 0 ? (
+          results.length === 1 ? (
+            <DetailedTrackingView item={results[0]} />
+          ) : (
+            results.map((item: any) => (
+              <TrackingAccordion 
+                key={item.consignment.awb} 
+                item={item} 
+                isExpanded={expandedAwb === item.consignment.awb}
+                onToggle={() => setExpandedAwb(expandedAwb === item.consignment.awb ? null : item.consignment.awb)}
+              />
+            ))
+          )
+        ) : (
+          !isLoading && query && (
+            <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+              <p className="text-slate-500 font-bold">No results found for these AWBs.</p>
             </div>
+          )
+        )}
 
-            <div className="max-h-[700px] overflow-y-auto pr-4 no-scrollbar space-y-4">
-              {timelineEvents.map((event: any, idx: number) => (
-                <div key={idx} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                  {event.isLatest && <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />}
-                  
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex flex-row md:flex-col items-center md:items-start gap-4 shrink-0">
-                       <div className={clsx(
-                         "h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105",
-                         event.isLatest ? "bg-emerald-50 text-emerald-600 shadow-sm" : "bg-slate-50 text-slate-400"
-                       )}>
-                         {event.isLatest ? <PackageCheck size={24} /> : <Clock size={22} />}
-                       </div>
-                       <div className="md:mt-2">
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{event.time.split(',')[1]}</p>
-                         <p className="text-[10px] font-bold text-slate-500 uppercase">{event.time.split(',')[0]}</p>
-                       </div>
-                    </div>
-
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-lg font-bold text-slate-900 tracking-tight">{event.status}</h4>
-                        <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-md font-bold border border-slate-200 uppercase">{event.location}</span>
-                      </div>
-                      <p className="text-sm text-slate-500 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        {event.remarks}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {!query && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 bg-slate-50 border border-dashed border-slate-200 rounded-[3rem] text-slate-400">
+             <Search size={48} className="opacity-10 mb-4" />
+             <p className="font-bold uppercase text-xs tracking-widest">Awaiting input for batch tracking</p>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-          {/* ───────────────── RIGHT: CONSIGNMENT DETAILS (4 Cols) ───────────────── */}
-          <div className="lg:col-span-4 space-y-6 order-1 lg:order-2 lg:sticky lg:top-6">
-            
-            {/* Status Card */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-8 space-y-6">
-              <div className="space-y-1 text-center">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Status</p>
-                 <h2 className="text-3xl font-black text-slate-950 uppercase tracking-tighter">{consignment.status}</h2>
-                 <div className="flex items-center justify-center gap-2 mt-4">
-                    <span className={clsx(
-                      "px-3 py-1 rounded-full text-[10px] font-bold border",
-                      consignment.movement === "Critical" ? "bg-red-50 text-red-600 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
-                    )}>MOV: {consignment.movement}</span>
-                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100">TAT: {consignment.tat}</span>
-                 </div>
-              </div>
-
-              <div className="h-[1px] bg-slate-100 w-full" />
-
-              <div className="space-y-4">
-                <DetailRow icon={<Hash size={14}/>} label="AWB Number" value={consignment.awb} isBold />
-                <DetailRow icon={<Navigation size={14}/>} label="Carrier" value={consignment.provider} />
-                <DetailRow icon={<MapPin size={14}/>} label="Origin" value={consignment.origin} />
-                <DetailRow icon={<Navigation size={14}/>} label="Destination" value={consignment.destination} />
-                <DetailRow icon={<Calendar size={14}/>} label="Booked At" value={new Date(consignment.bookedAt).toLocaleDateString()} />
-                <DetailRow icon={<Clock size={14}/>} label="Last Update" value={new Date(consignment.lastUpdatedAt).toLocaleTimeString()} />
-              </div>
-
-              <button className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-                Download Proof of Delivery <ArrowRight size={16} />
-              </button>
-            </div>
-
-            {/* Support/Info Card */}
-            <div className="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden group">
-              <ShieldCheck className="absolute -right-4 -bottom-4 h-32 w-32 text-indigo-500 opacity-20 group-hover:rotate-12 transition-transform" />
-              <div className="relative z-10">
-                <h4 className="font-bold text-lg mb-2">Verified Tracking</h4>
-                <p className="text-indigo-100 text-xs leading-relaxed opacity-90">
-                  Data sourced directly from {consignment.provider} master server. Last handshake verified successfully.
-                </p>
-              </div>
-            </div>
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: ACCORDION VIEW (For Multiple Results)
+// ─────────────────────────────────────────────────────────────────────────────
+function TrackingAccordion({ item, isExpanded, onToggle }: any) {
+  const { consignment, timeline } = item;
+  return (
+    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden transition-all hover:shadow-md">
+      <button 
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-5 text-left bg-white hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-6">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+            <Hash size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-indigo-600 uppercase">{consignment.provider}</p>
+            <h4 className="font-bold text-slate-900">{consignment.awb}</h4>
+          </div>
+          <div className="hidden md:block h-8 w-[1px] bg-slate-200" />
+          <div className="hidden md:block">
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
+            <p className="text-xs font-black text-slate-700">{consignment.status}</p>
           </div>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 bg-slate-50 border border-dashed border-slate-200 rounded-[3rem] text-slate-400">
-           <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4">
-             <Search size={32} className="opacity-20" />
-           </div>
-           <p className="font-bold tracking-tight uppercase text-xs">Waiting for valid AWB entry...</p>
+        <div className="flex items-center gap-4">
+           <span className={clsx("px-3 py-1 rounded-full text-[10px] font-bold border", 
+             consignment.movement === "Critical" ? "bg-red-50 text-red-600 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+           )}>{consignment.movement}</span>
+           <ChevronDown size={20} className={clsx("text-slate-400 transition-transform", isExpanded && "rotate-180")} />
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="p-6 bg-slate-50/50 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+          <DetailedTrackingView item={item} isEmbedded />
         </div>
       )}
     </div>
   );
 }
 
-// ───────────────── SUBCOMPONENTS ─────────────────
-
-function DetailRow({ label, value, icon, isBold }: any) {
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: DETAILED VIEW (Reuse for Single or inside Accordion)
+// ─────────────────────────────────────────────────────────────────────────────
+function DetailedTrackingView({ item, isEmbedded = false }: any) {
+  const { consignment, timeline } = item;
+  
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-1 text-slate-300">{icon}</div>
-      <div className="flex-1 border-b border-slate-50 pb-2">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{label}</p>
-        <p className={clsx("text-xs text-slate-700 mt-0.5", isBold ? "font-black" : "font-medium")}>{value || '—'}</p>
+    <div className={clsx("grid grid-cols-1 lg:grid-cols-12 gap-8 items-start", !isEmbedded && "animate-in fade-in")}>
+      {/* TIMELINE */}
+      <div className="lg:col-span-8 space-y-4">
+        <div className="max-h-[500px] overflow-y-auto pr-2 no-scrollbar space-y-3">
+          {timeline.map((event: any, idx: number) => (
+            <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 relative">
+              {idx === 0 && <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500 rounded-l-2xl" />}
+              <div className={clsx("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", idx === 0 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400")}>
+                {idx === 0 ? <PackageCheck size={20} /> : <Clock size={18} />}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <h5 className="text-sm font-bold text-slate-900">{event.status}</h5>
+                  <span className="text-[10px] font-bold text-slate-400">{new Date(event.eventAt).toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">{event.description || event.remarks}</p>
+                <p className="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-tighter">{event.location}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* STATS CARD */}
+      <div className="lg:col-span-4 space-y-4">
+        <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
+           <div className="text-center mb-6">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consignment Info</p>
+              <h2 className="text-xl font-black text-slate-900 mt-1 uppercase">{consignment.awb}</h2>
+           </div>
+           <div className="space-y-3">
+              <DetailRow icon={<Navigation size={14}/>} label="Carrier" value={consignment.provider} />
+              <DetailRow icon={<MapPin size={14}/>} label="Route" value={`${consignment.origin} → ${consignment.destination}`} />
+              <DetailRow icon={<Calendar size={14}/>} label="Booked" value={new Date(consignment.bookedAt).toLocaleDateString()} />
+           </div>
+           <Link href={`/admin/tracking?awb=${consignment.awb}`} className="mt-6 w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all">
+             Full Report <ExternalLink size={14} />
+           </Link>
+        </div>
       </div>
     </div>
+  );
+}
+
+function DetailRow({ icon, label, value }: any) {
+  return (
+    <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-50 last:border-0">
+      <div className="flex items-center gap-2 text-slate-500">{icon} <span>{label}</span></div>
+      <span className="font-bold text-slate-900 truncate ml-4">{value}</span>
+    </div>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center animate-pulse">Initializing multi-tracking system...</div>}>
+      <TrackingContent />
+    </Suspense>
   );
 }

@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { db } from '../../db';
 import { consignments, trackingEvents } from '../../db/schema';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, inArray } from 'drizzle-orm';
 import { computeMovement, computeTAT } from '../consignments/tat.engine';
 
 @Injectable()
 export class TrackingService {
-  async trackByAwb(awb: string) {
-    const consignment = await db
+  async trackMultipleByAwb(awbArray: string[]) {
+    // 1. Fetch all consignments matching the AWB list
+    const foundConsignments = await db
       .select({
         id: consignments.id,
         awb: consignments.awb,
@@ -19,40 +20,45 @@ export class TrackingService {
         lastUpdatedAt: consignments.last_status_at,
       })
       .from(consignments)
-      .where(eq(consignments.awb, awb)
-      )
-      .limit(1);
+      .where(inArray(consignments.awb, awbArray));
 
-    if (!consignment.length) {
-      throw new NotFoundException('AWB not found');
+    if (!foundConsignments.length) {
+      throw new NotFoundException('No matching AWBs found');
     }
 
-    const c = consignment[0];
+    // 2. Extract IDs to fetch all timeline events in one go
+    const consignmentIds = foundConsignments.map((c) => c.id);
 
-    const events = await db
+    const allEvents = await db
       .select({
+        consignmentId: trackingEvents.consignment_id, // Need this to group them
         status: trackingEvents.status,
         description: trackingEvents.remarks,
         location: trackingEvents.location,
         eventAt: trackingEvents.event_time,
       })
       .from(trackingEvents)
-      .where(eq(trackingEvents.consignment_id, c.id))
+      .where(inArray(trackingEvents.consignment_id, consignmentIds))
       .orderBy(desc(trackingEvents.event_time));
 
-    return {
-      consignment: {
-        awb: c.awb,
-        origin: c.origin,
-        destination: c.destination,
-        provider: c.provider,
-        status: c.status,
-        bookedAt: c.bookedAt,
-        lastUpdatedAt: c.lastUpdatedAt,
-        tat: computeTAT(c.awb, c.bookedAt, c.status),
-        movement: computeMovement(c.lastUpdatedAt, c.status),
-      },
-      timeline: events,
-    };
+    // 3. Map events to their respective consignments
+    return foundConsignments.map((c) => {
+      const timeline = allEvents.filter((e) => e.consignmentId === c.id);
+      
+      return {
+        consignment: {
+          awb: c.awb,
+          origin: c.origin,
+          destination: c.destination,
+          provider: c.provider,
+          status: c.status,
+          bookedAt: c.bookedAt,
+          lastUpdatedAt: c.lastUpdatedAt,
+          tat: computeTAT(c.awb, c.bookedAt, c.status),
+          movement: computeMovement(c.lastUpdatedAt, c.status),
+        },
+        timeline: timeline.map(({ consignmentId, ...event }) => event), // Remove ID from event object
+      };
+    });
   }
 }

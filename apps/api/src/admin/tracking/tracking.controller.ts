@@ -12,9 +12,15 @@ export class TrackingController {
 
   @Get()
   async track(
-    @Query('awb') awb: string,
+    @Query('awb') awb: string, // Accept "AWB1,AWB2,AWB3"
   ) {
-    return this.service.trackByAwb(awb);
+    // Clean the input: split by comma, remove whitespace, limit to 25
+    const awbArray = awb.split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .slice(0, 25);
+
+    return this.service.trackMultipleByAwb(awbArray);
   }
 
 }

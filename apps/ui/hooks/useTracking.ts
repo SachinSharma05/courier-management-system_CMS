@@ -1,16 +1,19 @@
 import { api } from "@/lib/api/axios";
 import { useQuery } from "@tanstack/react-query";
 
-export function useTracking(awb?: string) {
+export function useTracking(awbs?: string) {
   return useQuery({
-    queryKey: ['tracking', awb],
+    // We include the string of AWBs in the key so that 
+    // changing the search input refreshes the cache.
+    queryKey: ['tracking', awbs], 
     queryFn: async () => {
+      // The 'awbs' here is the comma-separated string from your input
       const res = await api.get('/admin/tracking', {
-        params: { awb },
+        params: { awb: awbs },
       });
-      return res.data;
+      return res.data; // This now returns [{ consignment, timeline }, ...]
     },
-    enabled: !!awb,
-    staleTime: 30_000,
+    enabled: !!awbs && awbs.trim().length > 0,
+    staleTime: 30_000, // 30 seconds
   });
 }

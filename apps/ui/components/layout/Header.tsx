@@ -1,18 +1,34 @@
-'use client';
-import { useState } from 'react';
-import { Search, User, LogOut, Settings, ChevronDown } from 'lucide-react';
-import clsx from 'clsx'
-import Link from 'next/link';
-import { api } from '@/lib/api/axios';
+"use client";
+
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Search, ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import clsx from 'clsx';
+// import { api } from '@/lib/api'; // Ensure your api utility is imported
 
 export function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [awbSearch, setAwbSearch] = useState('');
   const router = useRouter();
 
-  const submit = async () => {
-      await api.post('/auth/logout');
+  // Redirect to tracking page with AWB as a query param
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!awbSearch.trim()) return;
+
+    // Redirect to your tracking page (e.g., /admin/tracking?awb=123)
+    router.push(`/admin/tracking?awb=${encodeURIComponent(awbSearch.trim())}`);
+    setAwbSearch(''); // Clear input after search
+  };
+
+  const logout = async () => {
+    try {
+      // await api.post('/auth/logout');
       router.replace('/login');
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
   };
 
   return (
@@ -24,11 +40,31 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Search */}
-        <div className="hidden md:flex items-center bg-slate-100 rounded-full px-4 py-1.5 border border-transparent focus-within:border-indigo-300 transition-all">
-          <Search size={16} className="text-slate-400" />
-          <input type="text" placeholder="Search..." className="bg-transparent border-none focus:ring-0 text-sm w-40" />
-        </div>
+        {/* Global AWB Search Box */}
+        <form 
+          onSubmit={handleSearch}
+          className={clsx(
+            "hidden md:flex items-center bg-slate-100 rounded-xl px-4 py-2 border transition-all duration-200 w-80",
+            "focus-within:bg-white focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:shadow-sm"
+          )}
+        >
+          <Search size={18} className="text-slate-400 mr-2" />
+          <input 
+            type="text" 
+            placeholder="Track AWB Number..." 
+            value={awbSearch}
+            onChange={(e) => setAwbSearch(e.target.value)}
+            className="bg-transparent border-none focus:ring-0 text-sm w-full font-medium placeholder:text-slate-400" 
+          />
+          {awbSearch && (
+            <button 
+              type="submit"
+              className="text-[10px] font-black bg-indigo-600 text-white px-2 py-1 rounded-md animate-in fade-in slide-in-from-right-2"
+            >
+              ENTER
+            </button>
+          )}
+        </form>
 
         {/* Profile Dropdown */}
         <div className="relative">
@@ -46,23 +82,25 @@ export function Header() {
             <ChevronDown size={14} className={clsx("text-slate-400 transition-transform", isProfileOpen && "rotate-180")} />
           </button>
 
-          {/* Actual Dropdown Menu */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
-              <Link href="/admin/profile" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                <User size={16} /> Profile
-              </Link>
-              <Link href="/admin/settings" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                <Settings size={16} /> Settings
-              </Link>
-              <div className="my-1 h-[1px] bg-slate-100" />
-              <button 
-                onClick={submit}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-              >
-                <LogOut size={16} /> Logout
-              </button>
-            </div>
+            <>
+              <div className="fixed inset-0 z-[-1]" onClick={() => setIsProfileOpen(false)} />
+              <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
+                <Link href="/admin/profile" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                  <User size={16} /> Profile
+                </Link>
+                <Link href="/admin/settings" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                  <Settings size={16} /> Settings
+                </Link>
+                <div className="my-1 h-[1px] bg-slate-100" />
+                <button 
+                  onClick={logout}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut size={16} /> Logout
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
