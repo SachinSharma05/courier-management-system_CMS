@@ -441,12 +441,12 @@ export default function ComplaintsPage() {
                           id: Number(selectedTicket.id),
                           status,
                         });
-                        setSelectedTicket((t) => t ? { ...t, status: e.target.value as any } : t);
+                        setSelectedTicket((t: Complaint | null) => t ? { ...t, status: e.target.value as any } : t);
                         return;
                       }
 
                       // If resolved → wait for comment submission
-                      setSelectedTicket((t) => t ? { ...t, status: 'Resolved' } : t);
+                      setSelectedTicket((t: Complaint | null) => t ? { ...t, status: 'Resolved' } : t);
                     }}
                     className="flex-1 rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold outline-none shadow-sm"
                   >
@@ -533,15 +533,6 @@ function StatusBadge({ status }: { status: Complaint['status'] }) {
     )}>
       {status}
     </span>
-  );
-}
-
-function FilterDropdown({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:border-slate-300 transition-all cursor-pointer">
-      {label}
-      <MoreHorizontal size={14} className="text-slate-400" />
-    </div>
   );
 }
 
