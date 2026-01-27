@@ -16,7 +16,6 @@ import clsx from 'clsx';
 
 const NAV_ITEMS = [
   { key: '', label: 'Overview', icon: BarChart3 },
-  { key: 'shipment', label: 'Shipments', icon: Truck },
   { key: 'cost', label: 'Cost Estimator', icon: Calculator },
   { key: 'pincode', label: 'Serviceability', icon: MapPin },
   { key: 'label', label: 'Print Center', icon: Printer },
@@ -58,10 +57,6 @@ export default function DelhiveryLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* --- FLOATING COMMAND BAR (SUB-NAV) --- */}
-      {/* FIX APPLIED HERE:
-          1. Changed 'top-4' to 'top-[72px]' (Adjust this based on your main navbar height)
-          2. Ensured z-40 so it stays below the main navbar (usually z-50)
-      */}
       <div className="sticky top-[72px] z-40 py-2">
         <nav className="flex items-center gap-1 p-1.5 bg-white/80 backdrop-blur-md border border-slate-200/60 rounded-[1.5rem] shadow-xl shadow-slate-200/30 w-fit mx-auto md:mx-0 transition-all">
           {NAV_ITEMS.map((item) => {

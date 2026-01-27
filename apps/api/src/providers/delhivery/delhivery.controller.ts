@@ -2,7 +2,6 @@ import { Controller, Get, Post, Query, Body, BadRequestException } from '@nestjs
 import { DelhiveryService } from './delhivery.service';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { CalculateRateDto } from './dto/rate.dto';
-import { ListShipmentsDto } from './dto/list-shipments.dto';
 
 @Controller('providers/delhivery')
 export class DelhiveryController {
@@ -57,11 +56,6 @@ export class DelhiveryController {
     }
 
     return this.service.resolveNdr(body.waybill, body.act);
-  }
-
-  @Get('list')
-  getShipments(@Query() query: ListShipmentsDto) {
-    return this.service.listShipments('DELHIVERY', query);
   }
 
   @Get('shipment')

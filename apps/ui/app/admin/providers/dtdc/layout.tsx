@@ -15,7 +15,6 @@ import clsx from 'clsx';
 
 const NAV_ITEMS = [
   { key: '', label: 'Overview', icon: BarChart3 },
-  { key: 'shipment', label: 'Shipments', icon: Truck },
   { key: 'cost', label: 'Cost Estimator', icon: Calculator },
   { key: 'pincode', label: 'Serviceability', icon: MapPin },
   { key: 'label', label: 'Print Center', icon: Printer },

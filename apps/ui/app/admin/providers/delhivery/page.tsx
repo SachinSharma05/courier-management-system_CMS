@@ -11,7 +11,6 @@ import {
   Layers, 
   Printer, 
   XCircle,
-  TrendingUp,
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';

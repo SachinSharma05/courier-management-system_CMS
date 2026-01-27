@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { RefreshCcw, ShieldCheck, Box, Activity } from 'lucide-react';
+import { RefreshCcw, ShieldCheck, Box, Activity, FileUp, PlusCircle, Loader2, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 
@@ -36,67 +36,39 @@ export default function ProvidersLayout({ children }: { children: React.ReactNod
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-           {/* Mini Status Indicator */}
-           <div className="hidden lg:flex items-center gap-6 px-6 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm mr-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">API Status</span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> All Systems Live
-                </span>
-              </div>
-              <div className="w-px h-8 bg-slate-100" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Network</span>
-                <span className="text-xs font-bold text-slate-700">2 Providers</span>
-              </div>
-           </div>
-
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.location.reload()}
-            className="rounded-xl border-slate-200 hover:bg-slate-50 transition-all gap-2 h-11"
-          >
-            <RefreshCcw size={16} className="text-slate-400" />
-            <span className="font-bold">Refresh Nodes</span>
-          </Button>
+        <div className="flex items-center gap-2">
+           {PROVIDERS.map(p => {
+            const isActive = activeProvider === p.key;
+            return (
+              <button
+                key={p.key}
+                onClick={() => router.push(`/admin/providers/${p.key}`)}
+                className={clsx(
+                  'relative flex items-center gap-3 px-6 py-2.5 rounded-[1.2rem] text-sm font-black transition-all duration-300 overflow-hidden',
+                  isActive
+                    ? 'bg-white text-slate-900 shadow-md shadow-slate-200 ring-1 ring-slate-200'
+                    : 'text-slate-400 hover:text-slate-600'
+                )}
+              >
+                {/* Colored Dot Indicator */}
+                <div className={clsx(
+                  "w-2 h-2 rounded-full",
+                  isActive ? p.color : "bg-slate-300"
+                )} />
+                
+                {p.label}
+                
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 opacity-10" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* --- PROVIDER SELECTION --- */}
-      <div className="flex items-center gap-3 bg-slate-100/50 p-1.5 rounded-[1.5rem] w-fit border border-slate-200/50">
-        {PROVIDERS.map(p => {
-          const isActive = activeProvider === p.key;
-          return (
-            <button
-              key={p.key}
-              onClick={() => router.push(`/admin/providers/${p.key}`)}
-              className={clsx(
-                'relative flex items-center gap-3 px-6 py-2.5 rounded-[1.2rem] text-sm font-black transition-all duration-300 overflow-hidden',
-                isActive
-                  ? 'bg-white text-slate-900 shadow-md shadow-slate-200 ring-1 ring-slate-200'
-                  : 'text-slate-400 hover:text-slate-600'
-              )}
-            >
-              {/* Colored Dot Indicator */}
-              <div className={clsx(
-                "w-2 h-2 rounded-full",
-                isActive ? p.color : "bg-slate-300"
-              )} />
-              
-              {p.label}
-              
-              {isActive && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 opacity-10" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
       {/* --- PAGE CONTENT --- */}
-      <div className="relative pt-2">
+      <div className="relative">
         {/* Subtle background glow for the active page */}
         <div className="absolute -top-20 -left-20 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -z-10" />
         {children}

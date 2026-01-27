@@ -3,9 +3,8 @@ import { DelhiveryClient } from './delhivery.client';
 import { mapCreateShipment } from './delhivery.mapper';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { CalculateRateDto } from './dto/rate.dto';
-import { ListShipmentsDto } from './dto/list-shipments.dto';
-import { consignments, pincodes, rateCards, rateCardSlabs, zoneMappings } from '../../db/schema';
-import { sql, desc, eq, isNull, lte, or, gte, and } from 'drizzle-orm';
+import { pincodes, rateCards, rateCardSlabs, zoneMappings } from '../../db/schema';
+import { desc, eq, isNull, lte, or, gte, and } from 'drizzle-orm';
 import { db } from '../../db';
 
 @Injectable()
@@ -236,52 +235,6 @@ export class DelhiveryService {
         err.response?.data || err.message || 'Delhivery NDR failed',
       );
     }
-  }
-
-  async listShipments(provider: string, q: ListShipmentsDto) {
-    const offset = Math.max(0, (q.page - 1) * q.limit);
-
-    // Start with the provider filter
-    const where = [sql`${consignments.provider} = ${provider.toUpperCase()}`];
-
-    // Only filter by status if it's not "all" or empty
-    if (q.status && q.status !== 'all' && q.status !== '') {
-      where.push(sql`${consignments.current_status} = ${q.status}`);
-    }
-
-    // Handle search with pre-formatted pattern
-    if (q.search && q.search.trim() !== '') {
-      const pattern = `%${q.search.trim()}%`;
-      where.push(sql`${consignments.awb} ILIKE ${pattern}`);
-    }
-
-    // Join conditions with AND
-    const finalWhere = sql.join(where, sql` AND `);
-
-    const [rows, totalResult] = await Promise.all([
-      db.select()
-        .from(consignments)
-        .where(finalWhere)
-        .orderBy(desc(consignments.created_at))
-        .limit(q.limit)
-        .offset(offset),
-
-      db.select({ count: sql`count(*)` })
-        .from(consignments)
-        .where(finalWhere)
-    ]);
-
-    const total = Number(totalResult[0]?.count || 0);
-
-    return {
-      data: rows,
-      meta: {
-        page: q.page,
-        limit: q.limit,
-        total,
-        totalPages: Math.ceil(total / q.limit),
-      },
-    };
   }
 
   // apps/api/src/providers/delhivery/delhivery.service.ts
