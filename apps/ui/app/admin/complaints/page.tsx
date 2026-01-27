@@ -189,7 +189,7 @@ export default function ComplaintsPage() {
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
                 <tr><td colSpan={6} className="p-10 text-center text-slate-400 animate-pulse">Loading tickets...</td></tr>
-              ) : paginatedComplaints.map((c) => (
+              ) : paginatedComplaints.map((c: Complaint) => (
                 <tr key={c.id} className="group hover:bg-slate-50/80 transition-colors">
                   <Td>
                     <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-slate-900 bg-slate-100 w-fit px-1.5 py-0.5 rounded">
