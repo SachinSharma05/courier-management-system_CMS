@@ -59,9 +59,9 @@ export default function ComplaintsPage() {
 
   // Quick Stats
   const stats = useMemo(() => ({
-    open: complaints.filter(c => c.status === 'Open').length,
-    inProgress: complaints.filter(c => c.status === 'In Progress').length,
-    resolved: complaints.filter(c => c.status === 'Resolved').length,
+    open: complaints.filter((c: Complaint) => c.status === 'Open').length,
+    inProgress: complaints.filter((c: Complaint) => c.status === 'In Progress').length,
+    resolved: complaints.filter((c: Complaint) => c.status === 'Resolved').length,
   }), [complaints]);
 
   // Debounce search term
