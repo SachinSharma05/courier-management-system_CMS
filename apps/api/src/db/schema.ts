@@ -173,12 +173,19 @@ export const complaints = pgTable("complaints", {
   id: serial("id").primaryKey(),
   client_id: integer("client_id").notNull(),   // FK → users.id
   awb: varchar("awb", { length: 50 }).notNull(),
+  // Client side
   message: text("message").notNull(),
-  status: varchar("status", { length: 20 }).default("open").notNull(), 
-  // status → open | in_progress | resolved
+  // Resolver side
+  resolution_comment: text("resolution_comment"), // 👈 NEW
+  resolved_by: integer("resolved_by"),             // FK → users.id (admin/associate)
+  resolved_at: timestamp("resolved_at"),
+  status: varchar("status", { length: 20 })
+    .default("open")
+    .notNull(), // open | in_progress | resolved
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
+
 
 export const clientLimits = pgTable("client_limits", {
   client_id: integer("client_id").primaryKey(), // FK → users.id

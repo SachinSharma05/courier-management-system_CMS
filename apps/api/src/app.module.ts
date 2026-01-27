@@ -23,6 +23,7 @@ import { DelhiveryModule } from './admin/tracking/delhivery/delhivery.module';
 import { RbacModule } from './rbac/rbac.module';
 import { DelhiveryC2CModule } from './providers/delhivery/delhivery.module';
 import { DtdcModule } from './providers/dtdc/dtdc.module';
+import { ComplaintsModule } from './admin/complaints/complaints.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { DtdcModule } from './providers/dtdc/dtdc.module';
     RbacModule,
     DelhiveryC2CModule,
     DtdcModule,
+    ComplaintsModule,
   ],
   providers:[
     {
