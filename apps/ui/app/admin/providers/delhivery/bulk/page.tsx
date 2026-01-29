@@ -1,22 +1,11 @@
 'use client';
 
-import { FileUp, Download, FileText, AlertCircle, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { FileUp, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 export default function BulkUploadPage() {
-  const router = useRouter();
-
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Navigation Back */}
-      <button 
-        onClick={() => router.back()}
-        className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-sm transition-colors"
-      >
-        <ChevronLeft size={16} /> Back to Shipments
-      </button>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* --- UPLOAD SECTION --- */}

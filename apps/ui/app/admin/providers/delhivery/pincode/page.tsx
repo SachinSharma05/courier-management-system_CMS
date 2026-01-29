@@ -4,13 +4,10 @@ import { useState } from "react";
 import { 
   Search, 
   MapPin, 
-  Truck, 
   Clock, 
   Building2, 
-  ShieldCheck, 
   XCircle, 
   Loader2, 
-  ArrowRight,
   Navigation,
   CheckCircle2,
   Calendar

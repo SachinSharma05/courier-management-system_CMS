@@ -8,12 +8,12 @@ export class ProviderStatsService {
   async getStats(provider: string) {
     const rows = await db
       .select({
-        status: consignments.current_status,
+        status: consignments.status_group,
         count: sql<number>`count(*)`,
       })
       .from(consignments)
       .where(sql`LOWER(${consignments.provider}) = ${provider.toLowerCase()}`)
-      .groupBy(consignments.current_status);
+      .groupBy(consignments.status_group);
 
     let total = 0;
     let delivered = 0;

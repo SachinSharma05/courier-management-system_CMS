@@ -16,7 +16,7 @@ export class DelhiveryClient {
     });
 
     this.track = axios.create({
-      baseURL: 'https://track.delhivery.com',
+      baseURL: this.DELHIVERY_BASE_URL,
       headers: {
         Authorization: `Token ${token}`,
         'Content-Type': 'application/json',

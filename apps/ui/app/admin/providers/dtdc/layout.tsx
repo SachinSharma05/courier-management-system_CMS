@@ -9,12 +9,16 @@ import {
   Printer, 
   AlertTriangle, 
   XCircle, 
-  ChevronRight 
+  ChevronRight, 
+  PlusCircle,
+  FileUp
 } from 'lucide-react';
 import clsx from 'clsx';
 
 const NAV_ITEMS = [
   { key: '', label: 'Overview', icon: BarChart3 },
+  { key: 'create', label: 'Create', icon: PlusCircle },
+  { key: 'bulk', label: 'Bulk Create', icon: FileUp },
   { key: 'cost', label: 'Cost Estimator', icon: Calculator },
   { key: 'pincode', label: 'Serviceability', icon: MapPin },
   { key: 'label', label: 'Print Center', icon: Printer },

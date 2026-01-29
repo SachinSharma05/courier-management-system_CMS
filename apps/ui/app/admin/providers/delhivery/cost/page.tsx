@@ -34,7 +34,7 @@ export default function CostCalculator() {
 
   const [cost, setCost] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  // const { user } = useAuth();
 
   async function calculate() {
     setLoading(true);
@@ -47,7 +47,7 @@ export default function CostCalculator() {
       serviceType: payload.serviceType === "express" ? "express" : "surface",
       paymentType: payload.paymentType === 'COD' ? "COD" : "PREPAID",
       codAmount: payload.codAmount ? Number(payload.codAmount) : undefined,
-      client_id: user?.id ?? undefined,
+      // client_id: user?.id ?? undefined,
       provider: 'delhivery',
     };
 

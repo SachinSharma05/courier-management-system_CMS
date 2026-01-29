@@ -419,6 +419,13 @@ export const zoneMappings = pgTable('zone_mappings', {
   created_at: timestamp('created_at').defaultNow(),
 });
 
+export const commodities = pgTable("commodities", {
+  id: serial("id").primaryKey(),
+  commodityId: text("commodity_id").notNull(),
+  commodityCode: text("commodity_code").notNull(),
+  commodityName: text("commodity_name").notNull(),
+});
+
 export const RATE_SLAB_TYPES = {
   BASE: 'BASE',
   ADD_250: 'ADD_250',
