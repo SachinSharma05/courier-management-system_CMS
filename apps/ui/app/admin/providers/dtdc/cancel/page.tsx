@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { clsx } from 'clsx';
+import { api } from '@/lib/api/axios';
 
 export default function CancelDTDCShipment() {
   const [awb, setAwb] = useState("");
