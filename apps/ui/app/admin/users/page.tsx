@@ -25,6 +25,7 @@ interface User {
   password_hash: string;
   role: UserRole;
   company_name?: string | null;
+  company_address?: string | null;
   contact_person?: string | null;
   phone?: string | null;
   providers: string[];
@@ -60,7 +61,7 @@ export default function UsersPage() {
     setLoading(true);
     try {
       const response = await getUsers();
-      const userArray = Array.isArray(response) ? response : (response?.data || []);
+      const userArray = Array.isArray(response) ? response : [];
       setUsers(userArray);
     } catch (error) {
       console.error("Failed to load users:", error);
@@ -255,6 +256,7 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
     password_hash: user?.password_hash ?? '',
     role: user?.role ?? 'client',
     company_name: user?.company_name ?? '',
+    company_address: user?.company_address ?? '',
     contact_person: user?.contact_person ?? '',
     phone: user?.phone ?? '',
     providers: user?.providers ?? [],
@@ -266,10 +268,17 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
   const handleSave = async () => {
     setSaving(true);
     try {
+      const cleanedForm = {
+        ...form,
+        company_name: form.company_name ?? undefined,
+        company_address: form.company_address ?? undefined,
+        contact_person: form.contact_person ?? undefined,
+        phone: form.phone ?? undefined,
+      };
       if (user) {
-        await updateUser(user.id, form);
+        await updateUser(user.id, cleanedForm);
       } else {
-        await createUser(form);
+        await createUser(cleanedForm);
       }
       await onSaved();
       onClose();
