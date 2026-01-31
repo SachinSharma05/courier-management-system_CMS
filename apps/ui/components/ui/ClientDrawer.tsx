@@ -29,7 +29,8 @@ export function ClientDrawer({ client, onClose, onRefresh }: any) {
       email: formData.email,
       phone: formData.phone,
       role: 'client',                     // Adds the missing required string
-      isActive: formData.is_active        // Maps is_active to isActive
+      isActive: formData.is_active,       // Maps is_active to isActive
+      contactPerson: formData.contact_person // Maps contact_person to contactPerson
     };
 
     if (isEdit) {
@@ -59,15 +60,15 @@ export function ClientDrawer({ client, onClose, onRefresh }: any) {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            <Input label="Company Name" icon={<Building2 size={16}/>} value={formData.company_name} onChange={(v: any) => setFormData({...formData, company_name: v})} />
+            <Input label="Company Name" icon={<Building2 size={16}/>} value={formData.company_name} onChange={(v: string) => setFormData({...formData, company_name: v})} />
             {!isEdit && (
               <>
-                <Input label="Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v: any) => setFormData({...formData, username: v})} />
-                <Input label="Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v: any) => setFormData({...formData, password: v})} />
+                <Input label="Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v: string) => setFormData({...formData, username: v})} />
+                <Input label="Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v: string) => setFormData({...formData, password: v})} />
               </>
             )}
-            <Input label="Contact Person" value={formData.contact_person} onChange={(v: any) => setFormData({...formData, contact_person: v})} />
-            <Input label="Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v: any) => setFormData({...formData, phone: v})} />
+            <Input label="Contact Person" value={formData.contact_person} onChange={(v: string) => setFormData({...formData, contact_person: v})} />
+            <Input label="Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v: string) => setFormData({...formData, phone: v})} />
             
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
               <span className="text-sm font-bold text-slate-700">Account Active</span>
