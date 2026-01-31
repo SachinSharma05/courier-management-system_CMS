@@ -2,11 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { 
-  LifeBuoy, Search, Calendar, 
-  MessageSquareWarning, Clock, CheckCircle2, 
-  AlertCircle, ChevronRight, MoreHorizontal,
-  ArrowUpRight, Ticket, Send, Package, X,
-  ChevronDown, ChevronLeft, Building2, Hash, History
+  LifeBuoy, Search, Calendar, MessageSquareWarning, Clock, CheckCircle2, AlertCircle, ChevronRight,
+  ArrowUpRight, Ticket, Send, Package, X, ChevronDown, ChevronLeft, Hash, History
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAllComplaints, useUpdateComplaintStatus } from '@/hooks/useAdminComplaints';

@@ -11,6 +11,7 @@ export type CreateClientDto = {
   phone?: string;
   role: string;
   isActive: boolean;
+  contactPerson: string;
 }
 
 export type UpdateClientDto = {

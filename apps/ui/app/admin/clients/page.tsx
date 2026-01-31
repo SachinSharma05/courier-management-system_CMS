@@ -3,8 +3,7 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { 
   Users, Plus, ChevronRight, X, Settings2, 
-  Building2, Mail, UserIcon, Shield, Phone, 
-  Save, Key, Check, RefreshCw, AlertCircle
+  Building2, Mail, UserIcon, Shield, Phone, Save, Key
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -48,7 +47,7 @@ export default function ClientsPage() {
     setIsLoading(true);
     try {
       const data = await getClients();
-      setClients(data || []);
+      setClients((data as unknown as Client[]) || []);
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +232,26 @@ function ClientDrawer({ mode, client, onClose, onRefresh }: {
 }
 
 /* ───────────────── FORM VIEW (CREATE/EDIT) ───────────────── */
+interface ClientFormData {
+  username: string;
+  email: string;
+  password: string;
+  companyName: string;
+  contactPerson: string;
+  phone: string;
+  isActive: boolean;
+}
+
+interface ClientPayload {
+  email: string;
+  companyName: string;
+  contactPerson: string;
+  phone: string;
+  isActive: boolean;
+  role: 'client';
+  username?: string;
+  password?: string;
+}
 
 function ClientFormView({ client, mode, onClose, onRefresh }: {
     client: Client | null;
@@ -264,10 +283,29 @@ function ClientFormView({ client, mode, onClose, onRefresh }: {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const payload = { ...formData, role: 'client' };
-      if (mode === 'edit' && client) await updateClient(client.id, payload as any);
-      else await createClient(payload as any);
+      // Manually map Form Data (camelCase) to Payload (snake_case)
+      const payload: ClientPayload = {
+        email: formData.email,
+        companyName: formData.companyName,
+        contactPerson: formData.contactPerson,
+        phone: formData.phone,
+        isActive: formData.isActive,
+        role: 'client',
+      };
+
+      // Add optional fields only if they exist
+      if (formData.username) payload.username = formData.username;
+      if (formData.password) payload.password = formData.password;
+
+      if (mode === 'edit' && client) {
+        // TypeScript is now happy because payload is explicitly ClientPayload
+        await updateClient(client.id, payload);
+      } else {
+        await createClient(payload);
+      }
+
       onRefresh();
       onClose();
     } catch (err) {
@@ -287,19 +325,19 @@ function ClientFormView({ client, mode, onClose, onRefresh }: {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
-        <FormField label="Legal Company Name" icon={<Building2 size={16}/>} value={formData.companyName} onChange={(v: any) => setFormData({...formData, companyName: v})} />
-        <FormField label="System Communication Email" icon={<Mail size={16}/>} value={formData.email} onChange={(v: any) => setFormData({...formData, email: v})} />
+        <FormField label="Legal Company Name" icon={<Building2 size={16}/>} value={formData.companyName} onChange={(v: string) => setFormData({...formData, companyName: v})} />
+        <FormField label="System Communication Email" icon={<Mail size={16}/>} value={formData.email} onChange={(v: string) => setFormData({...formData, email: v})} />
         
         {mode === 'create' && (
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Access Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v: any) => setFormData({...formData, username: v})} />
-            <FormField label="Initial Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v: any) => setFormData({...formData, password: v})} />
+            <FormField label="Access Username" icon={<UserIcon size={16}/>} value={formData.username} onChange={(v: string) => setFormData({...formData, username: v})} />
+            <FormField label="Initial Password" type="password" icon={<Shield size={16}/>} value={formData.password} onChange={(v: string) => setFormData({...formData, password: v})} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Point of Contact" value={formData.contactPerson} onChange={(v: any) => setFormData({...formData, contactPerson: v})} />
-          <FormField label="Emergency Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v: any) => setFormData({...formData, phone: v})} />
+          <FormField label="Point of Contact" value={formData.contactPerson} onChange={(v: string) => setFormData({...formData, contactPerson: v})} />
+          <FormField label="Emergency Phone" icon={<Phone size={16}/>} value={formData.phone} onChange={(v: string) => setFormData({...formData, phone: v})} />
         </div>
 
         <div className="p-4 rounded-sm border border-slate-200 bg-slate-50 flex items-center justify-between">
@@ -327,6 +365,12 @@ function ClientFormView({ client, mode, onClose, onRefresh }: {
 }
 
 /* ───────────────── CREDENTIAL FORM VIEW ───────────────── */
+interface CredentialItem {
+  id: number;
+  key: string;      // Matches "key" in your JSON
+  provider: string;
+  createdAt: string;
+}
 
 function CredentialFormView({ clientId, provider, onBack }: { clientId: number; provider: string; onBack: () => void; }) {
   const { data: creds } = useCredentials(clientId, provider);
@@ -334,28 +378,36 @@ function CredentialFormView({ clientId, provider, onBack }: { clientId: number; 
   const updateMutation = useUpdateCredential(clientId, provider);
 
   const [formData, setFormData] = useState({
-    customerCode: '', username: '', password: '', apiToken: '', apiKey: '',
+    customerCode: '',
+    username: '',
+    password: '',
+    apiToken: '',
+    apiKey: '',
   });
 
   useEffect(() => {
     if (!creds) return;
-    const map: Record<string, any> = {};
-    creds.forEach((c: any) => { map[c.key] = c; });
+    const map: Record<string, CredentialItem> = {};
+    creds.forEach((c: CredentialItem) => { map[c.key] = c; });
 
-    setFormData({
-      customerCode: map.DTDC_CUSTOMER_CODE ? '••••••••' : '',
-      username: map.username ? '••••••••' : '',
-      password: map.password ? '••••••••' : '',
-      apiToken: map.api_token ? '••••••••' : '',
-      apiKey: map.api_key ? '••••••••' : '',
-    });
+    setFormData((prev) => ({
+      ...prev,
+      customerCode: map.DTDC_CUSTOMER_CODE ? '••••••••' : prev.customerCode,
+      username: map.username ? '••••••••' : prev.username,
+      password: map.password ? '••••••••' : prev.password,
+      apiToken: map.api_token ? '••••••••' : prev.apiToken,
+      apiKey: map.api_key ? '••••••••' : prev.apiKey,
+    }));
   }, [creds]);
 
   const saveField = async (key: string, value: string) => {
     if (!value || value === '••••••••') return;
-    const existing = creds?.find((c: any) => c.key === key);
-    if (existing) updateMutation.mutate({ id: existing.id, value });
-    else createMutation.mutate({ clientId, provider, key, value });
+    const existing = creds?.find((c: CredentialItem) => c.key === key);
+    if (existing) {
+      updateMutation.mutate({ id: existing.id, value });
+    } else {
+      createMutation.mutate({ clientId, provider, key, value });
+    }
   };
 
   const handleSave = async () => {
@@ -382,11 +434,11 @@ function CredentialFormView({ clientId, provider, onBack }: { clientId: number; 
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-        <FormField label={`${provider.toUpperCase()} CUSTOMER CODE`} value={formData.customerCode} onChange={(v: any) => setFormData({ ...formData, customerCode: v })} />
-        <FormField label="API_USERNAME" value={formData.username} onChange={(v: any) => setFormData({ ...formData, username: v })} />
-        <FormField label="API_PASSWORD" type="password" showToggle value={formData.password} onChange={(v: any) => setFormData({ ...formData, password: v })} />
-        <FormField label="AUTH_TOKEN" type="password" showToggle value={formData.apiToken} onChange={(v: any) => setFormData({ ...formData, apiToken: v })} />
-        <FormField label="PRIVATE_API_KEY" type="password" showToggle value={formData.apiKey} onChange={(v: any) => setFormData({ ...formData, apiKey: v })} />
+        <FormField label={`${provider.toUpperCase()} CUSTOMER CODE`} value={formData.customerCode} onChange={(v: string) => setFormData({ ...formData, customerCode: v })} />
+        <FormField label="API_USERNAME" value={formData.username} onChange={(v: string) => setFormData({ ...formData, username: v })} />
+        <FormField label="API_PASSWORD" type="password" showToggle value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} />
+        <FormField label="AUTH_TOKEN" type="password" showToggle value={formData.apiToken} onChange={(v: string) => setFormData({ ...formData, apiToken: v })} />
+        <FormField label="PRIVATE_API_KEY" type="password" showToggle value={formData.apiKey} onChange={(v: string) => setFormData({ ...formData, apiKey: v })} />
       </div>
 
       <div className="p-6 border-t border-slate-200 bg-slate-50">

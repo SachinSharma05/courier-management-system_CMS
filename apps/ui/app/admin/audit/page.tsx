@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { 
-  History, Search, User, Globe, Tag, 
-  Calendar, ShieldCheck, HardDrive, Download,
+  History, Search, Globe, Tag, 
+  Calendar, ShieldCheck, Download,
   Filter
 } from 'lucide-react';
 
