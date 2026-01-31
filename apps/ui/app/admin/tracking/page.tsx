@@ -1,24 +1,53 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   Box, Search, ArrowRight, UploadCloud, History, 
   PackageCheck, Clock, Hash, Navigation, MapPin, 
-  Calendar, ShieldCheck, ChevronDown, ExternalLink
+  Calendar, ShieldCheck, ChevronDown, ExternalLink,
+  ChevronUp, Truck, Map, Info, List
 } from 'lucide-react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useTracking } from '@/hooks/useTracking';
 
-// ─── UTILITY FOR INPUT SANITIZATION ───
+/* ================= STRICT TYPES ================= */
+
+interface TrackingEvent {
+  status: string;
+  eventAt: string;
+  description?: string;
+  remarks?: string;
+  location: string;
+}
+
+interface Consignment {
+  awb: string;
+  provider: string;
+  status: string;
+  movement: 'Critical' | 'Normal' | string;
+  origin: string;
+  destination: string;
+  bookedAt: string;
+}
+
+interface TrackingResult {
+  consignment: Consignment;
+  timeline: TrackingEvent[];
+}
+
+/* ================= UTILITIES ================= */
+
 const sanitizeAwbs = (input: string) => {
   return input
-    .split(/[\s,\n]+/) // Split by space, comma, or newline
+    .split(/[\s,\n]+/)
     .filter(Boolean)
     .slice(0, 25)
     .join(',');
 };
+
+/* ================= MAIN CONTENT ================= */
 
 function TrackingContent() {
   const searchParams = useSearchParams();
@@ -28,7 +57,6 @@ function TrackingContent() {
 
   const { data, isLoading } = useTracking(query);
 
-  // Sync URL params to State
   useEffect(() => {
     const awbFromUrl = searchParams.get('awb');
     if (awbFromUrl) {
@@ -38,89 +66,93 @@ function TrackingContent() {
     }
   }, [searchParams]);
 
-  const results = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const results = useMemo(() => (Array.isArray(data) ? (data as TrackingResult[]) : []), [data]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const sanitized = sanitizeAwbs(inputValue);
     setQuery(sanitized);
-    // Auto-expand the first result if multiple
     setExpandedAwb(null); 
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6 animate-in fade-in duration-500">
+    <div className="p-4 space-y-4 bg-slate-50 min-h-screen font-sans">
       
-      {/* HEADER */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* ERP HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-4 border border-slate-200 rounded-sm shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-            <Box size={24} />
+          <div className="h-10 w-10 bg-slate-900 flex items-center justify-center text-white rounded-sm">
+            <Box size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Consignment Tracking</h1>
-            <p className="text-sm text-slate-500 font-medium">Bulk support up to 25 AWBs</p>
+            <h1 className="text-lg font-black text-slate-900 leading-none uppercase tracking-tight">CONSIGNMENT_TRACKING_HUB</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1 font-bold">Batch Processing Engine • Limit 25 AWBs</p>
           </div>
         </div>
       </div>
 
-      {/* TRACKING INPUT AREA */}
-      <div className="rounded-3xl bg-slate-950 p-6 shadow-2xl border border-slate-800">
-        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400" size={20} />
+      {/* TRACKING TERMINAL */}
+      <div className="bg-slate-900 p-2 rounded-sm shadow-lg border border-slate-800">
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row items-stretch gap-2">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-3 top-3 text-slate-500" size={16} />
             <textarea
               rows={1}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Enter AWB Numbers (separated by comma, space or newline)"
-              className="w-full bg-slate-900 border-slate-800 text-white rounded-2xl pl-12 pr-4 py-4 text-sm font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none overflow-hidden"
+              placeholder="INPUT AWB LIST (COMMA/NEWLINE SEPARATED)..."
+              className="w-full bg-slate-950 border border-slate-800 text-emerald-500 rounded-sm pl-10 pr-4 py-3 text-xs font-mono focus:border-emerald-500/50 outline-none transition-all resize-none min-h-[46px] placeholder:text-slate-700"
               onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSearch(e); }}}
             />
           </div>
           <button 
             type="submit"
             disabled={isLoading}
-            className="w-full lg:w-auto flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-4 text-sm font-bold text-white hover:bg-indigo-700 transition-all disabled:opacity-50 min-w-[140px]"
+            className="flex items-center justify-center gap-2 rounded-sm bg-blue-600 px-8 py-2 text-[10px] font-black text-white hover:bg-blue-700 transition-all disabled:opacity-50 uppercase tracking-widest"
           >
-            {isLoading ? 'Searching...' : 'Track List'} <ArrowRight size={18} />
+            {isLoading ? 'SYNCING...' : 'EXECUTE_TRACK'} <ArrowRight size={14} />
           </button>
-          <Link href="/admin/tracking/bulk">
-            <div className="flex items-center gap-2 cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-5 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all group">
-              <UploadCloud size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Bulk Upload</span>
+          <Link href="/admin/tracking/bulk" className="flex">
+            <div className="flex items-center gap-2 rounded-sm border border-slate-700 bg-slate-800/50 px-5 py-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer">
+              <UploadCloud size={14} />
+              <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Bulk_Upload</span>
             </div>
           </Link>
         </form>
       </div>
 
-      {/* RESULTS SECTION */}
-      <div className="space-y-4">
+      {/* RESULTS GRID */}
+      <div className="space-y-2">
         {results.length > 0 ? (
-          results.length === 1 ? (
-            <DetailedTrackingView item={results[0]} />
-          ) : (
-            results.map((item: any) => (
-              <TrackingAccordion 
-                key={item.consignment.awb} 
-                item={item} 
-                isExpanded={expandedAwb === item.consignment.awb}
-                onToggle={() => setExpandedAwb(expandedAwb === item.consignment.awb ? null : item.consignment.awb)}
-              />
-            ))
-          )
+          <div className="bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm">
+            <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase">Batch_Results: {results.length} Found</span>
+                <List size={14} className="text-slate-400"/>
+            </div>
+            <div className="divide-y divide-slate-100">
+                {results.map((item) => (
+                  <TrackingAccordion 
+                    key={item.consignment.awb} 
+                    item={item} 
+                    isExpanded={expandedAwb === item.consignment.awb || results.length === 1}
+                    onToggle={() => setExpandedAwb(expandedAwb === item.consignment.awb ? null : item.consignment.awb)}
+                  />
+                ))}
+            </div>
+          </div>
         ) : (
           !isLoading && query && (
-            <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
-              <p className="text-slate-500 font-bold">No results found for these AWBs.</p>
+            <div className="text-center py-20 bg-white border border-slate-200 rounded-sm">
+              <Info className="mx-auto text-slate-300 mb-2" size={32} />
+              <p className="text-slate-500 font-black uppercase text-[10px] tracking-widest">No matching records found for provided AWBs</p>
             </div>
           )
         )}
 
         {!query && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-50 border border-dashed border-slate-200 rounded-[3rem] text-slate-400">
+          <div className="flex flex-col items-center justify-center py-24 bg-white border border-slate-200 rounded-sm text-slate-300">
              <Search size={48} className="opacity-10 mb-4" />
-             <p className="font-bold uppercase text-xs tracking-widest">Awaiting input for batch tracking</p>
+             <p className="font-black uppercase text-[10px] tracking-[0.3em]">Awaiting input for batch tracking sequence</p>
           </div>
         )}
       </div>
@@ -128,41 +160,46 @@ function TrackingContent() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT: ACCORDION VIEW (For Multiple Results)
-// ─────────────────────────────────────────────────────────────────────────────
-function TrackingAccordion({ item, isExpanded, onToggle }: any) {
-  const { consignment, timeline } = item;
+/* ================= COMPONENT: ACCORDION ================= */
+
+function TrackingAccordion({ item, isExpanded, onToggle }: { item: TrackingResult, isExpanded: boolean, onToggle: () => void }) {
+  const { consignment } = item;
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden transition-all hover:shadow-md">
+    <div className="w-full">
       <button 
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-5 text-left bg-white hover:bg-slate-50 transition-colors"
+        className={clsx(
+            "w-full flex items-center justify-between p-4 text-left transition-colors",
+            isExpanded ? "bg-slate-50" : "bg-white hover:bg-slate-50/50"
+        )}
       >
-        <div className="flex items-center gap-6">
-          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-            <Hash size={18} />
+        <div className="flex items-center gap-8">
+          <div className="flex flex-col">
+            <p className="text-[9px] font-black text-blue-600 uppercase tracking-tighter">{consignment.provider}</p>
+            <h4 className="font-mono font-black text-slate-900 text-sm tracking-tighter">{consignment.awb}</h4>
           </div>
-          <div>
-            <p className="text-[10px] font-black text-indigo-600 uppercase">{consignment.provider}</p>
-            <h4 className="font-bold text-slate-900">{consignment.awb}</h4>
+          
+          <div className="hidden md:flex flex-col border-l border-slate-200 pl-8">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">Current_Status</p>
+            <p className="text-[10px] font-black text-slate-700 uppercase">{consignment.status}</p>
           </div>
-          <div className="hidden md:block h-8 w-[1px] bg-slate-200" />
-          <div className="hidden md:block">
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-            <p className="text-xs font-black text-slate-700">{consignment.status}</p>
+
+          <div className="hidden lg:flex flex-col border-l border-slate-200 pl-8">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">Route</p>
+            <p className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">{consignment.origin} → {consignment.destination}</p>
           </div>
         </div>
+
         <div className="flex items-center gap-4">
-           <span className={clsx("px-3 py-1 rounded-full text-[10px] font-bold border", 
-             consignment.movement === "Critical" ? "bg-red-50 text-red-600 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+           <span className={clsx("px-2 py-0.5 rounded-sm text-[9px] font-black border uppercase tracking-widest", 
+             consignment.movement === "Critical" ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"
            )}>{consignment.movement}</span>
-           <ChevronDown size={20} className={clsx("text-slate-400 transition-transform", isExpanded && "rotate-180")} />
+           {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
         </div>
       </button>
 
       {isExpanded && (
-        <div className="p-6 bg-slate-50/50 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+        <div className="p-6 bg-white border-t border-slate-100 animate-in slide-in-from-top-1 duration-200">
           <DetailedTrackingView item={item} isEmbedded />
         </div>
       )}
@@ -170,50 +207,61 @@ function TrackingAccordion({ item, isExpanded, onToggle }: any) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT: DETAILED VIEW (Reuse for Single or inside Accordion)
-// ─────────────────────────────────────────────────────────────────────────────
-function DetailedTrackingView({ item, isEmbedded = false }: any) {
+/* ================= COMPONENT: DETAILED VIEW ================= */
+
+function DetailedTrackingView({ item, isEmbedded = false }: { item: TrackingResult, isEmbedded?: boolean }) {
   const { consignment, timeline } = item;
   
   return (
-    <div className={clsx("grid grid-cols-1 lg:grid-cols-12 gap-8 items-start", !isEmbedded && "animate-in fade-in")}>
-      {/* TIMELINE */}
-      <div className="lg:col-span-8 space-y-4">
-        <div className="max-h-[500px] overflow-y-auto pr-2 no-scrollbar space-y-3">
-          {timeline.map((event: any, idx: number) => (
-            <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 relative">
-              {idx === 0 && <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500 rounded-l-2xl" />}
-              <div className={clsx("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", idx === 0 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400")}>
-                {idx === 0 ? <PackageCheck size={20} /> : <Clock size={18} />}
+    <div className={clsx("grid grid-cols-1 lg:grid-cols-12 gap-6 items-start", !isEmbedded && "animate-in fade-in")}>
+      {/* AUDIT TRAIL (Timeline) */}
+      <div className="lg:col-span-8 space-y-3">
+        <div className="flex items-center gap-2 mb-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <History size={14}/> Operational_Audit_Trail
+        </div>
+        <div className="max-h-[500px] overflow-y-auto pr-2 no-scrollbar space-y-2">
+          {timeline.map((event, idx) => (
+            <div key={idx} className="bg-slate-50 border border-slate-200 p-3 rounded-sm flex gap-4 relative">
+              {idx === 0 && <div className="absolute left-0 top-0 h-full w-1 bg-blue-600" />}
+              <div className={clsx(
+                  "h-8 w-8 rounded-sm flex items-center justify-center shrink-0 border", 
+                  idx === 0 ? "bg-blue-50 border-blue-100 text-blue-600" : "bg-white border-slate-200 text-slate-400"
+              )}>
+                {idx === 0 ? <PackageCheck size={16} /> : <Clock size={14} />}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <h5 className="text-sm font-bold text-slate-900">{event.status}</h5>
-                  <span className="text-[10px] font-bold text-slate-400">{new Date(event.eventAt).toLocaleString()}</span>
+                  <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{event.status}</h5>
+                  <span className="text-[9px] font-bold text-slate-400 font-mono">{new Date(event.eventAt).toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">{event.description || event.remarks}</p>
-                <p className="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-tighter">{event.location}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-bold uppercase leading-tight">{event.description || event.remarks}</p>
+                <div className="flex items-center gap-1 text-[9px] font-black text-blue-500 mt-1 uppercase tracking-tighter italic">
+                    <MapPin size={10}/> {event.location}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* STATS CARD */}
+      {/* METADATA PANEL */}
       <div className="lg:col-span-4 space-y-4">
-        <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
-           <div className="text-center mb-6">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consignment Info</p>
-              <h2 className="text-xl font-black text-slate-900 mt-1 uppercase">{consignment.awb}</h2>
+        <div className="bg-slate-900 rounded-sm p-5 shadow-md border border-slate-800">
+           <div className="text-center mb-6 pb-4 border-b border-slate-800">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">System_Entity_Record</p>
+              <h2 className="text-xl font-mono font-black text-white mt-1 uppercase tracking-tighter">{consignment.awb}</h2>
            </div>
-           <div className="space-y-3">
-              <DetailRow icon={<Navigation size={14}/>} label="Carrier" value={consignment.provider} />
-              <DetailRow icon={<MapPin size={14}/>} label="Route" value={`${consignment.origin} → ${consignment.destination}`} />
-              <DetailRow icon={<Calendar size={14}/>} label="Booked" value={new Date(consignment.bookedAt).toLocaleDateString()} />
+           <div className="space-y-4">
+              <DetailRow icon={<Truck size={12}/>} label="Carrier" value={consignment.provider} />
+              <DetailRow icon={<Map size={12}/>} label="Origin" value={consignment.origin} />
+              <DetailRow icon={<Navigation size={12}/>} label="Destination" value={consignment.destination} />
+              <DetailRow icon={<Calendar size={12}/>} label="Booking_Date" value={new Date(consignment.bookedAt).toLocaleDateString()} />
            </div>
-           <Link href={`/admin/tracking?awb=${consignment.awb}`} className="mt-6 w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all">
-             Full Report <ExternalLink size={14} />
+           <Link 
+             href={`/admin/tracking?awb=${consignment.awb}`} 
+             className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-sm text-[10px] font-black hover:bg-blue-700 transition-all uppercase tracking-widest"
+           >
+             Generate_Full_Report <ExternalLink size={12} />
            </Link>
         </div>
       </div>
@@ -221,18 +269,25 @@ function DetailedTrackingView({ item, isEmbedded = false }: any) {
   );
 }
 
-function DetailRow({ icon, label, value }: any) {
+function DetailRow({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
   return (
-    <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-50 last:border-0">
-      <div className="flex items-center gap-2 text-slate-500">{icon} <span>{label}</span></div>
-      <span className="font-bold text-slate-900 truncate ml-4">{value}</span>
+    <div className="flex items-center justify-between text-[10px] py-1">
+      <div className="flex items-center gap-2 text-slate-500 uppercase font-bold tracking-tighter">
+          {icon} <span>{label}</span>
+      </div>
+      <span className="font-black text-slate-200 truncate ml-4 uppercase">{value}</span>
     </div>
   );
 }
 
 export default function TrackingPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center animate-pulse">Initializing multi-tracking system...</div>}>
+    <Suspense fallback={
+        <div className="p-10 text-center animate-pulse flex flex-col items-center gap-4">
+            <Box className="text-slate-200" size={40}/>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Initializing_Tracking_Engine...</p>
+        </div>
+    }>
       <TrackingContent />
     </Suspense>
   );

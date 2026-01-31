@@ -1,5 +1,6 @@
 'use client';
 
+import React, { ReactNode } from 'react';
 import { 
   Activity, Server, Database, Zap, 
   Cpu, Globe, RefreshCcw, ShieldCheck, 
@@ -8,122 +9,115 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-type Status = 'healthy' | 'degraded' | 'down';
+/** ─────────────────────────────────────────────────────────────────────────
+ * TYPES & INTERFACES
+ * ─────────────────────────────────────────────────────────────────────── */
+type SystemStatus = 'healthy' | 'degraded' | 'down';
 
-// ... (MOCK_SYSTEM_STATUS stays the same)
-type SystemItem = {
+interface SystemItem {
   name: string;
-  status: Status;
+  status: SystemStatus;
   details?: string;
-};
+}
+
+interface LogEntryProps {
+  name: string;
+  ping: string;
+  load: string;
+  icon: ReactNode;
+}
+
+interface MetaItemProps {
+  label: string;
+  value: string;
+  icon: ReactNode;
+}
 
 const MOCK_SYSTEM_STATUS: SystemItem[] = [
-  {
-    name: 'API Server',
-    status: 'healthy',
-    details: 'Listening on :4000',
-  },
-  {
-    name: 'Worker',
-    status: 'healthy',
-    details: 'Last heartbeat 30s ago',
-  },
-
-  {
-    name: 'Redis',
-    status: 'healthy',
-    details: 'Connected',
-  },
-  {
-    name: 'DTDC Sync',
-    status: 'degraded',
-    details: 'High latency detected',
-  },
-  {
-    name: 'Delhivery Sync',
-    status: 'healthy',
-  },
-  {
-    name: 'Maruti Sync',
-    status: 'down',
-    details: 'Provider disabled',
-  },
+  { name: 'API Server', status: 'healthy', details: 'Listening on :4000' },
+  { name: 'Worker', status: 'healthy', details: 'Heartbeat 30s ago' },
+  { name: 'Redis', status: 'healthy', details: 'Connected' },
+  { name: 'DTDC Sync', status: 'degraded', details: 'High latency (850ms)' },
+  { name: 'Delhivery Sync', status: 'healthy', details: 'Operational' },
+  { name: 'Maruti Sync', status: 'down', details: 'Provider disabled' },
 ];
 
 export default function SystemPage() {
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100">
       
-      {/* ───────────────── HEADER & METRICS ───────────────── */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-200 animate-pulse">
-            <Activity size={32} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">System Pulse</h1>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest">Live</span>
+      {/* ───────────────── ERP HEADER (FLAT) ───────────────── */}
+      <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded border border-emerald-200 bg-white flex items-center justify-center text-emerald-600 shadow-sm">
+              <Activity size={20} />
             </div>
-            <p className="text-slate-500 font-medium">Real-time health monitoring for platform infrastructure.</p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">System Infrastructure</h1>
+                <span className="px-1.5 py-0.5 rounded border border-emerald-200 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest">Live</span>
+              </div>
+              <p className="text-xs font-medium text-slate-500">Real-time health monitoring & node latency.</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex gap-4">
-            <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Uptime</p>
-                <p className="text-xl font-mono font-black text-slate-800">99.98%</p>
+          <div className="flex items-center gap-6">
+            <div className="text-right border-r border-slate-200 pr-6">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Global Uptime</p>
+              <p className="text-lg font-mono font-black text-slate-800 tracking-tighter">99.982%</p>
             </div>
-            <div className="h-10 w-[1px] bg-slate-200" />
-            <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
-              <RefreshCcw size={16} /> Force Refresh
+            <button className="flex items-center gap-2 rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors shadow-sm">
+              <RefreshCcw size={14} /> FORCE REFRESH
             </button>
+          </div>
         </div>
       </div>
 
-      {/* ───────────────── INFRASTRUCTURE GRID ───────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {MOCK_SYSTEM_STATUS.map((item) => (
-          <StatusCard key={item.name} item={item} />
-        ))}
-      </div>
+      <main className="p-6 space-y-6">
+        {/* ───────────────── INFRASTRUCTURE GRID ───────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {MOCK_SYSTEM_STATUS.map((item) => (
+            <StatusCard key={item.name} item={item} />
+          ))}
+        </div>
 
-      {/* ───────────────── RECENT INCIDENTS / LOGS ───────────────── */}
-      <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Network size={16} className="text-indigo-500" /> Node Latency & Heartbeats
+        {/* ───────────────── NODE PERFORMANCE TABLE ───────────────── */}
+        <div className="rounded border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Network size={14} className="text-blue-500" /> Active Node Heartbeats
             </h3>
-            <span className="text-[10px] font-bold text-slate-400">Updates every 15s</span>
-        </div>
-        <div className="p-0 overflow-x-auto">
-            <table className="w-full text-left">
-                <tbody className="divide-y divide-slate-50">
-                    <LogEntry name="Primary DB" ping="12ms" load="14%" icon={<Database size={14}/>} />
-                    <LogEntry name="Worker-Pool-A" ping="45ms" load="68%" icon={<Cpu size={14}/>} />
-                    <LogEntry name="Redis-Cache" ping="2ms" load="4%" icon={<Zap size={14}/>} />
-                </tbody>
-            </table>
-        </div>
-      </div>
-
-      {/* ───────────────── FOOTER ───────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900 text-white shadow-xl">
-          <div className="flex gap-8">
-            <MetaItem label="Environment" value="Production" icon={<Globe size={14}/>} />
-            <MetaItem label="Version" value="v1.0.4-stable" icon={<ShieldCheck size={14}/>} />
-            <MetaItem label="Region" value="Asia-South-1" icon={<HardDrive size={14}/>} />
+            <span className="text-[9px] font-bold text-slate-400 font-mono">TS: {new Date().toISOString()}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-             <Clock size={14} /> Last fully verified at 22 Dec 2025, 22:01:17
-          </div>
-      </div>
+          <table className="w-full text-left border-collapse">
+            <tbody className="divide-y divide-slate-100">
+              <LogEntry name="Primary DB" ping="12ms" load="14%" icon={<Database size={14}/>} />
+              <LogEntry name="Worker-Pool-A" ping="45ms" load="68%" icon={<Cpu size={14}/>} />
+              <LogEntry name="Redis-Cache" ping="2ms" load="4%" icon={<Zap size={14}/>} />
+            </tbody>
+          </table>
+        </div>
+      </main>
 
+      {/* ───────────────── SYSTEM META FOOTER ───────────────── */}
+      <footer className="fixed bottom-0 w-full border-t border-slate-200 bg-white px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex gap-8">
+          <MetaItem label="Env" value="Production" icon={<Globe size={14}/>} />
+          <MetaItem label="Version" value="v1.0.4-stable" icon={<ShieldCheck size={14}/>} />
+          <MetaItem label="Region" value="Asia-South-1" icon={<HardDrive size={14}/>} />
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+          <Clock size={12} /> Last Full Audit: 22 Dec 2025, 22:01:17
+        </div>
+      </footer>
     </div>
   );
 }
 
-/* ───────────────── COMPONENTS ───────────────── */
+/** ─────────────────────────────────────────────────────────────────────────
+ * INTERNAL COMPONENTS
+ * ─────────────────────────────────────────────────────────────────────── */
 
 function StatusCard({ item }: { item: SystemItem }) {
   const isHealthy = item.status === 'healthy';
@@ -131,74 +125,74 @@ function StatusCard({ item }: { item: SystemItem }) {
 
   return (
     <div className={clsx(
-        "relative group p-6 rounded-3xl border transition-all duration-300",
-        isHealthy ? "bg-white border-slate-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50" : 
-        isDegraded ? "bg-amber-50 border-amber-200 shadow-sm" : 
-        "bg-red-50 border-red-200 shadow-sm"
+      "p-4 rounded border transition-colors",
+      isHealthy ? "bg-white border-slate-200" : 
+      isDegraded ? "bg-amber-50 border-amber-200" : 
+      "bg-red-50 border-red-200"
     )}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-2">
         <div className={clsx(
-            "p-3 rounded-2xl",
-            isHealthy ? "bg-slate-50 text-slate-600 group-hover:bg-emerald-50 group-hover:text-emerald-600" : 
-            isDegraded ? "bg-white text-amber-600" : 
-            "bg-white text-red-600"
+          "p-2 rounded border",
+          isHealthy ? "bg-slate-50 border-slate-200 text-slate-500" : 
+          isDegraded ? "bg-white border-amber-200 text-amber-600" : 
+          "bg-white border-red-200 text-red-600"
         )}>
-            {item.name.includes('API') ? <Server size={24} /> : 
-             item.name.includes('Sync') ? <RefreshCcw size={24} /> : 
-             item.name.includes('Redis') ? <Database size={24} /> : <Cpu size={24} />}
+          {item.name.includes('API') ? <Server size={18} /> : 
+           item.name.includes('Sync') ? <RefreshCcw size={18} /> : 
+           item.name.includes('Redis') ? <Database size={18} /> : <Cpu size={18} />}
         </div>
         <StatusIndicator status={item.status} />
       </div>
 
-      <h3 className="text-lg font-black text-slate-900 mb-1">{item.name}</h3>
+      <h3 className="text-sm font-bold text-slate-900">{item.name}</h3>
       <p className={clsx(
-          "text-xs font-medium leading-relaxed",
-          isHealthy ? "text-slate-500" : isDegraded ? "text-amber-700" : "text-red-700"
+        "text-[11px] font-medium leading-tight mt-1",
+        isHealthy ? "text-slate-500" : isDegraded ? "text-amber-700" : "text-red-700"
       )}>
-        {item.details || 'Operational and responding to requests.'}
+        {item.details || 'System operational.'}
       </p>
 
       {!isHealthy && (
-        <div className="mt-4 pt-4 border-t border-current/10 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-            <AlertTriangle size={12} /> Investigation Required
+        <div className="mt-3 pt-3 border-t border-current/10 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest italic">
+          <AlertTriangle size={10} /> Ops Investigation Req.
         </div>
       )}
     </div>
   );
 }
 
-function StatusIndicator({ status }: { status: Status }) {
-    if (status === 'healthy') return <CheckCircle2 className="text-emerald-500" size={20} />;
-    if (status === 'degraded') return <AlertTriangle className="text-amber-500 animate-bounce" size={20} />;
-    return <XCircle className="text-red-500" size={20} />;
+function StatusIndicator({ status }: { status: SystemStatus }) {
+  if (status === 'healthy') return <CheckCircle2 className="text-emerald-500" size={16} />;
+  if (status === 'degraded') return <AlertTriangle className="text-amber-500" size={16} />;
+  return <XCircle className="text-red-500" size={16} />;
 }
 
-function LogEntry({ name, ping, load, icon }: any) {
-    return (
-        <tr className="hover:bg-slate-50/50">
-            <Td className="py-3 px-6">
-                <div className="flex items-center gap-3 font-bold text-slate-700">
-                    {icon} {name}
-                </div>
-            </Td>
-            <Td className="text-xs font-mono text-slate-400">Response: <span className="text-emerald-600 font-bold">{ping}</span></Td>
-            <Td className="text-xs font-mono text-slate-400 text-right px-6">Load: <span className="text-slate-900 font-bold">{load}</span></Td>
-        </tr>
-    )
-}
-
-function MetaItem({ label, value, icon }: any) {
-    return (
-        <div className="flex items-center gap-2">
-            <div className="text-slate-500">{icon}</div>
-            <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{label}</span>
-                <span className="text-xs font-bold">{value}</span>
-            </div>
+function LogEntry({ name, ping, load, icon }: LogEntryProps) {
+  return (
+    <tr className="hover:bg-slate-50/80 transition-colors group">
+      <td className="py-2.5 px-4">
+        <div className="flex items-center gap-3 text-xs font-bold text-slate-700">
+          <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span> {name}
         </div>
-    )
+      </td>
+      <td className="py-2.5 px-4 text-[11px] font-mono text-slate-400 border-x border-slate-100">
+        RTT: <span className="text-emerald-600 font-bold">{ping}</span>
+      </td>
+      <td className="py-2.5 px-4 text-[11px] font-mono text-slate-400 text-right">
+        LOAD: <span className="text-slate-900 font-bold">{load}</span>
+      </td>
+    </tr>
+  );
 }
 
-function Td({ children, className }: any) {
-  return <td className={clsx("py-2 px-4 text-sm", className)}>{children}</td>;
+function MetaItem({ label, value, icon }: MetaItemProps) {
+  return (
+    <div className="flex items-center gap-2 border-r border-slate-200 pr-6 last:border-0">
+      <div className="text-slate-400">{icon}</div>
+      <div className="flex flex-col">
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tight">{label}</span>
+        <span className="text-[11px] font-bold text-slate-700">{value}</span>
+      </div>
+    </div>
+  );
 }

@@ -2,216 +2,163 @@
 
 import { useProviderStats } from '@/hooks/useProviderStats';
 import { 
-  Package, 
-  Truck, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowLeftRight, 
-  Plus, 
-  Layers, 
-  Printer, 
-  XCircle,
-  ChevronRight
+  Package, Truck, CheckCircle2, AlertCircle, 
+  ArrowLeftRight, Plus, Layers, Printer, 
+  XCircle, ChevronRight, Activity, Database, Hash
 } from 'lucide-react';
 import Link from 'next/link';
+import clsx from 'clsx';
 
 export default function DelhiveryOverviewPage() {
   const { data, isLoading } = useProviderStats('delhivery');
 
   if (isLoading) return (
     <div className="h-96 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex flex-col items-center gap-3">
+        <Activity className="animate-pulse text-indigo-600" size={32} />
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing_Provider_Data...</span>
+      </div>
     </div>
   );
 
-  // Inside your component, before the return statement:
-const sanitizedBreakdown = data.breakdown.reduce((acc: any[], current: any) => {
-  const existing = acc.find(item => item.label === current.label);
-  if (existing) {
-    existing.value += current.value; // Sum the values of duplicates
-  } else {
-    acc.push({ ...current });
-  }
-  return acc;
-}, []);
-
-// Then map over sanitizedBreakdown instead of data.breakdown
-{sanitizedBreakdown.map((b: any) => (
-  <div key={b.label} className="group cursor-default">
-    {/* ... UI remains the same */}
-  </div>
-))}
+  const sanitizedBreakdown = data.breakdown.reduce((acc: any[], current: any) => {
+    const existing = acc.find(item => item.label === current.label);
+    if (existing) {
+      existing.value += current.value;
+    } else {
+      acc.push({ ...current });
+    }
+    return acc;
+  }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* --- HERO METRICS SECTION (BENTO GRID) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-5 gap-4">
-        <MetricCard 
-          label="Total Shipments" 
-          value={data.total} 
-          icon={<Package className="text-indigo-600" size={20} />}
-          trend="+12% from last month"
-          className="md:col-span-2 lg:col-span-1"
-        />
-        <MetricCard 
-          label="Delivered" 
-          value={data.delivered} 
-          icon={<CheckCircle2 className="text-emerald-500" size={20} />}
-          color="emerald"
-        />
-        <MetricCard 
-          label="In-Transit" 
-          value={data.inTransit} 
-          icon={<Truck className="text-amber-500" size={20} />}
-          color="amber"
-        />
-        <MetricCard 
-          label="RTO / Returns" 
-          value={data.rto} 
-          icon={<ArrowLeftRight className="text-rose-500" size={20} />}
-          color="rose"
-        />
-        <MetricCard 
-          label="NDR Issues" 
-          value={data.ndr} 
-          icon={<AlertCircle className="text-orange-500" size={20} />}
-          color="orange"
-        />
+      {/* ───────────────── STATS MATRIX ───────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatNode label="Total_In_Pipe" value={data.total} icon={<Package size={16}/>} color="indigo" />
+        <StatNode label="Delivered_Nodes" value={data.delivered} icon={<CheckCircle2 size={16}/>} color="emerald" />
+        <StatNode label="Transit_Active" value={data.inTransit} icon={<Truck size={16}/>} color="amber" />
+        <StatNode label="RTO / Returns" value={data.rto} icon={<AlertCircle size={16}/>} color="rose" />
+        <StatNode label="NDR Issues" value={data.ndr} icon={<AlertCircle size={16}/>} color="orange" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* --- STATUS DISTRIBUTION (VISUAL PROGRESS) --- */}
-        <div className="lg:col-span-2 rounded-[2.5rem] bg-white border border-slate-100 p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-black text-slate-900">Live Status Breakdown</h3>
-              <p className="text-sm text-slate-400 font-medium">Real-time tracking distribution</p>
-            </div>
-            <div className="px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-bold text-slate-600">
-              {data.total} Total Units
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-            {data.breakdown.map((b: any, index: number) => (
-              <div key={`${b.label}-${index}`} className="group cursor-default">
-                <div className="flex justify-between mb-2 items-end">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-indigo-600 transition-colors">
-                    {b.label}
-                  </span>
-                  <span className="text-sm font-bold text-slate-900">{b.value}</span>
-                </div>
-                <div className="relative h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100/50">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out group-hover:bg-indigo-400"
-                    style={{ width: `${(b.value / data.total) * 100}%` }}
-                  />
-                </div>
+      {/* ───────────────── BREAKDOWN TERMINAL ───────────────── */}
+      <div className="bg-slate-900 rounded-sm border border-slate-800 shadow-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+           <div className="flex items-center gap-2">
+             <Database size={14} className="text-indigo-500" />
+             <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Shipment_Lifecycle_Distribution</h3>
+           </div>
+           <span className="text-[9px] font-mono text-slate-500">PROD_ENV // STABLE</span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 divide-x divide-y divide-slate-800 border-b border-slate-800">
+          {sanitizedBreakdown.map((b: any) => (
+            <div key={b.label} className="p-4 hover:bg-slate-800/50 transition-colors group">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 group-hover:text-indigo-400 transition-colors">{b.label}</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-black text-white tracking-tighter font-mono">{b.value}</span>
+                <span className="text-[9px] font-bold text-slate-600">UNITS</span>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* --- QUICK ACTIONS (MODERN BUTTONS) --- */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Quick Operations</h3>
-          
-          <ActionTile 
-            title="Create Shipment" 
-            icon={<Plus size={18}/>} 
-            theme="dark" 
-            href="/admin/providers/delhivery/shipment" 
-          />
-          
-          <ActionTile 
-            title="Bulk Upload CSV" 
-            icon={<Layers size={18}/>} 
-            theme="white" 
-            href="/admin/providers/delhivery/shipment/create/bulk" 
-          />
-          
-          <ActionTile 
-            title="Print Shipping Labels" 
-            icon={<Printer size={18}/>} 
-            theme="white" 
-            href="/admin/providers/delhivery/label" 
-          />
-          
-          <ActionTile 
-            title="Cancel Shipment" 
-            icon={<XCircle size={18}/>} 
-            theme="danger" 
-            href="/admin/providers/delhivery/cancel" 
-          />
-        </div>
+      {/* ───────────────── ACTION CONTROL GRID ───────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ActionTile 
+          title="INITIALIZE_SHIPMENT" 
+          icon={<Plus size={20} />} 
+          theme="dark" 
+          href="/admin/providers/delhivery/create"
+          desc="Create individual single-node shipment" 
+        />
+        <ActionTile 
+          title="BATCH_INGESTION" 
+          icon={<Layers size={20} />} 
+          theme="white" 
+          href="/admin/providers/delhivery/bulk"
+          desc="Upload CSV/XLSX manifest files"
+        />
+        <ActionTile 
+          title="LABEL_GEN_CENTER" 
+          icon={<Printer size={20} />} 
+          theme="white" 
+          href="/admin/providers/delhivery/label"
+          desc="Generate thermal/laser waybills"
+        />
+        <ActionTile 
+          title="TERMINATE_NODE" 
+          icon={<XCircle size={20} />} 
+          theme="danger" 
+          href="/admin/providers/delhivery/cancel"
+          desc="Cancel or void active tracking IDs"
+        />
       </div>
     </div>
   );
 }
 
-/* ---------------- MODERN SUB-COMPONENTS ---------------- */
-function MetricCard({ label, value, icon, trend, color = "indigo", className = "" }: any) {
-  return (
-    <div className={`group relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${className}`}>
-      <div className="flex justify-between items-start relative z-10">
-        <div className={`p-3 rounded-2xl bg-${color}-50 border border-${color}-100 transition-transform group-hover:scale-110`}>
-          {icon}
-        </div>
-        {trend && (
-           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-             {trend}
-           </span>
-        )}
-      </div>
-      <div className="mt-6 relative z-10">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-        <p className="text-3xl font-black text-slate-900">{value.toLocaleString()}</p>
-      </div>
-      {/* Subtle background decoration */}
-      <div className={`absolute -right-4 -bottom-4 w-24 h-24 bg-${color}-50/50 rounded-full blur-2xl group-hover:bg-${color}-100/80 transition-colors`} />
-    </div>
-  );
-}
+/* ───────────────── ERP COMPONENTS ───────────────── */
 
-// --- The Refactored ActionTile Component ---
-function ActionTile({ 
-  title, 
-  icon, 
-  theme, 
-  href = "#" 
-}: { 
-  title: string, 
-  icon: React.ReactNode, 
-  theme: 'dark' | 'white' | 'danger', 
-  href?: string 
-}) {
-  const styles = {
-    dark: "bg-slate-900 text-white hover:bg-slate-800 border-transparent shadow-lg shadow-slate-200",
-    white: "bg-white text-slate-900 hover:bg-slate-50 border-slate-100 shadow-sm",
-    danger: "bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100"
+function StatNode({ label, value, icon, color }: any) {
+  const colors: any = {
+    indigo: "border-indigo-500 text-indigo-600 bg-indigo-50",
+    emerald: "border-emerald-500 text-emerald-600 bg-emerald-50",
+    amber: "border-amber-500 text-amber-600 bg-amber-50",
+    rose: "border-rose-500 text-rose-600 bg-rose-50",
+    orange: "border-red-500 text-red-600 bg-red-50",
   };
 
-  const iconBg = {
-    dark: "bg-white/10 text-white",
-    white: "bg-slate-100 text-slate-500",
-    danger: "bg-rose-100 text-rose-600"
+  return (
+    <div className="bg-white border border-slate-200 p-4 rounded-sm shadow-sm relative overflow-hidden group">
+      <div className={clsx("absolute top-0 left-0 w-1 h-full", colors[color].split(' ')[0].replace('border-', 'bg-'))} />
+      <div className="flex justify-between items-start">
+        <div className="space-y-1">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tighter font-mono">{value}</h3>
+        </div>
+        <div className={clsx("p-2 rounded-sm border", colors[color])}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionTile({ title, icon, theme, href, desc }: any) {
+  const styles = {
+    dark: "bg-slate-900 text-white border-slate-800 hover:bg-slate-800",
+    white: "bg-white text-slate-900 border-slate-200 hover:border-slate-400 hover:bg-slate-50",
+    danger: "bg-white text-rose-600 border-rose-100 hover:bg-rose-50"
   };
 
   return (
     <Link 
       href={href}
-      className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border font-bold transition-all active:scale-[0.98] group ${styles[theme]}`}
+      className={clsx(
+        "flex flex-col p-5 border transition-all active:scale-[0.98] group relative rounded-sm",
+        styles[theme as keyof typeof styles]
+      )}
     >
-      <span className="flex items-center gap-3 text-base">
-        <span className={`${iconBg[theme]} p-2.5 rounded-xl group-hover:rotate-12 transition-transform duration-300`}>
-          {icon}
-        </span>
-        {title}
-      </span>
+      <div className="flex items-center justify-between mb-4">
+        <div className={clsx(
+            "p-2 rounded-sm",
+            theme === 'dark' ? "bg-white/10" : "bg-slate-100"
+        )}>
+            {icon}
+        </div>
+        <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
+      </div>
+      <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">{title}</h4>
+      <p className={clsx(
+        "text-[10px] mt-1 font-bold",
+        theme === 'dark' ? "text-slate-400" : "text-slate-500"
+      )}>{desc}</p>
       
-      <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-transform group-hover:translate-x-1 ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-100'}`}>
-        <ChevronRight size={16} className={theme === 'dark' ? 'opacity-100' : 'opacity-40'} />
+      <div className="absolute top-2 right-2 opacity-10">
+        <Hash size={40} />
       </div>
     </Link>
   );

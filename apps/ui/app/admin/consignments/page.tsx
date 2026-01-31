@@ -5,12 +5,11 @@ import {
   Box, Package, CheckCircle2, Clock, Download, Search, 
   Calendar, ChevronRight, Eye, MapPin, Navigation, Truck,
   ChevronsLeft, ChevronLeft, ChevronsRight, Loader2,
-  RefreshCw
+  RefreshCw, Filter, List, Hash, History, X,
+  ArrowUpRight, AlertTriangle
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useClients } from '@/hooks/useClients';
 import { useProviders } from '@/hooks/useProviders';
@@ -20,15 +19,16 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/axios';
 
 export default function ConsignmentsPage() {
+  const queryClient = useQueryClient();
   const { data: clients } = useClients();
   const { data: providers } = useProviders();
   
   const [filters, setFilters] = useState({
     awb: '',
     clientId: '',
-    provider: '',
+    provider: '', // This matches the "Carrier" dropdown
     status: '',
-    tat: '', // Added TAT
+    tat: '',
     from: '',
     to: '',
   });
@@ -39,37 +39,49 @@ export default function ConsignmentsPage() {
 
   const debounceAwb = useDebounce(filters.awb, 400);
 
+  // ─── LOGIC: Ensure filters are correctly passed to the hook ───
   const normalizedFilters = useMemo(() => ({
     page,
     limit,
     awb: debounceAwb.trim() || undefined,
     clientId: filters.clientId ? Number(filters.clientId) : undefined,
-    provider: filters.provider || undefined,
+    provider: filters.provider || undefined, // Carrier filter mapping
     status: filters.status || undefined,
     tat: filters.tat || undefined,
     from: filters.from || undefined,
     to: filters.to || undefined,
   }), [debounceAwb, filters, page]);
 
-  // Main List - Optimized with placeholderData in hook
   const { data, isLoading, isFetching } = useConsignments(normalizedFilters);
-
-  // Detail Events - Only fetches when drawer opens
   const { data: events, isLoading: isEventsLoading } = useConsignmentEvents(selectedAwb?.awb);
+  const { data: summary, isLoading: isSummaryLoading } = useConsignmentsSummary(filters.clientId ? Number(filters.clientId) : undefined);
 
-  const selectedClientId = filters.clientId ? Number(filters.clientId) : undefined;
-  const { data: summary, isLoading: isSummaryLoading } = useConsignmentsSummary(selectedClientId);
-
-  // Reset to page 1 when any filter changes
-  useEffect(() => { setPage(1); }, [debounceAwb, filters.clientId, filters.provider, filters.status, filters.tat, filters.from, filters.to]);
+  useEffect(() => { setPage(1); }, [debounceAwb, filters]);
 
   const totalRecords = data?.meta?.total || 0;
   const totalPages = data?.meta?.pages || 1;
   const startRange = (page - 1) * limit + 1;
   const endRange = Math.min(page * limit, totalRecords);
 
-  // Inside your ConsignmentsPage function
-  const queryClient = useQueryClient();
+  // ─── HANDLER: Export CSV ───
+  const handleExport = async () => {
+    try {
+      toast.loading("Generating Export...", { id: 'export' });
+      const response = await api.get('/admin/consignments/export', {
+        params: normalizedFilters,
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `consignments_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      toast.success("Export Downloaded", { id: 'export' });
+    } catch (error) {
+      toast.error("Export Failed", { id: 'export' });
+    }
+  };
 
   const liveSync = useMutation({
     mutationFn: async (awb: string) => {
@@ -77,274 +89,239 @@ export default function ConsignmentsPage() {
       return res.data;
     },
     onSuccess: (data, awb) => {
-      toast.success(`AWB ${awb} Sync Complete`);
+      toast.success(`AWB ${awb} Synced Successfully`);
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
-      queryClient.invalidateQueries({ queryKey: ['consignment-events', awb] });
     },
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-2rem)] p-6 space-y-4 overflow-hidden bg-slate-50/50">
+    <div className="p-4 space-y-3 bg-slate-50 min-h-screen font-sans">
       
-      {/* ───────────────── HEADER & SUMMARY ───────────────── */}
-      <div className="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* ERP HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white p-4 border border-slate-200 rounded-sm shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl">
-            <Box size={28} />
+          <div className="h-10 w-10 bg-slate-900 flex items-center justify-center text-white rounded-sm shadow-md">
+            <Box size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Consignments</h1>
-            <p className="text-sm text-slate-500 font-bold uppercase tracking-tight">Real-time Logistics</p>
+            <h1 className="text-lg font-black text-slate-900 leading-none uppercase tracking-tight">Consignment_Master_Log</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1 font-bold">Real-time Operations Control</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <StatusCard label="Total" value={summary?.total} icon={Package} variant="black" loading={isSummaryLoading} />
-          <StatusCard label="Delivered" value={summary?.delivered} icon={CheckCircle2} variant="green" loading={isSummaryLoading} />
-          <StatusCard label="In Transit" value={summary?.pending} icon={Clock} variant="yellow" loading={isSummaryLoading} />
-          <StatusCard label="NDR" value={summary?.ndr} icon={Clock} variant="red" loading={isSummaryLoading} />
-          <StatusCard label="RTO" value={summary?.rto} icon={Clock} variant="blue" loading={isSummaryLoading} />
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl px-6 shadow-lg shadow-indigo-100 gap-2 uppercase text-xs">
-            <Download size={16} /> Export
-          </Button>
+
+        <div className="flex flex-wrap items-center gap-2 mt-4 lg:mt-0">
+          <SummaryMini label="Total" value={summary?.total} loading={isSummaryLoading} color="text-slate-900" />
+          <SummaryMini label="Delivered" value={summary?.delivered} loading={isSummaryLoading} color="text-emerald-600" />
+          <SummaryMini label="In Transit" value={summary?.pending} loading={isSummaryLoading} color="text-amber-600" />
+          <SummaryMini label="NDR" value={summary?.ndr} loading={isSummaryLoading} color="text-rose-600" />
+          <SummaryMini label="RTO" value={summary?.rto} loading={isSummaryLoading} color="text-indigo-600" />
+          
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 rounded-sm bg-slate-900 px-4 py-2 text-[10px] font-black text-white hover:bg-black transition-all uppercase tracking-widest ml-2"
+          >
+            <Download size={14} /> Export_CSV
+          </button>
         </div>
       </div>
 
-      {/* ───────────────── FILTERS ───────────────── */}
-      <div className="shrink-0 rounded-2xl bg-white p-2 shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      {/* FILTER TERMINAL */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-2 bg-white p-2 border border-slate-200 rounded-sm shadow-sm">
+        <div className="xl:col-span-4 relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
           <input
-            placeholder="Search AWB or Reference..."
+            placeholder="FILTER_BY_AWB_OR_REF..."
             value={filters.awb}
             onChange={e => setFilters(f => ({ ...f, awb: e.target.value }))}
-            className="w-full rounded-xl border-none bg-slate-50 pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500/10 outline-none"
+            className="w-full bg-slate-50 border border-slate-200 pl-9 pr-4 py-2 text-xs font-bold text-slate-700 outline-none focus:border-slate-400 transition-all font-mono"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <select 
-            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
+        <div className="xl:col-span-8 flex flex-wrap gap-2">
+          <SelectFilter 
             value={filters.clientId} 
-            onChange={e => setFilters(f => ({ ...f, clientId: e.target.value }))}
-          >
-            <option value="">All Clients</option>
-            {/* Access .data and then .map */}
-            {(clients as any[])?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.company_name}
-              </option>
-            ))}
-          </select>
-
+            onChange={v => setFilters(f => ({ ...f, clientId: v }))}
+            options={clients || []}
+            labelKey="company_name"
+            placeholder="ALL_CLIENTS"
+          />
+          
+          {/* CARRIER FILTER */}
           <select 
-            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
             value={filters.provider} 
             onChange={e => setFilters(f => ({ ...f, provider: e.target.value }))}
+            className="bg-white border border-slate-200 rounded-sm px-3 py-2 text-[10px] font-black uppercase text-slate-600 outline-none focus:border-slate-400 min-w-[140px]"
           >
-            <option value="">All Providers</option>
-            {(providers as any[])?.map((p) => (
-              <option key={p.id || p.name} value={p.name}>
-                {p.name}
-              </option>
+            <option value="">ALL_CARRIERS</option>
+            {providers?.map((p: any) => (
+              <option key={p.id || p.name} value={p.name}>{p.name.toUpperCase()}</option>
             ))}
           </select>
 
           <select 
-            className="h-11 bg-slate-50 border-none rounded-xl px-4 text-xs font-black uppercase text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/10"
             value={filters.status} 
             onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+            className="bg-white border border-slate-200 rounded-sm px-3 py-2 text-[10px] font-black uppercase text-slate-600 outline-none focus:border-slate-400"
           >
-            <option value="">Status</option>
+            <option value="">ALL_STATUS</option>
             <option value="delivered">Delivered</option>
             <option value="in_transit">In Transit</option>
             <option value="rto">RTO</option>
             <option value="ndr">NDR</option>
-            <option value="other">Other</option>
           </select>
 
-          <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 h-11 border border-slate-100">
-            <Calendar size={14} className="text-slate-400" />
-            <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value}))} className="bg-transparent text-[11px] font-black outline-none text-slate-600 uppercase" />
-            <div className="h-4 w-px bg-slate-200" />
-            <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value}))} className="bg-transparent text-[11px] font-black outline-none text-slate-600 uppercase" />
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-sm px-3 py-1">
+            <Calendar size={12} className="text-slate-400" />
+            <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value}))} className="bg-transparent text-[10px] font-black outline-none text-slate-600 uppercase" />
+            <span className="text-slate-300">/</span>
+            <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value}))} className="bg-transparent text-[10px] font-black outline-none text-slate-600 uppercase" />
           </div>
         </div>
       </div>
 
-      {/* ───────────────── TABLE AREA ───────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col rounded-[2.5rem] border border-slate-100 bg-white shadow-2xl relative overflow-hidden">
-        
-        {/* BLUR EFFECT DURING FETCHING */}
-        {(isFetching && !isLoading) && (
-          <div className="absolute inset-0 z-30 bg-white/30 backdrop-blur-[2px] pointer-events-none flex items-center justify-center">
-             <div className="bg-slate-900 text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl">
-                <Loader2 size={14} className="animate-spin" /> Updating List...
+      {/* DATA GRID */}
+      <div className="bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm relative">
+        {isFetching && !isLoading && (
+          <div className="absolute inset-0 z-30 bg-white/40 backdrop-blur-[1px] flex items-center justify-center">
+             <div className="bg-slate-900 text-white px-4 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
+                <Loader2 size={12} className="animate-spin" /> SYNCING_RECORDS...
              </div>
           </div>
         )}
 
-        <div className="flex-1 overflow-auto no-scrollbar relative">
-          <table className="w-full text-left border-separate border-spacing-0">
-            <thead className="sticky top-0 z-20 bg-slate-50/90 backdrop-blur-md">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full text-left border-collapse table-fixed min-w-[1200px]">
+            <thead className="bg-slate-900 text-white sticky top-0 z-20">
               <tr>
-                <Th className="pl-8">AWB Identity</Th>
-                <Th>Client & Provider</Th>
-                <Th className="text-center">Live Status</Th>
-                <Th>Timelines</Th>
-                <Th>Route</Th>
-                <Th>TAT / Movement</Th>
-                <Th className="text-right pr-8">Actions</Th>
+                <Th className="w-48 pl-6">AWB_IDENTITY</Th>
+                <Th className="w-64">ENTITY_&_CARRIER</Th>
+                <Th className="text-center w-32">LIFECYCLE</Th>
+                <Th className="w-48">TIMESTAMPS</Th>
+                <Th className="w-56">ROUTE_LOG</Th>
+                <Th className="w-32">KPI_SLA</Th>
+                <Th className="text-right pr-6 w-44">OPERATIONS</Th>
               </tr>
             </thead>
-            <tbody className={clsx("divide-y divide-slate-50", isLoading ? "opacity-0" : "opacity-100")}>
-              {data?.data?.map((c: any) => (
-                <tr key={c.id} className="group hover:bg-slate-50/50 transition-colors">
-                  {/* AWB Identity */}
-                  <td className="px-6 py-4 align-middle pl-8">
-                    <span className="font-mono font-black text-slate-900 text-sm tracking-tighter bg-slate-100 px-2.5 py-1.5 rounded-lg inline-block">
+            <tbody className="divide-y divide-slate-100">
+              {isLoading ? (
+                <tr><td colSpan={7} className="p-12 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Initializing_Data_Stream...</td></tr>
+              ) : data?.data?.map((c: any) => (
+                <tr key={c.id} className="group hover:bg-slate-50 transition-colors">
+                  <Td className="pl-6">
+                    <span className="font-mono text-[11px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded-sm border border-slate-200 inline-block uppercase tracking-tighter">
                       {c.awb}
                     </span>
-                  </td>
-
-                  {/* Client & Provider */}
-                  <td className="px-6 py-4 align-middle">
+                  </Td>
+                  <Td>
                     <div className="flex flex-col">
-                      <span className="font-black text-slate-800 text-[13px] leading-tight truncate max-w-[180px]">
-                        {c.client}
-                      </span>
-                      <span className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mt-0.5">
-                        {c.provider}
-                      </span>
+                      <span className="font-black text-slate-900 text-xs uppercase tracking-tight truncate">{c.client}</span>
+                      <span className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-0.5">{c.provider}</span>
                     </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4 align-middle text-center">
+                  </Td>
+                  <Td className="text-center">
                     <StatusBadge status={c.status} />
-                  </td>
-
-                  {/* Timelines */}
-                  <td className="px-6 py-4 align-middle">
-                    <div className="flex flex-col gap-1.5">
+                  </Td>
+                  <Td>
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-slate-400 w-10">BOOKED:</span>
-                        <span className="text-[10px] font-bold text-slate-700">{formatDateTime(c.bookedAt)}</span>
+                        <span className="text-[9px] font-black text-slate-400 w-10">BOOK:</span>
+                        <span className="text-[10px] font-bold text-slate-700 font-mono">{formatDateTime(c.bookedAt)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-indigo-400 w-10">UPDATE:</span>
-                        <span className="text-[10px] font-bold text-slate-700">{formatDateTime(c.lastUpdatedAt)}</span>
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <span className="text-[9px] font-black w-10">UPDT:</span>
+                        <span className="text-[10px] font-black font-mono">{formatDateTime(c.lastUpdatedAt)}</span>
                       </div>
                     </div>
-                  </td>
-
-                  {/* Route */}
-                  <td className="px-6 py-4 align-middle">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter">
-                      <span className="text-slate-600 truncate max-w-[100px]">{c.origin || '---'}</span>
-                      <ChevronRight size={14} className="text-slate-300 shrink-0" />
-                      <span className="text-indigo-600 truncate max-w-[100px]">{c.destination || '---'}</span>
+                  </Td>
+                  <Td>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter overflow-hidden">
+                      <span className="text-slate-500 truncate">{c.origin || 'N/A'}</span>
+                      <ChevronRight size={12} className="text-slate-300 shrink-0" />
+                      <span className="text-slate-900 truncate">{c.destination || 'N/A'}</span>
                     </div>
-                  </td>
-
-                  {/* TAT / Movement */}
-                  <td className="px-6 py-4 align-middle">
-                    <div className="flex flex-col gap-1.5">
+                  </Td>
+                  <Td>
+                    <div className="flex flex-col gap-1">
                       {tatBadgeUI(c.tat)}
                       {moveBadgeUI(c.movement)}
                     </div>
-                  </td>
-
-                  {/* Actions - FIXED ALIGNMENT */}
-                  <td className="px-6 py-4 align-middle text-right pr-8">
-                    <div className="flex items-center justify-end gap-2 min-w-[180px]">
+                  </Td>
+                  <Td className="text-right pr-6">
+                    <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          liveSync.mutate(c.awb);
-                        }}
-                        disabled={liveSync.isPending && liveSync.variables === c.awb}
-                        className={clsx(
-                          "flex items-center justify-center gap-2 px-3 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0",
-                          liveSync.isPending && liveSync.variables === c.awb
-                            ? "bg-slate-100 text-slate-400" 
-                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100"
-                        )}
+                        onClick={() => liveSync.mutate(c.awb)}
+                        className="p-2 rounded-sm bg-white border border-slate-200 text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm"
+                        title="Sync Now"
                       >
-                        {liveSync.isPending && liveSync.variables === c.awb ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <RefreshCw size={12} />
-                        )}
-                        <span className="hidden xl:inline">
-                          {liveSync.isPending && liveSync.variables === c.awb ? "Syncing..." : "Live Sync"}
-                        </span>
+                        <RefreshCw size={14} className={clsx(liveSync.isPending && liveSync.variables === c.awb && "animate-spin")} />
                       </button>
-
-                      <Button 
+                      <button 
                         onClick={() => setSelectedAwb(c)} 
-                        variant="outline" 
-                        className="h-9 px-4 rounded-xl border-slate-200 font-black text-[11px] uppercase tracking-tighter hover:bg-slate-900 hover:text-white transition-all gap-2 shrink-0 shadow-sm"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-900 text-white text-[10px] font-black uppercase hover:bg-black transition-all shadow-sm"
                       >
-                        <Eye size={14} /> 
-                        <span className="hidden xl:inline">Details</span>
-                      </Button>
+                        <Eye size={12} /> DETAILS
+                      </button>
                     </div>
-                  </td>
+                  </Td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* ───────────────── PAGINATION ───────────────── */}
-        <div className="shrink-0 border-t border-slate-100 px-8 py-4 flex items-center justify-between bg-white">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Showing <span className="text-slate-900">{startRange}–{endRange}</span> of {totalRecords} Records
-          </span>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(1)} disabled={page === 1}><ChevronsLeft size={16}/></Button>
-            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={16}/></Button>
-            <div className="px-4 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-200">{page} / {totalPages}</div>
-            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><ChevronRight size={16}/></Button>
-            <Button size="sm" variant="outline" className="rounded-lg h-9 w-9 p-0" onClick={() => setPage(totalPages)} disabled={page >= totalPages}><ChevronsRight size={16}/></Button>
+        {/* PAGINATION */}
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <p className="text-[10px] font-black text-slate-500 uppercase">
+            Showing_Entries: <span className="text-slate-900 font-mono">{startRange}-{endRange}</span> / {totalRecords}
+          </p>
+          <div className="flex items-center gap-1">
+            <PaginationBtn onClick={() => setPage(1)} disabled={page === 1}><ChevronsLeft size={14}/></PaginationBtn>
+            <PaginationBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14}/></PaginationBtn>
+            <div className="px-3 py-1 bg-white border border-slate-200 text-slate-900 rounded-sm text-[10px] font-black mx-2 min-w-[60px] text-center font-mono">
+              {page} / {totalPages}
+            </div>
+            <PaginationBtn onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}><ChevronRight size={14}/></PaginationBtn>
+            <PaginationBtn onClick={() => setPage(totalPages)} disabled={page >= totalPages}><ChevronsRight size={14}/></PaginationBtn>
           </div>
         </div>
       </div>
 
-      {/* ───────────────── SIDE DRAWER ───────────────── */}
+      {/* DETAILS DRAWER */}
       <Sheet open={!!selectedAwb} onOpenChange={() => setSelectedAwb(null)}>
-        <SheetContent className="sm:max-w-md w-full p-0 border-l border-slate-100 shadow-2xl flex flex-col">
-          <div className="h-full flex flex-col bg-slate-50/50">
-            <SheetHeader className="p-6 bg-white border-b border-slate-100 shrink-0">
-              <SheetTitle className="flex flex-col">
-                  <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Shipment Identity</span>
-                  <span className="text-2xl font-black text-slate-900 font-mono tracking-tighter">{selectedAwb?.awb}</span>
-              </SheetTitle>
-            </SheetHeader>
-
-            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <DetailCard label="Origin" value={selectedAwb?.origin} icon={MapPin} />
-                    <DetailCard label="Destination" value={selectedAwb?.destination} icon={Navigation} />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tracking Timeline</h3>
-                    <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase">
-                        {isEventsLoading ? 'Syncing...' : `${events?.length || 0} Events`}
-                    </span>
-                  </div>
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm min-h-[300px]">
-                      <ShipmentTimeline events={events || []} isLoading={isEventsLoading} />
+        <SheetContent className="sm:max-w-md w-full p-0 border-l border-slate-200 shadow-2xl flex flex-col bg-white">
+          <SheetTitle className="sr-only">Consignment Details - {selectedAwb?.awb}</SheetTitle>
+          <div className="p-6 bg-slate-900 text-white shrink-0">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-800 rounded-sm text-blue-500"><Hash size={20}/></div>
+                  <div>
+                    <h2 className="text-xl font-mono font-black uppercase tracking-tighter leading-none">{selectedAwb?.awb}</h2>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">Entity_Audit_Detail</p>
                   </div>
                 </div>
-            </div>
-            
-            <div className="p-6 bg-white border-t border-slate-100 shrink-0">
-                <Button onClick={() => setSelectedAwb(null)} className="w-full h-12 rounded-2xl bg-slate-100 text-slate-900 font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">Close Drawer</Button>
-            </div>
+                <button onClick={() => setSelectedAwb(null)} className="p-2 hover:bg-slate-800 rounded-sm transition-all text-slate-400">
+                  <X size={20} />
+                </button>
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+              <div className="grid grid-cols-2 gap-2">
+                  <DrawerInfoBox label="Origin_Hub" value={selectedAwb?.origin} icon={MapPin} />
+                  <DrawerInfoBox label="Target_Dest" value={selectedAwb?.destination} icon={Navigation} />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <History size={14}/> Operational_Audit_Trail
+                  </h3>
+                  <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm uppercase font-mono">
+                      {isEventsLoading ? 'Syncing...' : `${events?.length || 0} Events`}
+                  </span>
+                </div>
+                <ShipmentTimeline events={events || []} isLoading={isEventsLoading} />
+              </div>
           </div>
         </SheetContent>
       </Sheet>
@@ -352,86 +329,85 @@ export default function ConsignmentsPage() {
   );
 }
 
-/* ───────────────── SUB-COMPONENTS ───────────────── */
-function formatDateTime(dateStr: string) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+/* ───────────────── UI UTILS ───────────────── */
+
+function SummaryMini({ label, value, loading, color }: any) {
+  return (
+    <div className="px-4 border-r border-slate-200 last:border-0">
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">{label}</p>
+      <p className={clsx("text-sm font-black mt-1 leading-none font-mono", color)}>
+        {loading ? '...' : (value || 0)}
+      </p>
+    </div>
+  );
 }
 
-function Th({ children, className }: any) { 
-    return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>; 
+function SelectFilter({ value, onChange, options, labelKey, placeholder }: any) {
+  return (
+    <select 
+      value={value} 
+      onChange={e => onChange(e.target.value)}
+      className="bg-white border border-slate-200 rounded-sm px-3 py-2 text-[10px] font-black uppercase text-slate-600 outline-none focus:border-slate-400 max-w-[150px]"
+    >
+      <option value="">{placeholder}</option>
+      {options?.map((opt: any) => (
+        <option key={opt.id || opt[labelKey]} value={opt.id || opt[labelKey]}>{opt[labelKey].toUpperCase()}</option>
+      ))}
+    </select>
+  );
 }
 
-function DetailCard({ label, value, icon: Icon }: any) {
-    return (
-        <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-            <Icon size={14} className="text-slate-400 mb-1" />
-            <span className="text-[9px] font-black text-slate-400 uppercase block">{label}</span>
-            <span className="text-xs font-black text-slate-800 uppercase truncate">{value || '---'}</span>
-        </div>
-    );
+function PaginationBtn({ children, onClick, disabled }: any) {
+  return (
+    <button onClick={onClick} disabled={disabled} className="p-1.5 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 transition-all">
+      {children}
+    </button>
+  );
 }
 
-function StatusCard({ label, value, icon: Icon, variant, loading }: any) {
-    const themes: any = {
-      black: "bg-slate-900 border-slate-900 text-white shadow-indigo-100",
-      green: "bg-white border-slate-100 text-emerald-600 shadow-slate-200",
-      yellow: "bg-white border-slate-100 text-amber-600 shadow-slate-200",
-    };
-    return (
-      <div className={clsx("flex items-center gap-3 px-4 py-2 rounded-2xl border shadow-sm min-w-[130px] transition-all", themes[variant])}>
-        <Icon size={18} />
-        <div className="flex flex-col">
-          <span className="text-[9px] font-black uppercase opacity-60 tracking-widest">{label}</span>
-          <span className="text-base font-black leading-none mt-1">{loading ? '...' : (value || 0)}</span>
-        </div>
+function DrawerInfoBox({ label, value, icon: Icon }: any) {
+  return (
+    <div className="bg-slate-50 p-3 border border-slate-200 rounded-sm">
+      <div className="flex items-center gap-2 text-slate-400 mb-1">
+        <Icon size={12} />
+        <span className="text-[9px] font-black uppercase tracking-tighter">{label}</span>
       </div>
-    );
+      <span className="text-[11px] font-black text-slate-900 uppercase truncate block">{value || '---'}</span>
+    </div>
+  );
 }
 
 function StatusBadge({ status }: any) {
-    const styles: any = {
-      'Delivered': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      'In Transit': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Out for Delivery': 'bg-amber-50 text-amber-700 border-amber-200',
-      'default': 'bg-slate-50 text-slate-600 border-slate-100'
-    };
-    return <span className={clsx("px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest", styles[status] || styles.default)}>{status || 'Unknown'}</span>;
+  const styles: any = {
+    'Delivered': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'In Transit': 'bg-blue-50 text-blue-700 border-blue-200',
+    'Out for Delivery': 'bg-amber-50 text-amber-700 border-amber-200',
+    'RTO': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'NDR': 'bg-rose-50 text-rose-700 border-rose-200',
+    'default': 'bg-slate-50 text-slate-600 border-slate-100'
+  };
+  return <span className={clsx("px-2 py-0.5 rounded-sm border text-[9px] font-black uppercase tracking-widest", styles[status] || styles.default)}>{status || 'Unknown'}</span>;
 }
 
 function ShipmentTimeline({ events, isLoading }: { events: any[], isLoading: boolean }) {
-  if (isLoading) return <div className="py-20 text-center text-[10px] font-black animate-pulse text-slate-400 tracking-widest uppercase">Fetching Live Data...</div>;
-  if (!events?.length) return <div className="py-20 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No tracking updates recorded</div>;
+  if (isLoading) return <div className="py-20 text-center text-[10px] font-black animate-pulse text-slate-400 tracking-widest uppercase italic">Syncing_Live_Stream...</div>;
+  if (!events?.length) return <div className="py-20 text-center text-slate-400 text-[10px] font-black uppercase tracking-widest border border-dashed border-slate-200 rounded-sm">No_Record_Logs_Found</div>;
   
   return (
-    <div className="relative space-y-8 before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
+    <div className="relative space-y-6 before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
       {events.map((event, idx) => (
-        <div key={idx} className="relative flex items-start gap-5">
-          {/* Animated Dot for latest status */}
-          <div className="relative flex items-center justify-center">
-            <div className={clsx(
-                "h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white z-10 transition-all", 
-                idx === 0 ? "bg-indigo-600 ring-4 ring-indigo-50" : "bg-slate-300"
-            )} />
-            {idx === 0 && <div className="absolute h-5 w-5 bg-indigo-400/20 rounded-full animate-ping" />}
-          </div>
-
-          <div className="flex flex-col flex-1 pb-6 border-b border-slate-50 last:border-0">
+        <div key={idx} className="relative flex items-start gap-4">
+          <div className={clsx("h-[22px] w-[22px] shrink-0 rounded-sm border-2 border-white z-10 flex items-center justify-center", idx === 0 ? "bg-blue-600 shadow-md" : "bg-slate-200")} />
+          <div className="flex-1 pb-6 border-b border-slate-50 last:border-0">
             <div className="flex justify-between items-start mb-1">
-              <span className={clsx("text-xs font-black uppercase tracking-tight", idx === 0 ? "text-indigo-600" : "text-slate-800")}>
-                {event.status}
-              </span>
-              <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded">
-                {new Date(event.event_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-              </span>
+              <span className={clsx("text-[11px] font-black uppercase tracking-tight", idx === 0 ? "text-blue-600" : "text-slate-800")}>{event.status}</span>
+              <span className="text-[9px] font-mono font-black text-slate-400">{new Date(event.event_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})}</span>
             </div>
-            <div className="flex items-center gap-1.5 mb-2">
-                <MapPin size={10} className="text-slate-300" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{event.location || 'Hub Center'}</span>
+            <div className="flex items-center gap-1.5 mb-1 text-slate-500">
+                <MapPin size={10} className="shrink-0" />
+                <span className="text-[10px] font-bold uppercase tracking-tighter">{event.location || 'Central_Hub'}</span>
             </div>
-            {event.remarks && <p className="text-[10px] text-slate-400 font-medium italic border-l-2 border-slate-100 pl-3 leading-relaxed">"{event.remarks}"</p>}
-            <span className="text-[9px] font-black text-slate-300 uppercase mt-3">{new Date(event.event_time).toLocaleDateString()}</span>
+            {event.remarks && <p className="text-[10px] text-slate-400 font-bold italic border-l-2 border-slate-100 pl-3 uppercase tracking-tighter leading-relaxed">"{event.remarks}"</p>}
           </div>
         </div>
       ))}
@@ -439,20 +415,20 @@ function ShipmentTimeline({ events, isLoading }: { events: any[], isLoading: boo
   );
 }
 
+function formatDateTime(dateStr: string) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+}
+
+function Th({ children, className }: any) { return <th className={clsx("px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400", className)}>{children}</th>; }
+function Td({ children, className }: any) { return <td className={clsx("px-4 py-3 text-xs border-slate-100", className)}>{children}</td>; }
+
 function tatBadgeUI(t: string) {
-  const common = "text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-tighter text-center block w-20 border";
-  switch (t) {
-    case "Delivered":
-      return <span className={clsx(common, "bg-green-50 text-green-700 border-green-100")}>Delivered</span>;
-    case "Sensitive":
-      return <span className={clsx(common, "bg-red-600 text-white border-red-700")}>Sensitive</span>;
-    case "Critical":
-      return <span className={clsx(common, "bg-red-50 text-red-800 border-red-100")}>Critical</span>;
-    case "Warning":
-      return <span className={clsx(common, "bg-yellow-50 text-yellow-800 border-yellow-100")}>Warning</span>;
-    default:
-      return <span className={clsx(common, "bg-slate-50 text-slate-600 border-slate-100")}>On Time</span>;
-  }
+  const common = "text-[9px] font-black uppercase px-2 py-0.5 rounded-sm tracking-tighter text-center block w-20 border";
+  if (t === "Sensitive") return <span className={clsx(common, "bg-red-600 text-white border-red-700")}>Sensitive</span>;
+  if (t === "Critical") return <span className={clsx(common, "bg-red-50 text-red-800 border-red-100")}>Critical</span>;
+  return <span className={clsx(common, "bg-slate-50 text-slate-600 border-slate-100")}>Standard</span>;
 }
 
 function moveBadgeUI(t: string) { return tatBadgeUI(t); }

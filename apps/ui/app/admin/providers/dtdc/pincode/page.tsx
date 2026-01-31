@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+// Change 'Map' to 'Map as MapIcon'
 import { 
   MapPin, Route, CheckCircle2, Info, 
   Truck, Zap, Landmark, Phone, Mail,
-  ArrowRight, Globe, ShieldCheck, AlertCircle, Loader2, Search
+  ArrowRight, Globe, ShieldCheck, AlertCircle, Loader2, Search,
+  Terminal, Database, Activity, Map as MapIcon, Hash, PhoneCall 
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,14 +91,14 @@ export interface DtdcServiceabilityResponse {
 
 // --- SUB-COMPONENTS ---
 
-const CapabilityBadge = ({ label, active, invert = false }: { label: string, active: boolean, invert?: boolean }) => {
+const CapabilityNode = ({ label, active, invert = false }: { label: string, active: boolean, invert?: boolean }) => {
   const isAvailable = invert ? !active : active;
   return (
     <div className={clsx(
-      "px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1.5 border transition-all",
-      isAvailable ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100 grayscale"
+      "px-3 py-1.5 rounded-sm text-[9px] font-black flex items-center gap-1.5 border transition-all uppercase tracking-widest",
+      isAvailable ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-400 border-slate-200 grayscale opacity-50"
     )}>
-      {isAvailable ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+      {isAvailable ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
       {label}
     </div>
   );
@@ -116,13 +118,10 @@ export default function DTDCServiceability() {
     if (!origin || !destination) return;
     setLoading(true);
     try {
-      // Replace this with your actual API hook call
       const payload = {
         origin_pincode: origin,
         destination_pincode: destination
       };
-      
-      // Using the hook pattern
       const res = await api.post('/providers/dtdc/serviceability', payload).then(r => r.data);
       setData(res);
     } catch (e) {
@@ -135,127 +134,171 @@ export default function DTDCServiceability() {
   // 3. Data Transformation Logic
   const processedServices = useMemo(() => {
     if (!data?.SERV_LIST_DTLS) return [];
-    const uniqueMap = new Map();
-    data.SERV_LIST_DTLS.forEach((item) => {
+
+    // This will now correctly reference the native JS Map
+    const uniqueMap = new Map<string, DtdcProductDetail>();
+
+    data.SERV_LIST_DTLS.forEach((item: DtdcProductDetail) => {
       const existing = uniqueMap.get(item.NAME);
       if (!existing || parseInt(item.TAT) < parseInt(existing.TAT)) {
         uniqueMap.set(item.NAME, item);
       }
     });
-    return Array.from(uniqueMap.values()).sort((a, b) => parseInt(a.TAT) - parseInt(b.TAT));
+
+    return Array.from(uniqueMap.values()).sort((a, b) => 
+      parseInt(a.TAT) - parseInt(b.TAT)
+    );
   }, [data]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 min-h-screen bg-slate-50/50">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* ───────────────── ERP HEADER ───────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-blue-600 flex items-center justify-center text-white rounded-sm shadow-md">
+            <MapIcon size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Service_Map_Terminal</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-1">
+              <Terminal size={12} className="text-blue-500" /> DTDC_NETWORK_SYNC // NODE_LOOKUP: READY
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* --- LEFT: SEARCH PANEL (Always Visible) --- */}
+        {/* ───────────────── LEFT: PARAMETER WORKSPACE ───────────────── */}
         <div className="lg:col-span-4 space-y-6">
-          <Card className="p-8 border-none shadow-xl rounded-[2.5rem] bg-white space-y-6">
+          <Card className="p-8 border border-slate-200 shadow-sm rounded-sm bg-white space-y-6">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+              <Activity size={14} className="text-blue-600" />
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Query_Parameters</h2>
+            </div>
+            
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Source Pincode</Label>
-                <Input 
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-bold focus:bg-white transition-all"
-                  placeholder="e.g. 110001"
-                />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Origin_PIN</Label>
+                <div className="relative">
+                   <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                   <Input 
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value)}
+                    className="h-14 rounded-sm border-slate-200 bg-slate-50/50 pl-12 font-bold focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all text-xs"
+                    placeholder="Source PIN"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Destination Pincode</Label>
-                <Input 
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-bold focus:bg-white transition-all"
-                  placeholder="Enter Pincode..."
-                />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Destination_PIN</Label>
+                <div className="relative">
+                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                   <Input 
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    className="h-14 rounded-sm border-slate-200 bg-slate-50/50 pl-12 font-bold focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all text-xs"
+                    placeholder="Destination PIN"
+                  />
+                </div>
               </div>
 
               <Button 
                 onClick={handleCheck} 
                 disabled={loading || !destination}
-                className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-xl transition-all active:scale-95"
+                className="w-full h-16 rounded-sm bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[0.3em] shadow-xl shadow-blue-100 transition-all active:scale-95"
               >
-                {loading ? <Loader2 className="animate-spin mr-2" /> : <Search size={20} className="mr-2" />}
-                Check Serviceability
+                {loading ? <Loader2 className="animate-spin mr-2" /> : <Search size={18} className="mr-2" />}
+                Initialize_Lookup
               </Button>
             </div>
           </Card>
 
-          <div className="p-6 bg-slate-900 rounded-[2rem] text-white">
-             <div className="flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase mb-2">
-               <Info size={14} /> Franchisee Note
+          <div className="p-6 bg-slate-900 rounded-sm border border-slate-800 text-white relative overflow-hidden">
+             <Database size={80} className="absolute -right-4 -bottom-4 opacity-[0.05] pointer-events-none" />
+             <div className="flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase mb-3">
+               <ShieldCheck size={14} /> System_Documentation
              </div>
-             <p className="text-[11px] opacity-70 leading-relaxed">
-               This tool provides real-time data from the DTDC Master Database including ODA surcharges and Service Branch contacts.
+             <p className="text-[10px] font-bold opacity-70 leading-relaxed uppercase tracking-tight">
+               Real-time extraction from DTDC Master DB. Includes ODA surcharges, service branch telemetry, and regional delivery area (RDA) status.
              </p>
           </div>
         </div>
 
-        {/* --- RIGHT: RESULTS PANEL --- */}
+        {/* ───────────────── RIGHT: TELEMETRY RESULTS ───────────────── */}
         <div className="lg:col-span-8">
           {data ? (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4">
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               
-              {/* Route Summary */}
-              <Card className="p-8 border-none shadow-xl rounded-[3rem] bg-white flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                <div className="relative z-10 flex flex-col items-center md:items-start">
-                  <div className="flex items-center gap-4 text-4xl font-black text-slate-900">
-                    <span>{data.ZIPCODE_RESP[0]?.ORGPIN}</span>
-                    <ArrowRight className="text-blue-500" size={24} />
-                    <span>{data.ZIPCODE_RESP[0]?.DESTPIN}</span>
+              {/* Route Summary Stats */}
+              <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                  <div className="flex flex-col items-center md:items-start">
+                    <div className="flex items-center gap-6 text-4xl font-black text-slate-900 tracking-tighter font-mono">
+                      <span>{data.ZIPCODE_RESP[0]?.ORGPIN}</span>
+                      <ArrowRight className="text-blue-500" size={24} />
+                      <span>{data.ZIPCODE_RESP[0]?.DESTPIN}</span>
+                    </div>
+                    <p className="mt-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      {data.ZIPCODE_RESP[0]?.DESTCITY}, {data.PIN_CITY[1]?.STATE_NAME || "NETWORK_NODE"}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-2 mt-6">
+                      <CapabilityNode label="COD_ACTIVE" active={data.SERV_LIST[0]?.COD_Serviceable === "YES"} />
+                      <CapabilityNode label="B2B_PROTOCOL" active={data.SERV_LIST[0]?.b2B_SERVICEABLE === "YES"} />
+                      <CapabilityNode label="LITE_SUPPORT" active={data.SERV_LIST[0]?.LITE_Serviceable === "YES"} />
+                    </div>
                   </div>
-                  <p className="mt-2 text-slate-500 font-bold uppercase tracking-tight">
-                    {data.ZIPCODE_RESP[0]?.DESTCITY}, {data.PIN_CITY[1]?.STATE_NAME || ""}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <CapabilityBadge label="COD" active={data.SERV_LIST[0]?.COD_Serviceable === "YES"} />
-                    <CapabilityBadge label="B2B" active={data.SERV_LIST[0]?.b2B_SERVICEABLE === "YES"} />
-                    <CapabilityBadge label="LITE" active={data.SERV_LIST[0]?.LITE_Serviceable === "YES"} />
+
+                  <div className="md:border-l border-slate-100 md:pl-8 space-y-4 w-full md:w-auto">
+                     <div className="space-y-1">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Master_Branch</p>
+                        <h3 className="font-black text-slate-800 text-lg leading-tight uppercase tracking-tighter">{data.SERV_BR[0]?.BR_NAME}</h3>
+                     </div>
+                     <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 p-3 rounded-sm">
+                        <PhoneCall size={14} className="text-blue-600" />
+                        <span className="text-[11px] font-black text-blue-900 font-mono">{data.SERV_BR[0]?.PHONE}</span>
+                     </div>
                   </div>
                 </div>
-
-                <div className="md:ml-auto md:border-l md:pl-8 border-slate-100 space-y-2">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center md:text-left">Master Branch</p>
-                   <h3 className="font-black text-slate-800 text-lg leading-tight">{data.SERV_BR[0]?.BR_NAME}</h3>
-                   <div className="flex items-center gap-2 text-xs font-bold text-blue-600">
-                     <Phone size={14} /> {data.SERV_BR[0]?.PHONE}
-                   </div>
+                <div className="absolute top-4 right-4 opacity-[0.03] pointer-events-none">
+                    <Globe size={120} />
                 </div>
-              </Card>
+              </div>
 
-              {/* Service List */}
+              {/* Service Matrix */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {processedServices.map((service: any) => (
-                  <Card key={`${service.NAME}-${service.CODE}`} className="p-5 border-none shadow-md rounded-[2rem] bg-white hover:border-blue-500 border border-transparent transition-all">
+                  <div key={`${service.NAME}-${service.CODE}`} className="p-5 bg-white border border-slate-200 rounded-sm shadow-sm hover:border-blue-400 hover:shadow-md transition-all group relative">
                     <div className="flex justify-between items-center">
                       <div>
-                        <h4 className="font-black text-slate-800 text-sm uppercase">{service.NAME.replace(/_/g, ' ')}</h4>
-                        <p className="text-[10px] font-bold text-slate-400">PCODE: {service.PCODE}</p>
+                        <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-widest group-hover:text-blue-600 transition-colors">{service.NAME.replace(/_/g, ' ')}</h4>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Node_Code: {service.PCODE}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-2xl font-black text-blue-600">{service.TAT}</span>
-                        <span className="text-[10px] font-black text-slate-400 block uppercase">Days</span>
+                        <div className="flex items-baseline gap-1 justify-end">
+                           <span className="text-3xl font-black text-blue-600 tracking-tighter font-mono">{service.TAT}</span>
+                           <span className="text-[9px] font-black text-slate-400 uppercase">Days</span>
+                        </div>
+                        <p className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">EST_LEAD_TIME</p>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
 
             </div>
           ) : (
-            /* Empty State (Shown before user searches) */
-            <div className="h-full min-h-[400px] border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-center p-12 bg-white/50">
-              <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-200 mb-6">
+            /* Empty Data State */
+            <div className="h-full min-h-[500px] border-2 border-dashed border-slate-200 rounded-sm flex flex-col items-center justify-center text-center p-12 bg-slate-50/50">
+              <div className="w-20 h-20 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-center text-slate-200 mb-8 animate-pulse">
                 <Truck size={40} />
               </div>
-              <h3 className="text-xl font-black text-slate-300 uppercase">Ready for Lookup</h3>
-              <p className="text-sm text-slate-400 max-w-xs mt-2">
-                Enter a destination pincode to fetch branch contacts and delivery timelines.
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Awaiting_Lookup_Coordinates</h3>
+              <p className="text-slate-400 max-w-xs mt-3 text-[10px] font-bold uppercase tracking-widest leading-relaxed">
+                Enter target destination pincode to verify branch contacts and delivery SLA protocols.
               </p>
             </div>
           )}

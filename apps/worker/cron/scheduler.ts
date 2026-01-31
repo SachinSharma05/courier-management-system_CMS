@@ -47,7 +47,7 @@ export async function startScheduler() {
     {},
     {
       jobId: 'DELETE_OLD_CONSIGNMENTS_CRON',
-      repeat: { pattern: '0 3 * * *' },
+      repeat: { pattern: '*/10 * * * *' },
       attempts: 3,
       backoff: { type: 'exponential', delay: 60000 },
       removeOnFail: false,

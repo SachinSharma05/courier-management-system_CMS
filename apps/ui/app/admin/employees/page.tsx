@@ -1,42 +1,43 @@
 'use client';
 
 import { 
-  Users2, UserPlus, Search, Briefcase, Building, MoreHorizontal,
-  Wallet, Headphones, Settings2,
-  Calendar, IndianRupee, HandCoins, PlaneTakeoff, Clock, 
-  X, Save, Download, CheckCircle2
+  Users2, UserPlus, Search, Briefcase, Wallet, 
+  Calendar, IndianRupee, HandCoins, Clock, 
+  X, Info, Plus
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, ChangeEvent, ReactNode } from 'react';
 import clsx from 'clsx';
 import { 
   getEmployeesOverview, 
   markAttendance, 
   createAdvance, 
   paySalary, 
-  downloadPayslip,
   createEmployee,
   createHoliday,
   updateEmployee,
-  generateSalary } from '@/hooks/useEmployees';
+} from '@/hooks/useEmployees';
 
 /* ================= TYPES ================= */
-type AttendanceEntry = {
+type AttendanceStatus = 'present' | 'absent' | 'half_day' | 'leave';
+
+interface AttendanceEntry {
   date: string;
-  status: 'present' | 'absent' | 'half_day' | 'leave';
+  status: AttendanceStatus;
   check_in: string | null;
   check_out: string | null;
-};
+}
 
-type AdvanceEntry = {
+interface AdvanceEntry {
   id: number;
   amount: number;
   date: string;
   remarks: string;
   is_settled: boolean;
-};
+}
 
-type Employee = {
+interface Employee {
   id: number;
+  employee_code?: string;
   name: string;
   email?: string;
   designation?: string;
@@ -44,919 +45,606 @@ type Employee = {
   is_active: boolean;
   base_salary: number;
   phone: string;
-  attendance_status?: 'present' | 'absent' | 'half_day' | 'leave' | null;
+  attendance_status?: AttendanceStatus | null;
   check_in?: string | null;
   check_out?: string | null;
-  advance_balance: string | number; // API returns string "4500"
-  net_due: string | number;        // API returns string "30000"
+  advance_balance: string | number;
+  net_due: string | number;
   salary_id?: number | null;
   net_salary?: number | null;
-  attendance_list: AttendanceEntry[]; // 🆕 Added
-  advances: AdvanceEntry[];           // 🆕 Added
-};
+  joining_date?: string;
+  salary_type?: string;
+  attendance_list: AttendanceEntry[];
+  advances: AdvanceEntry[];
+}
 
-/* ================= PAGE ================= */
+type DrawerType = 'edit' | 'attendance' | 'advance' | 'pay' | 'add' | 'holidays';
+
+/* ================= COMPONENTS ================= */
+
 export default function EmployeesPage() {
   const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'payroll'>('directory');
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<'edit' | 'attendance' | 'advance' | 'pay' | 'add' | 'holidays'>('add');
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [drawerType, setDrawerType] = useState<DrawerType>('add');
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState<boolean>(false);
 
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const stats = useMemo(() => ({
+    present: employees.filter(e => e.attendance_status === 'present').length,
+    absent: employees.filter(e => e.attendance_status === 'absent').length,
+    offs: employees.filter(e => e.attendance_status === 'half_day').length,
+    holidays: employees.filter(e => e.attendance_status === 'leave').length
+  }), [employees]);
 
-  /* ================= CALCULATED STATS ================= */
-  const stats = useMemo(() => {
-    return {
-      present: employees.filter(e => e.attendance_status === 'present').length,
-      absent: employees.filter(e => e.attendance_status === 'absent').length,
-      offs: employees.filter(e => e.attendance_status === 'half_day').length, // Example mapping
-      holidays: employees.filter(e => e.attendance_status === 'leave').length
-    };
-  }, [employees]);
+  const filteredEmployees = useMemo(() => 
+    employees.filter(e => 
+      e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (e.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+    ),
+    [employees, searchTerm]
+  );
 
-  /* ================= LOAD ================= */
   const loadEmployees = async () => {
-  setLoading(true);
+    setLoading(true);
     try {
       const data = await getEmployeesOverview();
-      if (Array.isArray(data)) {
-        setEmployees(data);
-      } else if (data && typeof data === 'object' && 'rows' in data) {
-        setEmployees(data.rows as Employee[]);
-      } else {
-        setEmployees([]);
-      }
-    } catch (error) {
-      console.error("Failed to load employees", error);
-      setEmployees([]);
-    } finally {
-      setLoading(false);
+      // Adjusting to handle both array response and paginated response
+      setEmployees(Array.isArray(data) ? data : (data?.rows || []));
+    } catch (error) { 
+      setEmployees([]); 
+    } finally { 
+      setLoading(false); 
     }
   };
   
-  useEffect(() => {
-    loadEmployees();
-  }, []);
+  useEffect(() => { loadEmployees(); }, []);
 
-  const openAction = ( type: 'edit' | 'attendance' | 'advance' | 'pay', emp: Employee) => {
+  const openAction = (type: DrawerType, emp: Employee) => {
     setDrawerType(type);
     setSelectedEmp(emp);
     setIsDrawerOpen(true);
   };
 
-  const openCalendarView = (emp: Employee) => {
-    setSelectedEmp(emp);
-    setIsCalendarOpen(true);
-  };
-
-  function handleDelete(id: number): void {
-    throw new Error('Function not implemented.');
-  }
-
-  /* ================= UI ================= */
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500 relative">
+    <div className="flex flex-col h-screen bg-white font-sans text-slate-900 overflow-hidden">
+      
+      {/* ───────────────── HEADER ───────────────── */}
+      <header className="border-b border-slate-200 bg-slate-50/50 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-900 text-white shadow-sm">
+            <Users2 size={20} />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold tracking-tight uppercase">HR & Payroll System</h1>
+            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Enterprise Resource Control</p>
+          </div>
+        </div>
 
-      {/* ───────────────── CALENDAR MODAL ───────────────── */}
+        <div className="flex items-center gap-2">
+          <div className="relative group mr-2">
+             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+             <input 
+                placeholder="Find staff..." 
+                className="w-48 rounded border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs outline-none focus:border-indigo-500 focus:w-64 transition-all"
+                value={searchTerm}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+             />
+          </div>
+          <button onClick={() => { setDrawerType('holidays'); setSelectedEmp(null); setIsDrawerOpen(true); }} className="flex items-center gap-2 rounded border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50 transition-all">
+            <Calendar size={14} /> Holidays
+          </button>
+          <button 
+            onClick={() => { 
+              setSelectedEmp({ id: 0, name: '', phone: '', is_active: true, base_salary: 0, advance_balance: 0, net_due: 0, attendance_list: [], advances: [] } as Employee); 
+              setDrawerType('add'); 
+              setIsDrawerOpen(true); 
+            }} 
+            className="flex items-center gap-2 rounded bg-indigo-600 px-4 py-2 text-[10px] font-black uppercase text-white hover:bg-indigo-700 transition-all shadow-sm"
+          >
+            <UserPlus size={14} /> Add Member
+          </button>
+        </div>
+      </header>
+
+      {/* ───────────────── SUB-NAV & STATS ───────────────── */}
+      <div className="border-b border-slate-200 px-6 py-2 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded">
+          <TabBtn active={activeTab === 'directory'} onClick={() => setActiveTab('directory')} label="Directory" icon={<Briefcase size={12}/>} />
+          <TabBtn active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} label="Attendance" icon={<Clock size={12}/>} />
+          <TabBtn active={activeTab === 'payroll'} onClick={() => setActiveTab('payroll')} label="Payroll" icon={<Wallet size={12}/>} />
+        </div>
+
+        {activeTab === 'attendance' && (
+          <div className="flex gap-4">
+            <StatChip label="Present" count={stats.present} color="emerald" />
+            <StatChip label="Absent" count={stats.absent} color="red" />
+            <StatChip label="Holidays" count={stats.holidays} color="indigo" />
+          </div>
+        )}
+      </div>
+
+      {/* ───────────────── DATA GRID ───────────────── */}
+      <main className="flex-1 overflow-auto bg-white">
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
+            <tr>
+              <Th>Staff Member</Th>
+              {activeTab === 'directory' && (
+                <>
+                  <Th>Designation</Th>
+                  <Th>Department</Th>
+                  <Th>Status</Th>
+                </>
+              )}
+              {activeTab === 'attendance' && (
+                <>
+                  <Th>Log (Today)</Th>
+                  <Th>Daily Status</Th>
+                  <Th>History</Th>
+                </>
+              )}
+              {activeTab === 'payroll' && (
+                <>
+                  <Th className="text-right">Base Salary</Th>
+                  <Th className="text-right">Advance</Th>
+                  <Th className="text-right">Net Due</Th>
+                </>
+              )}
+              <Th className="text-right">Actions</Th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan={10} className="py-20 text-center text-slate-400 text-xs font-bold animate-pulse uppercase">Synchronizing Records...</td></tr>
+            ) : filteredEmployees.map((e) => (
+              <tr key={e.id} className="hover:bg-slate-50/50 group transition-colors">
+                <Td>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded border border-slate-200 bg-white flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm">
+                      {e.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-900 leading-none mb-1">{e.name}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{e.phone}</span>
+                    </div>
+                  </div>
+                </Td>
+
+                {activeTab === 'directory' && (
+                  <>
+                    <Td><span className="text-xs font-bold text-slate-700">{e.designation ?? '—'}</span></Td>
+                    <Td><span className="text-xs font-medium text-slate-500">{e.department}</span></Td>
+                    <Td><StatusBadge status={e.is_active ? 'Active' : 'Disabled'} /></Td>
+                  </>
+                )}
+
+                {activeTab === 'attendance' && (
+                  <>
+                    <Td>
+                      <div className="flex flex-col">
+                         <span className="text-xs font-bold text-slate-700">{formatTime(e.check_in)}</span>
+                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Check-In</span>
+                      </div>
+                    </Td>
+                    <Td>
+                      <span className={clsx(
+                        "px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest",
+                        e.attendance_status === 'present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                        e.attendance_status ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-100 text-slate-400 border-slate-200'
+                      )}>
+                        {e.attendance_status || 'NOT MARKED'}
+                      </span>
+                    </Td>
+                    <Td>
+                       <button onClick={() => { setSelectedEmp(e); setIsCalendarOpen(true); }} className="text-[9px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">Logs</button>
+                    </Td>
+                  </>
+                )}
+
+                {activeTab === 'payroll' && (
+                  <>
+                    <Td className="text-right text-xs font-bold">₹{Number(e.base_salary).toLocaleString()}</Td>
+                    <Td className="text-right text-xs font-bold text-red-500">₹{Number(e.advance_balance ?? 0).toLocaleString()}</Td>
+                    <Td className="text-right text-xs font-black text-slate-900">₹{(Number(e.base_salary) - Number(e.advance_balance ?? 0)).toLocaleString()}</Td>
+                  </>
+                )}
+
+                <Td className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {activeTab === 'directory' && (
+                      <button onClick={() => openAction('edit', e)} className="px-3 py-1.5 rounded text-[10px] font-black bg-slate-100 text-slate-600 hover:bg-slate-200 uppercase tracking-wider">Manage</button>
+                    )}
+                    {activeTab === 'attendance' && (
+                      <button onClick={() => openAction('attendance', e)} className="px-3 py-1.5 rounded text-[10px] font-black bg-indigo-600 text-white hover:bg-indigo-700 uppercase tracking-wider shadow-sm">Mark</button>
+                    )}
+                    {activeTab === 'payroll' && (
+                      <div className="flex gap-1">
+                        <button onClick={() => openAction('advance', e)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-all border border-transparent hover:border-amber-100" title="Advance"><HandCoins size={14}/></button>
+                        <button onClick={() => openAction('pay', e)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-all border border-transparent hover:border-emerald-100" title="Pay"><IndianRupee size={14}/></button>
+                      </div>
+                    )}
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </main>
+
+      {/* ───────────────── MODALS ───────────────── */}
       {isCalendarOpen && selectedEmp && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsCalendarOpen(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsCalendarOpen(false)} />
+          <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Attendance History</h3>
-                <p className="text-xs text-slate-500 font-medium">{selectedEmp.name} • Full Logs</p>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Attendance Trail</h3>
+                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">{selectedEmp.name}</p>
               </div>
-              <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-white rounded-full text-slate-400 shadow-sm border border-slate-100">
-                <X size={20} />
-              </button>
+              <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-white rounded-lg text-slate-400 border border-transparent hover:border-slate-200 transition-all"><X size={18} /></button>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 max-h-[50vh] overflow-y-auto">
               <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                    <th className="pb-3 px-2">Date</th>
-                    <th className="pb-3 px-2">Status</th>
-                    <th className="pb-3 px-2">Check-In</th>
-                    <th className="pb-3 px-2">Check-Out</th>
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <th className="pb-2 px-2">Date</th>
+                    <th className="pb-2 px-2">Status</th>
+                    <th className="pb-2 px-2">Check-In</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {/* 🆕 Loop through the real attendance_list from API */}
-                  {selectedEmp.attendance_list?.map((log, index) => (
-                    <tr key={index} className="text-xs hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-2 font-bold text-slate-700">
-                        {new Date(log.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {selectedEmp.attendance_list?.map((log, idx) => (
+                    <tr key={idx} className="text-[11px] hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-2 font-bold text-slate-700">{log.date}</td>
+                      <td className="py-3 px-2">
+                         <span className={clsx("px-2 py-0.5 rounded text-[8px] font-black uppercase", log.status === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600')}>
+                            {log.status}
+                         </span>
                       </td>
-                      <td className="py-4 px-2">
-                        <span className={clsx(
-                          "px-2 py-1 rounded-lg text-[10px] font-black border uppercase",
-                          log.status === 'present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
-                        )}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(log.check_in)}</td>
-                      <td className="py-4 px-2 text-slate-500 font-medium">{formatTime(log.check_out)}</td>
+                      <td className="py-3 px-2 text-slate-500">{formatTime(log.check_in)}</td>
                     </tr>
                   ))}
-                  {(!selectedEmp.attendance_list || selectedEmp.attendance_list.length === 0) && (
-                    <tr><td colSpan={4} className="py-10 text-center text-slate-400">No logs found.</td></tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
       )}
-      
-      {/* ───────────────── DRAWER COMPONENT ───────────────── */}
-      {isDrawerOpen && selectedEmp && (
+
+      {/* ───────────────── DRAWER ───────────────── */}
+      {isDrawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]" onClick={() => setIsDrawerOpen(false)} />
-          <div className="relative w-full max-w-md bg-white shadow-2xl border-l border-slate-100 animate-in slide-in-from-right duration-300">
+          <aside className="relative w-full max-w-[450px] bg-white shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
             <EmployeeDrawer 
-              type={drawerType} 
-              employee={selectedEmp} 
-              onClose={() => setIsDrawerOpen(false)} 
-              onSaved={loadEmployees}
+                type={drawerType} 
+                employee={selectedEmp} 
+                onClose={() => setIsDrawerOpen(false)} 
+                onSaved={loadEmployees} 
             />
-          </div>
+          </aside>
         </div>
       )}
-
-      {/* ───────────────── HEADER ───────────────── */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-cyan-600 flex items-center justify-center text-white shadow-lg shadow-cyan-200">
-            <Users2 size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Directory</h1>
-            <p className="text-sm text-slate-500 font-medium">Manage internal logistics staff and operational roles.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => { setDrawerType('holidays'); setIsDrawerOpen(true); }} className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <Calendar size={16} /> Holidays
-          </button>
-          <button 
-            onClick={() => { 
-              setSelectedEmp({ 
-                id: 0, 
-                name: '', 
-                phone: '', // Added empty string for required field
-                is_active: true, 
-                base_salary: 0, 
-                advance_balance: 0, 
-                net_due: 0,
-                attendance_list: [], // Added empty array for required field
-                advances: []         // Added empty array for required field
-              } as Employee); 
-              setDrawerType('add'); 
-              setIsDrawerOpen(true); }} 
-              className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-md active:scale-95">
-            <UserPlus size={18} /> Add Staff Member
-          </button>
-        </div>
-      </div>
-
-      {/* ───────────────── TABS ───────────────── */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
-        <TabBtn active={activeTab === 'directory'} onClick={() => setActiveTab('directory')} label="Directory" icon={<Users2 size={14}/>} />
-        <TabBtn active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} label="Attendance" icon={<Clock size={14}/>} />
-        <TabBtn active={activeTab === 'payroll'} onClick={() => setActiveTab('payroll')} label="Payroll & Advance" icon={<Wallet size={14}/>} />
-      </div>
-
-      {/* ───────────────── ATTENDANCE SUMMARY ───────────────── */}
-      {activeTab === 'attendance' && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 duration-300">
-          <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Present Today</span>
-            <span className="text-2xl font-black text-emerald-600">{stats.present}</span>
-          </div>
-          <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Absent Today</span>
-            <span className="text-2xl font-black text-red-600">{stats.absent}</span>
-          </div>
-          <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Weekly Offs</span>
-            <span className="text-2xl font-black text-blue-600">{stats.offs}</span>
-          </div>
-          <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Holidays</span>
-            <span className="text-2xl font-black text-purple-600">{stats.holidays}</span>
-          </div>
-        </div>
-      )}
-
-      {/* ───────────────── EMPLOYEES TABLE ───────────────── */}
-      <div className="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <Th>Staff Member</Th>
-                {activeTab === 'directory' && (
-                  <>
-                    <Th>Designation</Th>
-                    <Th>Department</Th>
-                    <Th>Status</Th>
-                  </>
-                )}
-                {activeTab === 'attendance' && (
-                  <>
-                    <Th>Status Today</Th>
-                    <Th>Check-In</Th>
-                    <Th>Leaves</Th>
-                  </>
-                )}
-                {activeTab === 'payroll' && (
-                  <>
-                    <Th>Base Salary</Th>
-                    <Th>Advance Taken</Th>
-                    <Th>Net Due</Th>
-                  </>
-                )}
-                <Th className="text-right">Actions</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={6} className="p-10 text-center text-slate-400 font-medium">Loading data...</td></tr>
-              ) : employees.map((e) => (
-                <tr key={e.id} className="group hover:bg-slate-50/80 transition-colors">
-                  <Td>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-700 font-black text-xs border border-white shadow-sm shrink-0">
-                        {e.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 leading-tight">{e.name}</span>
-                        <span className="text-[11px] text-slate-400 font-mono">{e.email}</span>
-                      </div>
-                    </div>
-                  </Td>
-
-                  {activeTab === 'directory' && (
-                    <>
-                      <Td><span className="text-xs font-bold text-slate-700">{e.designation ?? '—'}</span></Td>
-                      <Td>
-                        <div className="flex items-center gap-2 text-slate-600 font-medium text-xs">
-                          <Building size={14} className="text-slate-300" /> {e.department}
-                        </div>
-                      </Td>
-                      <Td><StatusBadge status={e.is_active ? 'Active' : 'Disabled'} /></Td>
-                    </>
-                  )}
-
-                  {activeTab === 'attendance' && (
-                  <>
-                    <Td>
-                      <span className={clsx(
-                        "px-2 py-1 rounded-lg text-[10px] font-black border",
-                        e.attendance_status === 'present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                        e.attendance_status ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-400'
-                      )}>
-                        {e.attendance_status?.toUpperCase() || 'NOT MARKED'}
-                      </span>
-                    </Td>
-                    {/* Cleaned up Time Displays */}
-                    <Td>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className={clsx("text-xs font-bold", getTimeStatus(e.check_in ?? null).isLate ? "text-amber-600" : "text-slate-700")}>
-                              {getTimeStatus(e.check_in ?? null).time}
-                            </span>
-                            {getTimeStatus(e.check_in ?? null).isLate && (
-                              <span className="bg-amber-100 text-[8px] font-black text-amber-700 px-1 rounded uppercase tracking-tighter">Late</span>
-                            )}
-                          </div>
-                          <span className="text-[9px] text-slate-400 font-medium">CHECK-IN</span>
-                        </div>
-                      </Td>
-                      <Td>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-700">{formatTime(e.check_out ?? null)}</span>
-                          <span className="text-[9px] text-slate-400 font-medium">CHECK-OUT</span>
-                        </div>
-                      </Td>
-                    </>
-                  )}
-
-                  {activeTab === 'payroll' && (
-                    <>
-                      <Td>
-                        <span className="text-xs font-bold text-slate-900">
-                          ₹{Number(e.base_salary).toLocaleString()}
-                        </span>
-                      </Td>
-                      <Td>
-                        <span className="text-xs font-bold text-red-500">
-                          ₹{Number(e.advance_balance ?? 0).toLocaleString()}
-                        </span>
-                      </Td>
-                      <Td>
-                        <span className="text-xs font-black text-slate-900 underline decoration-cyan-400 underline-offset-4">
-                          {/* Just calculate, don't assign with '=' */}
-                          ₹{(Number(e.base_salary) - Number(e.advance_balance ?? 0)).toLocaleString()}
-                        </span>
-                      </Td>
-                    </>
-                  )}
-
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {activeTab === 'directory' && (
-                        <button onClick={() => openAction('edit', e)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">EDIT</button>
-                      )}
-                      {activeTab === 'attendance' && (
-                        <>
-                          <button onClick={() => openCalendarView(e)} className="p-2 hover:bg-cyan-50 text-cyan-600 rounded-xl transition-colors flex items-center gap-2 border border-cyan-100">
-                            <Calendar size={16} /> <span className="text-[10px] font-bold uppercase">View Logs</span>
-                          </button>
-                          <button onClick={() => openAction('attendance', e)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-cyan-600 text-white hover:bg-cyan-700">
-                            <Clock size={12}/> MARK
-                          </button>
-                        </>
-                      )}
-                      {activeTab === 'payroll' && (
-                        <div className="flex gap-1">
-                          <button onClick={() => openAction('advance', e)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Add Advance"><HandCoins size={16}/></button>
-                          <button onClick={() => openAction('pay', e)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Process Pay"><IndianRupee size={16}/></button>
-                        </div>
-                      )}
-                      <div className="relative group/menu">
-                        <button className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
-                          <MoreHorizontal size={18} />
-                        </button>
-                        {/* Delete Dropdown on Hover/Click */}
-                        <div className="hidden group-hover/menu:block absolute right-0 top-full z-10 w-32 bg-white shadow-xl border border-slate-100 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-200">
-                          <button 
-                            onClick={() => handleDelete(e.id)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <X size={14} /> DELETE STAFF
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
 
-/* ───────────────── DRAWER CONTENT ───────────────── */
-const ATTENDANCE_MAP = {
-  Present: 'present',
-  Absent: 'absent',
-  'Half Day': 'half_day',
-  Holiday: 'leave',
-} as const;
+/* ================= DRAWER COMPONENT ================= */
 
-function EmployeeDrawer({
-  type,
-  employee,
-  onClose,
-  onSaved
-}: {
-  type: 'edit' | 'attendance' | 'advance' | 'pay' | 'add' | 'holidays' | 'generate';
-  employee: Employee;
+interface EmployeeDrawerProps {
+  type: DrawerType;
+  employee: Employee | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
-}) {
-  const [amount, setAmount] = useState<number>(0);
-  const [remarks, setRemarks] = useState('');
-  const [loadingAction, setLoadingAction] = useState(false);
-  const [holidayData, setHolidayData] = useState({ name: '', date: '' });
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+}
 
-  // State for Add Employee Form
-  const [formData, setFormData] = useState({
-    employee_code: '',
-    name: '',
-    email: '',
-    designation: 'Staff',
-    phone: '',
-    department: 'Operations',
-    base_salary: 0,
-    joining_date: new Date().toISOString().slice(0, 10),
-    salary_type: 'Fixed',
-    is_active: true
+interface CreateEmloyee {
+  employee_code: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  designation?: string;
+  department?: string;
+  joining_date: string;
+  salary_type: 'monthly' | 'daily';
+  base_salary: number;
+}
+
+function EmployeeDrawer({ type, employee, onClose, onSaved }: EmployeeDrawerProps) {
+  const [amount, setAmount] = useState<number>(0);
+  const [remarks, setRemarks] = useState<string>('');
+  const [loadingAction, setLoadingAction] = useState<boolean>(false);
+  const [holidayData, setHolidayData] = useState<{name: string, date: string}>({ name: '', date: new Date().toISOString().slice(0, 10) });
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>('present');
+
+  const [formData, setFormData] = useState({ 
+    employee_code: '', 
+    name: '', 
+    email: '', 
+    designation: 'Staff', 
+    phone: '', 
+    department: 'Operations', 
+    base_salary: 0, 
+    joining_date: new Date().toISOString().slice(0, 10), 
+    salary_type: 'Fixed', 
+    is_active: true 
   });
 
-  const submitAddEmployee = async () => {
-    setLoadingAction(true);
-    await createEmployee(formData as any); 
-    await onSaved(); // Refresh the list
-    setLoadingAction(false);
-    onClose();
-  };
-
-  const submitHoliday = async () => {
-    setLoadingAction(true);
-    await createHoliday(holidayData);
-    setLoadingAction(false);
-    onClose();
-  };
-
-  const submitAttendance = async (label: keyof typeof ATTENDANCE_MAP) => {
-    setLoadingAction(true);
-    try {
-      await markAttendance({
-        employee_id: employee.id,
-        date: selectedDate, // Now using the date from the input
-        status: ATTENDANCE_MAP[label],
-      });
-      await onSaved();
-      onClose();
-    } catch (error) {
-      console.error("Attendance update failed", error);
-    } finally {
-      setLoadingAction(false);
-    }
-  };
-
-  const submitAdvance = async () => {
-    setLoadingAction(true);
-    await createAdvance({ employee_id: employee.id, amount, remarks });
-    await onSaved();
-    setLoadingAction(false);
-    onClose();
-  };
-
-  const submitGenerateSalary = async () => {
-    setLoadingAction(true);
-    await generateSalary({ employee_id: employee.id, month: new Date().toISOString().slice(0, 7) });
-    await onSaved();
-    setLoadingAction(false);
-    onClose();
-  };
-
-  const submitPay = async () => {
-    setLoadingAction(true);
-    await paySalary({
-      employee_id: employee.id,
-      salary_id: employee.salary_id ?? 0, // ✅ CORRECT
-      amount:
-        amount ||
-        (employee.net_salary ?? employee.base_salary) -
-          ((Number(employee.advance_balance) ?? 0)),
-      payment_date: new Date().toISOString().slice(0, 10),
-      mode: 'bank',
-    });
-    await onSaved();
-    setLoadingAction(false);
-    onClose();
-  };
-
-  const submitUpdate = async () => {
-    if (!employee?.id) return;
-
-    setLoadingAction(true);
-    try {
-      // Pass employee.id as the first argument, and the form data as the second
-      await updateEmployee(employee.id, formData as any); 
-      await onSaved(); 
-      onClose();
-    } catch (error) {
-      console.error("Update failed:", error);
-    } finally {
-      setLoadingAction(false);
-    }
-  };
-
   useEffect(() => {
-    if (type === 'edit' && employee) {
-      setFormData({
-        // 1. Add the missing required property
-        employee_code: (employee as any).employee_code || '', 
-        
-        name: employee.name || '',
-        email: employee.email || '',
-        designation: employee.designation || 'Support',
-        
-        // 2. Use String() to ensure 'any' or 'null' becomes a 'string'
-        phone: String((employee as any).phone || ''),
-        
-        department: employee.department || 'Operations',
-        base_salary: Number(employee.base_salary) || 0,
-        
-        // 3. Ensure these match the 'string' requirement of your state
-        joining_date: String((employee as any).joining_date || new Date().toISOString().slice(0, 10)),
-        salary_type: String((employee as any).salary_type || 'Monthly'),
-        
-        is_active: !!employee.is_active // Double bang forces boolean
+    if ((type === 'edit' || type === 'advance' || type === 'pay' || type === 'attendance') && employee) {
+      setFormData({ 
+        employee_code: employee.employee_code || '', 
+        name: employee.name || '', 
+        email: employee.email || '', 
+        designation: employee.designation || 'Staff', 
+        phone: String(employee.phone || ''), 
+        department: employee.department || 'Operations', 
+        base_salary: Number(employee.base_salary) || 0, 
+        joining_date: employee.joining_date || new Date().toISOString().slice(0, 10), 
+        salary_type: employee.salary_type || 'Monthly', 
+        is_active: !!employee.is_active 
       });
     }
   }, [employee, type]);
 
-  const download = async () => {
-  try{
-      const res = await downloadPayslip({
-        employee_id: employee.id,
-        month: new Date().toISOString().slice(0, 7),
-      });
-
-    const url = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Payslip-${employee.name}.pdf`;
-      a.click();
-    } catch (e) { console.error("Download failed", e); }
-  }
-
-  if (!employee) return null;
+  const handleAction = async () => {
+    setLoadingAction(true);
+    try {
+      if (type === 'add') await createEmployee(formData as CreateEmloyee);
+      if (type === 'edit' && employee) await updateEmployee(employee.id, formData as any);
+      if (type === 'holidays') await createHoliday(holidayData);
+      if (type === 'attendance' && employee) await markAttendance({ employee_id: employee.id, date: selectedDate, status: selectedStatus });
+      if (type === 'advance' && employee) await createAdvance({ employee_id: employee.id, amount, remarks });
+      if (type === 'pay' && employee) {
+        await paySalary({ 
+          employee_id: employee.id, 
+          salary_id: employee.salary_id ?? 0, 
+          amount: amount || (Number(employee.net_salary) ?? Number(employee.base_salary)), 
+          payment_date: new Date().toISOString().slice(0, 10), 
+          mode: 'bank' 
+        });
+      }
+      await onSaved(); 
+      onClose();
+    } catch(e) { 
+      console.error(e); 
+    } finally { 
+      setLoadingAction(false); 
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            {type === 'edit' && 'Edit Employee'}
-            {type === 'attendance' && 'Daily Attendance'}
-            {type === 'advance' && 'New Advance'}
-            {type === 'pay' && 'Salary Payment'}
-            {type === 'add' && 'Add New Staff'}
-            {type === 'holidays' && 'Upcoming Holidays'}
-          </h2>
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">{employee.name}</p>
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600 mb-1">{type} Operation</h2>
+          <p className="text-lg font-bold text-slate-900">{employee?.name || (type === 'holidays' ? 'Global Schedule' : 'New Record')}</p>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-all text-slate-400"><X size={20}/></button>
+        <button onClick={onClose} className="p-2 hover:bg-white rounded-lg text-slate-400 border border-transparent hover:border-slate-200 transition-all"><X size={18} /></button>
       </div>
 
       <div className="flex-1 p-6 overflow-y-auto space-y-6">
         {(type === 'edit' || type === 'add') && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 mb-4">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee Status</p>
-                <p className="text-xs font-bold text-slate-700">{formData.is_active ? 'Currently Active' : 'Currently Disabled'}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData({...formData, is_active: !formData.is_active})}
-                className={clsx(
-                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
-                  formData.is_active ? "bg-cyan-600" : "bg-slate-300"
-                )}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded bg-indigo-50 border border-indigo-100 mb-4">
+              <span className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Operational Status</span>
+              <button 
+                onClick={() => setFormData({...formData, is_active: !formData.is_active})} 
+                className={clsx("relative inline-flex h-5 w-10 items-center rounded-full transition-colors", formData.is_active ? "bg-indigo-600" : "bg-slate-300")}
               >
-                <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white transition-transform", formData.is_active ? "translate-x-6" : "translate-x-1")} />
+                <span className={clsx("inline-block h-3 w-3 transform rounded-full bg-white transition-transform", formData.is_active ? "translate-x-6" : "translate-x-1")} />
               </button>
             </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
-                <input 
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 transition-all" 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
-                <input 
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Designation</label>
-                  <select 
-                    value={formData.designation}
-                    onChange={e => setFormData({...formData, designation: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                  >
-                    <option>Manager</option>
-                    <option>Marketing Executive</option>
-                    <option>Computer Operator</option>
-                    <option>Delivery Boy</option>
-                    <option>Support</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</label>
-                  <input 
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</label>
-                  <select 
-                    value={formData.department}
-                    onChange={e => setFormData({...formData, department: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                  >
-                    <option>Operations</option>
-                    <option>Support</option>
-                    <option>Finance</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Salary</label>
-                  <input 
-                    type="number"
-                    value={formData.base_salary}
-                    onChange={e => setFormData({...formData, base_salary: +e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Joining Date</label>
-                  <input 
-                    type="date"
-                    value={formData.joining_date}
-                    onChange={e => setFormData({...formData, joining_date: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Salary Type</label>
-                  <select 
-                    onChange={e => setFormData({...formData, salary_type: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500 bg-white"
-                  >
-                    <option>Daily</option>
-                    <option>Weekly</option>
-                    <option>Monthly</option>
-                  </select>
-                </div>
-              </div>
+            <InputField label="Full Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Email Address" value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
+              <InputField label="Phone" value={formData.phone} onChange={(v) => setFormData({...formData, phone: v})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Designation" value={formData.designation} onChange={(v) => setFormData({...formData, designation: v})} />
+              <InputField label="Department" value={formData.department} onChange={(v) => setFormData({...formData, department: v})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <InputField label="Base Salary" type="number" value={formData.base_salary} onChange={(v) => setFormData({...formData, base_salary: +v})} />
+               <InputField label="Joining Date" type="date" value={formData.joining_date} onChange={(v) => setFormData({...formData, joining_date: v})} />
             </div>
           </div>
         )}
 
         {type === 'attendance' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            {/* DATE SELECTOR - The Key Addition */}
-            <div className="space-y-2 p-4 rounded-2xl bg-cyan-50 border border-cyan-100">
-              <label className="text-[10px] font-black text-cyan-700 uppercase tracking-widest flex items-center gap-2">
-                <Calendar size={12} /> Attendance Date
-              </label>
-              <input 
-                type="date"
-                // Ensure you have a 'selectedDate' state, defaulting to today
-                value={selectedDate} 
-                onChange={(e) => setSelectedDate(e.target.value)}
-                max={new Date().toISOString().slice(0, 10)} // Prevent future attendance
-                className="w-full bg-white px-3 py-2 rounded-lg border border-cyan-200 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
-              />
-              <p className="text-[10px] text-cyan-600/70 italic">* Select a past date to fix missed records</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(ATTENDANCE_MAP) as Array<keyof typeof ATTENDANCE_MAP>).map(status => (
-                <button 
-                  key={status}
-                  disabled={loadingAction}
-                  onClick={() => submitAttendance(status)}
-                  className="p-4 rounded-2xl border-2 border-slate-50 bg-slate-50 text-xs font-bold text-slate-600 hover:border-cyan-500 hover:text-cyan-600 hover:bg-white transition-all shadow-sm active:scale-95">
-                  {status}
-                </button>
-              ))}
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase">Admin Remarks</label>
-              <textarea 
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-cyan-500" 
-                rows={3} 
-                placeholder="Reason for manual update (optional)..." 
-              />
-            </div>
-          </div>
-        )}
-
-        {type === 'advance' && (
-          <div className="space-y-5">
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex justify-between items-center">
-               <span className="text-xs font-bold text-amber-700">Current Balance</span>
-               <span className="text-sm font-black text-amber-700">₹{employee.advance_balance ?? 0}</span>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Advance Amount (₹)</label>
-              <input type="number" onChange={e => setAmount(+e.target.value)} className="w-full px-4 py-4 rounded-xl border-2 border-slate-100 font-bold text-lg outline-none focus:border-cyan-500" placeholder="0.00" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</label>
-              <input onChange={e => setRemarks(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 text-sm outline-none focus:border-cyan-500" placeholder="e.g. Medical, Travel" />
-            </div>
-            <div className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction History</h3>
-      <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-white">
-        {/* 🆕 Loop through the real advances list from API */}
-        {employee.advances?.map((adv: AdvanceEntry) => (
-          <div key={adv.id} className="flex justify-between items-center p-4 hover:bg-slate-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className={clsx(
-                "h-8 w-8 rounded-full flex items-center justify-center",
-                adv.is_settled ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
-              )}>
-                <HandCoins size={14} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-800">₹{Number(adv.amount).toLocaleString()}</p>
-                <p className="text-[10px] text-slate-400">{new Date(adv.date).toLocaleDateString('en-IN')}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className={clsx(
-                "text-[9px] font-black px-2 py-0.5 rounded uppercase",
-                adv.is_settled ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-              )}>
-                {adv.is_settled ? 'Settled' : 'Pending'}
-              </span>
-              <p className="text-[10px] text-slate-400 mt-1 italic">"{adv.remarks || 'General Advance'}"</p>
-            </div>
-          </div>
-        ))}
-        {(!employee.advances || employee.advances.length === 0) && (
-          <p className="p-6 text-center text-[10px] text-slate-400">No historical advances recorded.</p>
-        )}
-      </div>
-    </div>
-          </div>
-        )}
-
-        {type === 'pay' && (
           <div className="space-y-6">
-            <div className="rounded-3xl bg-slate-900 p-6 text-white shadow-xl">
-              <p className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">
-                Salary Snapshot
-              </p>
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span>Net Salary</span>
-                  <span>₹{employee.net_salary ?? employee.base_salary}</span>
-                </div>
-
-                <div className="flex justify-between text-sm text-red-400">
-                  <span>Advance</span>
-                  <span>- ₹{employee.advance_balance ?? 0}</span>
-                </div>
-
-                <div className="border-t border-slate-700 pt-3 flex justify-between text-lg font-black text-cyan-400">
-                  <span>Payable</span>
-                  <span>
-                    ₹{(
-                      (employee.net_salary ?? employee.base_salary) -
-                      (Number(employee.advance_balance ?? 0))
-                    ).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+             <div className="p-3 bg-amber-50 border border-amber-100 rounded text-[10px] font-bold text-amber-700 flex items-center gap-2 italic">
+               <Info size={14}/> Manual attendance overrides automated system logs.
+             </div>
+             <InputField label="Attendance Date" type="date" value={selectedDate} onChange={(v) => setSelectedDate(v)} />
+             <div className="grid grid-cols-2 gap-2">
+                {(['present', 'absent', 'half_day', 'leave'] as const).map(s => (
+                  <button 
+                    key={s} 
+                    onClick={() => setSelectedStatus(s)}
+                    className={clsx(
+                      "py-4 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all",
+                      selectedStatus === s 
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100 scale-[1.02]" 
+                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                    )}
+                  >
+                    {s.replace('_', ' ')}
+                  </button>
+                ))}
+             </div>
+             <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
+                <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-bold text-amber-700 leading-relaxed uppercase">
+                  Marking as <span className="underline">{selectedStatus.replace('_',' ')}</span> for <span className="underline">{selectedDate}</span>.
+                </p>
             </div>
-
-            {/* Generate Salary */}
-            {!employee.salary_id && (
-              <button
-                onClick={submitGenerateSalary}
-                className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 text-slate-500 hover:border-cyan-500 hover:text-cyan-600 font-bold"
-              >
-                Generate Salary
-              </button>
-            )}
-
-            {/* Pay Salary */}
-            {employee.salary_id && (
-              <button
-                onClick={submitPay}
-                className="w-full py-4 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700"
-              >
-                Pay Salary
-              </button>
-            )}
-
-            {/* Payslip */}
-            {employee.salary_id && (
-              <button
-                onClick={download}
-                className="w-full py-4 rounded-2xl border border-slate-200 text-slate-500 hover:border-cyan-500 hover:text-cyan-600 font-bold"
-              >
-                <Download size={16} /> Download Payslip
-              </button>
-            )}
           </div>
         )}
 
-        {/* HOLIDAYS LIST + ADD NEW */}
+        {type === 'advance' && employee && (
+          <div className="space-y-6">
+            <div className="py-6 bg-slate-50 border border-slate-200 rounded-lg flex flex-col items-center">
+               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Outstanding Balance</span>
+               <span className="text-2xl font-black text-red-600">₹{Number(employee.advance_balance).toLocaleString() || 0}</span>
+            </div>
+            <InputField label="Disburse Amount (₹)" type="number" value={amount} onChange={(v) => setAmount(+v)} placeholder="0.00" />
+            <InputField label="Reason / Remarks" value={remarks} onChange={(v) => setRemarks(v)} placeholder="Purpose of advance..." />
+            <div className="space-y-2 pt-4">
+               <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Recent Transactions</h3>
+               <div className="divide-y divide-slate-100 border border-slate-100 rounded bg-white">
+                 {employee.advances?.length > 0 ? employee.advances.map((adv) => (
+                   <div key={adv.id} className="flex justify-between p-3 text-[11px]">
+                     <span className="font-bold">₹{adv.amount.toLocaleString()}</span>
+                     <span className="text-slate-400 italic">{adv.remarks}</span>
+                   </div>
+                 )) : <div className="p-3 text-[10px] text-slate-400 text-center uppercase font-bold">No history found</div>}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {type === 'pay' && employee && (
+          <div className="space-y-6">
+             <div className="p-6 bg-slate-900 rounded-lg text-white shadow-xl shadow-slate-200">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Payout Analysis</p>
+                <div className="space-y-2 text-sm">
+                   <div className="flex justify-between opacity-80"><span>Base Salary</span> <span>₹{Number(employee.base_salary).toLocaleString()}</span></div>
+                   <div className="flex justify-between text-red-400"><span>Advance Recovery</span> <span>- ₹{Number(employee.advance_balance).toLocaleString()}</span></div>
+                   <div className="border-t border-slate-700 pt-3 flex justify-between font-black text-indigo-400 text-lg">
+                      <span>NET PAYABLE</span> 
+                      <span>₹{Number(employee.net_due).toLocaleString()}</span>
+                   </div>
+                </div>
+             </div>
+             <div className="space-y-4">
+                <InputField label="Payment Amount Override (Optional)" type="number" value={amount} onChange={(v) => setAmount(+v)} placeholder={String(employee.net_due)} />
+                <button onClick={handleAction} className="w-full py-4 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all">Disburse Funds</button>
+             </div>
+          </div>
+        )}
+
         {type === 'holidays' && (
           <div className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Add Custom Holiday</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Holiday Name"
-                  onChange={e => setHolidayData({...holidayData, name: e.target.value})}
-                  className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none focus:border-cyan-500"
-                />
-                <input 
-                  type="date"
-                  onChange={e => setHolidayData({...holidayData, date: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none focus:border-cyan-500"
-                />
-              </div>
-              <button 
-                onClick={submitHoliday}
-                className="w-full py-2 rounded-xl bg-cyan-50 text-cyan-600 text-[10px] font-black uppercase hover:bg-cyan-100 transition-all"
-              >
-                + Add to Calendar
-              </button>
+            <div className="p-4 rounded-xl border-2 border-dashed border-slate-200 space-y-4">
+              <h3 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2"><Plus size={14}/> Define Holiday</h3>
+              <InputField label="Holiday Name" value={holidayData.name} onChange={(v) => setHolidayData({...holidayData, name: v})} placeholder="e.g. Annual Day" />
+              <InputField label="Date" type="date" value={holidayData.date} onChange={(v) => setHolidayData({...holidayData, date: v})} />
             </div>
 
-            <div className="pt-4 border-t border-slate-100">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Upcoming Schedule</label>
-              <div className="space-y-2">
-                {['Republic Day - Jan 26', 'Holi - March 14'].map((h, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-xs font-bold text-slate-700">{h.split(' - ')[0]}</span>
-                    <span className="text-[10px] font-black text-slate-400">{h.split(' - ')[1]}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-3">
+               <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Global Schedule</h3>
+               <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/30">
+                  {['Republic Day (Jan 26)', 'Independence Day (Aug 15)', 'Christmas (Dec 25)'].map((h, i) => (
+                    <div key={i} className="flex justify-between p-3 text-[11px]">
+                       <span className="font-bold text-slate-700 uppercase">{h.split('(')[0]}</span>
+                       <span className="text-slate-400 font-medium italic">({h.split('(')[1]}</span>
+                    </div>
+                  ))}
+               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Footer */}
       <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
-        <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 transition-all">DISCARD</button>
+        <button onClick={onClose} className="flex-1 px-4 py-3 rounded border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 transition-all">Discard</button>
         <button 
-          onClick={() => {
-            if (type === 'advance') submitAdvance();
-            else if (type === 'pay') submitPay();
-            else if (type === 'add') submitAddEmployee();
-            else if (type === 'holidays') submitHoliday();
-            else if (type === 'edit') submitUpdate();
-            else if (type === 'attendance') submitAttendance('Present'); // You must pass a label!
-          }}
-          disabled={loadingAction}
-          className="flex-1 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-          {loadingAction ? 'Processing...' : <><Save size={16} /> CONFIRM</>}
+          onClick={handleAction} 
+          disabled={loadingAction} 
+          className="flex-1 px-4 py-3 rounded bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+        >
+          {loadingAction ? 'Syncing...' : 'Confirm Action'}
         </button>
       </div>
     </div>
   );
 }
 
-/* ───────────────── HELPERS ───────────────── */
-function TabBtn({ active, onClick, label, icon }: any) {
+/* ================= ATOMIC UI HELPERS ================= */
+
+interface TabBtnProps {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon: ReactNode;
+}
+
+function TabBtn({ active, onClick, label, icon }: TabBtnProps) {
   return (
-    <button onClick={onClick} className={clsx("flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", active ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600")}>
+    <button onClick={onClick} className={clsx("flex items-center gap-2 px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-all", active ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-600")}>
       {icon} {label}
     </button>
   );
 }
 
-function StatusBadge({ status }: any) {
-  const isActive = status === 'Active';
+interface StatChipProps {
+  label: string;
+  count: number;
+  color: 'emerald' | 'red' | 'indigo';
+}
+
+function StatChip({ label, count, color }: StatChipProps) {
+  const c = { 
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
+    red: "bg-red-50 text-red-600 border-red-100", 
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100" 
+  };
   return (
-    <div className={clsx("flex items-center gap-1.5 px-2 py-1 rounded-full w-fit border", isActive ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-slate-50 border-slate-100 text-slate-400")}>
-      <div className={clsx("h-1 w-1 rounded-full", isActive ? "bg-emerald-500" : "bg-slate-300")} />
-      <span className="text-[10px] font-bold uppercase tracking-tight">{status}</span>
+    <div className={clsx("flex items-center gap-2 px-3 py-1 rounded border text-[10px] font-black uppercase", c[color])}>
+      {label}: <span className="text-xs">{count}</span>
     </div>
   );
 }
 
-const formatTime = (isoString: string | null) => {
-  if (!isoString) return "-- : --";
-  return new Date(isoString).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
-};
+interface InputFieldProps {
+  label: string;
+  value: string | number;
+  onChange: (val: string) => void;
+  type?: string;
+  placeholder?: string;
+}
 
-const getTimeStatus = (isoString: string | null) => {
-  if (!isoString) return { time: "-- : --", isLate: false };
-  const date = new Date(isoString);
-  const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
-  const istTime = new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' }).formatToParts(date);
-  const hours = parseInt(istTime.find(p => p.type === 'hour')?.value || '0');
-  const minutes = parseInt(istTime.find(p => p.type === 'minute')?.value || '0');
-  return { time: timeStr, isLate: hours > 10 || (hours === 10 && minutes > 30) };
-};
+function InputField({ label, value, onChange, type = "text", placeholder = "" }: InputFieldProps) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</label>
+      <input 
+        type={type} 
+        placeholder={placeholder} 
+        value={value} 
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)} 
+        className="w-full rounded border border-slate-200 px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-indigo-500 bg-white" 
+      />
+    </div>
+  );
+}
 
-function Th({ children, className }: any) { return <th className={clsx("px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>; }
-function Td({ children, className }: any) { return <td className={clsx("px-6 py-4 text-sm", className)}>{children}</td>; }
+function StatusBadge({ status }: { status: string }) {
+  const active = status === 'Active';
+  return (
+    <div className={clsx("flex items-center gap-1.5 px-2 py-0.5 rounded border w-fit", active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-200")}>
+      <div className={clsx("h-1 w-1 rounded-full", active ? "bg-emerald-500" : "bg-slate-300")} />
+      <span className="text-[9px] font-black uppercase">{status}</span>
+    </div>
+  );
+}
+
+const formatTime = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : "--:--";
+
+const Th = ({ children, className }: { children: ReactNode, className?: string }) => (
+  <th className={clsx("px-6 py-3 text-left text-[9px] font-black uppercase text-slate-400 tracking-widest", className)}>
+    {children}
+  </th>
+);
+
+const Td = ({ children, className }: { children: ReactNode, className?: string }) => (
+  <td className={clsx("px-6 py-4 text-xs font-medium", className)}>
+    {children}
+  </td>
+);

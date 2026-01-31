@@ -175,6 +175,14 @@ export class ConsignmentsService {
 
     const { normalized, group } = mapDtdcStatus(latestStatus);
 
+    const consignment = await db.query.consignments.findFirst({
+      where: eq(consignments.awb, awb),
+    });
+
+    if (!consignment) {
+      return { ok: false, status: 'CONS_NOT_FOUND' };
+    }
+
     // 1️⃣ Update consignment
     await db
       .update(consignments)
@@ -203,11 +211,13 @@ export class ConsignmentsService {
           result.milestones
             .filter(m => m.mileStatusDateTime)
             .map(m => ({
+              consignment_id: consignment.id,
               awb,
               status: m.mileName,
               location: m.branchName || m.mileLocationName || null,
               event_time: new Date(m.mileStatusDateTime),
               provider: 'DTDC',
+              raw: m,
             }))
         )
         .onConflictDoNothing();

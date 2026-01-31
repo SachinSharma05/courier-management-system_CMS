@@ -4,8 +4,9 @@ import { DTDC_BASE_URL, DTDC_ENDPOINTS } from './dtdc.constants';
 export class DtdcClient {
   private publicHttp: AxiosInstance;
   private ebookingHttp: AxiosInstance;
+  private shipsyHttp: AxiosInstance;
 
-  constructor() {
+  constructor(apiKey?: string) {
     this.publicHttp = axios.create({
       baseURL: DTDC_BASE_URL.PUBLIC,
       timeout: 15_000,
@@ -21,6 +22,18 @@ export class DtdcClient {
         'Content-Type': 'application/json',
       },
     });
+
+    if (apiKey) {
+      this.shipsyHttp = axios.create({
+        baseURL: DTDC_BASE_URL.SHIPSY,
+        timeout: 20_000,
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': apiKey,
+        },
+        responseType: 'arraybuffer', // 🔥 IMPORTANT
+      });
+    }
   }
 
   // ✅ PUBLIC SERVICEABILITY
@@ -81,5 +94,21 @@ export class DtdcClient {
     );
 
     return res.data;
+  }
+
+  // 🔹 PRINT LABEL
+  async printLabel(referenceNumber: string) {
+    if (!this.shipsyHttp) {
+      throw new Error('DTDC Shipsy API key not configured');
+    }
+
+    const res = await this.shipsyHttp.post(
+      DTDC_ENDPOINTS.PRINT_LABEL,
+      {
+        reference_number: referenceNumber,
+      },
+    );
+
+    return res.data; // binary buffer
   }
 }

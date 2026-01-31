@@ -3,18 +3,22 @@ import { db } from '../../../db';
 import { consignments, trackingEvents } from '../../../db/schema';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { DelhiveryBulkAdapter } from '@cms/shared';
+import { BulkGroupDto } from '../bulk/bulk-tracking.dto';
 
 @Injectable()
 export class DelhiveryService {
   constructor(private readonly delhivery: DelhiveryBulkAdapter) {}
 
-  async processBulk(clientId: number, awbs: string[]) {
+  async processBulk(awbs: BulkGroupDto[]) {
     if (!awbs?.length) {
       return { ok: false, message: 'No AWBs provided' };
     }
 
     // 1️⃣ Dedupe + sanitize
-    const uniqueAwbs = [...new Set(awbs.map(a => a.trim()))];
+    const uniqueAwbs = awbs
+      .flatMap(g => g.awbs)
+      .map(r => String(r.awb ?? '').trim())
+      .filter(Boolean);
 
     // 2️⃣ Chunk (Delhivery safe limit)
     const batches = this.chunk(uniqueAwbs, 25);
@@ -48,7 +52,7 @@ export class DelhiveryService {
         .values({
           awb: n.awb,
           provider: 'DELHIVERY',
-          client_id: clientId,
+          client_id: 1,
           booked_at: n.booked_at,
           current_status: n.current_status,
           origin: n.origin,

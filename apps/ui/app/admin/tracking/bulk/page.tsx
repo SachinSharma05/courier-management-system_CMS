@@ -9,7 +9,8 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { 
   UploadCloud, Play, Layers, Loader2, 
-  Truck, CheckCircle2, ChevronRight
+  Truck, CheckCircle2, ChevronRight, Hash,
+  Terminal, Database, FileSpreadsheet, Activity
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -30,7 +31,6 @@ export default function BulkTrackingPage() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
 
-  // Helper to normalize Excel Row keys
   const getLowerKeys = (obj: any) => {
     const lower: any = {};
     Object.keys(obj).forEach((k) => (lower[k.toLowerCase().trim()] = obj[k]));
@@ -64,13 +64,12 @@ export default function BulkTrackingPage() {
             };
           }).filter(r => r.code && r.awb);
         } else {
-          // Delhivery Logic: Group by a virtual "Bulk" code or Reference if missing
           normalized = rows.map(r => {
             const l = getLowerKeys(r);
             const awb = l['waybill'] ?? l['awb'] ?? l['waybill no'] ?? l['awb no'];
             const ref = l['reference_no'] ?? l['reference no'] ?? l['reference'];
             return {
-              code: 'DELHIVERY_BATCH', // Delhivery usually processed as one big batch
+              code: 'DELHIVERY_BATCH',
               awb: String(awb ?? ref ?? '').trim()
             };
           }).filter(r => r.awb);
@@ -78,9 +77,7 @@ export default function BulkTrackingPage() {
 
         if (normalized.length === 0) throw new Error('No valid data found in Excel');
 
-        // Grouping Logic
         const map = new Map<string, ParsedRow[]>();
-
         normalized.forEach(r => {
           const arr = map.get(r.code) ?? [];
           arr.push(r);
@@ -127,104 +124,158 @@ export default function BulkTrackingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        
-        {/* HEADER & PROVIDER TOGGLE */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              <Truck className="text-indigo-600" size={32} />
-              Bulk Tracking Center
-            </h1>
-            <p className="text-slate-500 font-medium mt-1">Select provider and upload manifest to sync data.</p>
+    <div className="min-h-screen bg-slate-50 p-4 space-y-4 font-sans">
+      
+      {/* ───────────────── SYSTEM HEADER ───────────────── */}
+      <div className="bg-white border border-slate-200 p-6 rounded-sm shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-slate-900 flex items-center justify-center text-white rounded-sm shadow-md">
+            <Database size={24} />
           </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Bulk_Intake_Center</h1>
+              <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest">
+                Data_Sync_Active
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1 flex items-center gap-2">
+              <Terminal size={12} className="text-indigo-600" /> Protocol: Manifest_Synchronization_v2
+            </p>
+          </div>
+        </div>
 
-          <div className="bg-white p-1.5 rounded-2xl border border-slate-200 flex gap-1 shadow-sm">
+        <div className="flex bg-slate-100 border border-slate-200 rounded-sm p-1 shadow-inner">
             {(['DTDC', 'DELHIVERY'] as Provider[]).map((p) => (
               <button
                 key={p}
                 onClick={() => { setProvider(p); setGroups([]); }}
                 className={clsx(
-                  "px-6 py-2.5 rounded-xl text-xs font-black transition-all uppercase tracking-widest",
-                  provider === p ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
+                  "px-6 py-2 rounded-sm text-[10px] font-black transition-all uppercase tracking-[0.2em]",
+                  provider === p ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600"
                 )}
               >
                 {p}
               </button>
             ))}
-          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+        
+        {/* ───────────────── INTAKE MODULE ───────────────── */}
+        <div className="xl:col-span-4 space-y-4">
+            <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                    <FileSpreadsheet size={14} className="text-slate-400" />
+                    <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Manifest_Upload</h3>
+                </div>
+                <div className="p-8">
+                    <div className="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 rounded-sm transition-all group">
+                        <input
+                            type="file"
+                            accept=".xlsx,.xls"
+                            onChange={(e) => e.target.files?.[0] && parseWorkbook(e.target.files[0])}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="p-10 flex flex-col items-center text-center">
+                            <div className="w-14 h-14 bg-white border border-slate-200 text-indigo-600 rounded-sm flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                                {loading ? <Loader2 className="animate-spin" size={24} /> : <UploadCloud size={28} />}
+                            </div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Drop {provider} Manifest</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-2">XLSX / XLS Formats Only</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Required_Schema</p>
+                        <div className="flex flex-wrap gap-2">
+                            {provider === 'DTDC' ? (
+                                <>
+                                    <code className="text-[10px] bg-slate-100 px-2 py-1 rounded-sm font-mono font-bold text-indigo-600">DSR_ACT_CODE</code>
+                                    <code className="text-[10px] bg-slate-100 px-2 py-1 rounded-sm font-mono font-bold text-indigo-600">DSR_CNNO</code>
+                                </>
+                            ) : (
+                                <code className="text-[10px] bg-slate-100 px-2 py-1 rounded-sm font-mono font-bold text-indigo-600">Waybill / AWB</code>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-slate-900 p-5 rounded-sm shadow-xl text-white">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-600 rounded-sm text-white"><Activity size={18}/></div>
+                    <h3 className="text-xs font-black uppercase tracking-widest">Processing_Queue</h3>
+                </div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed mb-4">
+                    All manifests are processed via <span className="text-indigo-400">BullMQ Background Workers</span> to ensure zero-timeout on large datasets.
+                </p>
+                <div className="h-px bg-slate-800 mb-4" />
+                <Link href="/admin/consignments" className="w-full py-2 bg-white text-slate-900 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
+                    <ChevronRight size={14}/> View_Live_Registry
+                </Link>
+            </div>
         </div>
 
-        {/* UPLOAD ZONE */}
-        <Card className="border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all bg-white rounded-[2.5rem] overflow-hidden">
-          <div className="relative p-12 flex flex-col items-center text-center group">
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => e.target.files?.[0] && parseWorkbook(e.target.files[0])}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              {loading ? <Loader2 className="animate-spin" size={32} /> : <UploadCloud size={40} />}
-            </div>
-            <h3 className="text-xl font-bold text-slate-900">Drop your {provider} sheet here</h3>
-            <p className="text-sm text-slate-400 mt-2 max-w-sm">
-              Required: <span className="font-mono font-bold text-indigo-500">
-                {provider === 'DTDC' ? 'DSR_ACT_CUST_CODE, DSR_CNNO' : 'Waybill / AWB'}
-              </span>
-            </p>
-          </div>
-        </Card>
+        {/* ───────────────── BATCH GRID ───────────────── */}
+        <div className="xl:col-span-8 space-y-4">
+          {groups.length > 0 ? (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 p-4 rounded-sm shadow-sm flex items-center justify-between">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                  <Layers size={14} className="text-indigo-600" /> Prepared_Batch_Registry ({groups.length})
+                </h2>
+                <button 
+                    onClick={runAll} 
+                    disabled={running} 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-sm font-black text-[10px] uppercase tracking-widest flex items-center gap-2 px-6 py-2 shadow-md disabled:opacity-50 transition-all"
+                >
+                  {running ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} fill="white" />}
+                  Execute_All_{provider}_Nodes
+                </button>
+              </div>
 
-        {/* BATCHES */}
-        {groups.length > 0 && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                <Layers size={16} /> Prepared Batches ({groups.length})
-              </h2>
-              <Button onClick={runAll} disabled={running} className="bg-indigo-600 rounded-xl font-bold gap-2 px-8">
-                {running ? <Loader2 className="animate-spin" size={18} /> : <Play size={16} fill="white" />}
-                Process All {provider}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {groups.map((g) => (
-                <div key={g.code} className="bg-white border border-slate-200 p-6 rounded-[2rem] hover:border-indigo-200 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{provider} GROUP</span>
-                      <h4 className="text-lg font-black text-slate-900 mt-1">{g.code}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {groups.map((g) => (
+                  <div key={g.code} className="bg-white border border-slate-200 p-5 rounded-sm hover:border-indigo-400 transition-colors shadow-sm relative group">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] leading-none mb-1">Entity_Node</p>
+                        <h4 className="text-base font-black text-slate-900 uppercase tracking-tight font-mono">{g.code}</h4>
+                      </div>
+                      <div className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-sm text-[9px] font-black border border-emerald-200 uppercase tracking-widest">
+                        {g.awbs.length}_Units
+                      </div>
                     </div>
-                    <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black border border-emerald-100">
-                      {g.awbs.length} AWBS
+                    
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-sm space-y-3">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Unit_Samples</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {g.awbs.slice(0, 10).map(a => (
+                                <span key={a.awb} className="px-1.5 py-0.5 bg-white border border-slate-200 text-[9px] font-mono font-bold text-slate-600 rounded-sm">
+                                    {a.awb}
+                                </span>
+                            ))}
+                            {g.awbs.length > 10 && <span className="text-[9px] text-slate-400 font-black self-center ml-1">+{g.awbs.length - 10}</span>}
+                        </div>
+                    </div>
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Hash size={40} className="text-slate-50" />
                     </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {g.awbs.slice(0, 8).map(a => (
-                      <span key={a.awb} className="px-2 py-1 bg-slate-50 border border-slate-100 text-[10px] font-mono font-bold text-slate-500 rounded-md">
-                        {a.awb}
-                      </span>
-                    ))}
-                    {g.awbs.length > 8 && <span className="text-[10px] text-slate-300 font-bold self-center">+{g.awbs.length - 8} more</span>}
-                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-sm p-12 flex flex-col items-center justify-center text-center opacity-60">
+                <div className="h-16 w-16 bg-slate-50 border border-slate-200 rounded-sm flex items-center justify-center text-slate-300 mb-4">
+                    <Layers size={32} />
                 </div>
-              ))}
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">No_Batches_Prepared</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase mt-2">Upload a manifest to begin the ingestion process.</p>
             </div>
-          </div>
-        )}
-
-        {/* FOOTER NAVIGATION */}
-        <div className="flex justify-between items-center pt-8 border-t border-slate-200">
-          <div className="flex items-center gap-2 text-slate-400">
-            <CheckCircle2 size={16} />
-            <span className="text-xs font-medium">Auto-background processing via BullMQ</span>
-          </div>
-          <Link href="/admin/consignments" className="text-indigo-600 font-bold text-sm flex items-center gap-1 hover:underline">
-            View Live Status <ChevronRight size={16} />
-          </Link>
+          )}
         </div>
       </div>
     </div>
@@ -233,7 +284,6 @@ export default function BulkTrackingPage() {
 
 function safeDate(d: string | Date | null): Date | null {
   if (!d) return null;
-
   const date = d instanceof Date ? d : new Date(d);
   return isNaN(date.getTime()) ? null : date;
 }

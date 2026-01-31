@@ -2,15 +2,21 @@
 
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { FileUp, Download, AlertCircle, CheckCircle2, Loader2, Send, FileSpreadsheet } from 'lucide-react';
+import { 
+  FileUp, Download, AlertCircle, CheckCircle2, 
+  Loader2, Send, FileSpreadsheet, Terminal, 
+  Database, ShieldCheck, Info, FileText,
+  Cpu, Activity, Zap
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
+import clsx from 'clsx';
 
 export default function DTDCBulkUpload({ params }: { params: { id: string } }) {
   const clientId = Number(params.id);
   const [file, setFile] = useState<File | null>(null);
 
-  // --- 1. THE LOGIC ---
+  // ───────────────── CORE LOGIC (PRESERVED) ─────────────────
   const { mutate: handleUpload, isPending } = useMutation({
     mutationFn: async () => {
       if (!file) return;
@@ -35,31 +41,48 @@ export default function DTDCBulkUpload({ params }: { params: { id: string } }) {
   });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* ───────────────── ERP HEADER ───────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-blue-600 flex items-center justify-center text-white rounded-sm shadow-md">
+            <FileUp size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Bulk_Ingestion_Protocol</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-1">
+              <Terminal size={12} className="text-blue-500" /> DTDC-NODE // STREAM_TYPE: MULTI_MANIFEST // TARGET: #{clientId}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* --- LEFT: UPLOAD SECTION --- */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] p-12 flex flex-col items-center text-center space-y-6 hover:border-blue-400 hover:bg-blue-50/10 transition-all group">
+        {/* ───────────────── LEFT: DATA WORKSPACE ───────────────── */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className={clsx(
+            "bg-white border-2 border-dashed rounded-sm p-16 flex flex-col items-center text-center transition-all group relative overflow-hidden",
+            file ? "border-emerald-500 bg-emerald-50/10" : "border-slate-200 hover:border-blue-400 hover:bg-slate-50/50"
+          )}>
             
-            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:shadow-xl transition-all">
-              {file ? (
-                <FileSpreadsheet className="text-emerald-600" size={32} />
-              ) : (
-                <FileUp className="text-blue-600" size={32} />
-              )}
+            <div className={clsx(
+              "w-24 h-24 rounded-sm flex items-center justify-center mb-6 transition-all border",
+              file ? "bg-emerald-600 border-emerald-400 text-white shadow-lg" : "bg-white border-slate-100 text-slate-300"
+            )}>
+              {file ? <FileSpreadsheet size={40} /> : <FileUp size={40} />}
             </div>
 
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-slate-900">
-                {file ? "File Selected" : "Upload Manifest"}
+            <div className="space-y-2 z-10">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                {file ? "Manifest_Detected" : "Select_Batch_Source"}
               </h2>
-              <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                {file ? file.name : "Drag and drop your CSV or Excel file to create shipments in bulk."}
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-xs mx-auto">
+                {file ? file.name : "Supported Formats: .CSV / .XLSX // Max Capacity: 5,000 Nodes"}
               </p>
             </div>
 
-            {/* Manual File Input as per your Delhivery code */}
             <input 
               type="file" 
               className="hidden" 
@@ -68,67 +91,81 @@ export default function DTDCBulkUpload({ params }: { params: { id: string } }) {
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
 
-            {!file ? (
-              <label 
-                htmlFor="bulk-file"
-                className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold cursor-pointer hover:bg-black shadow-lg shadow-slate-200 transition-all"
-              >
-                Browse Files
-              </label>
-            ) : (
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setFile(null)}
-                  className="rounded-xl px-6 border-slate-200 font-bold"
+            <div className="mt-8 flex gap-3 z-10">
+              {!file ? (
+                <label 
+                  htmlFor="bulk-file"
+                  className="bg-slate-900 text-white px-10 py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] cursor-pointer hover:bg-black transition-all"
                 >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => handleUpload()}
-                  disabled={isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 font-bold gap-2 shadow-lg shadow-blue-100"
-                >
-                  {isPending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                  {isPending ? "Processing..." : "Create Shipments"}
-                </Button>
-              </div>
-            )}
-          </div>
+                  Browse_Local_Storage
+                </label>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setFile(null)}
+                    className="rounded-sm h-14 px-8 border-slate-200 font-black text-[10px] uppercase tracking-widest hover:bg-white"
+                  >
+                    Reset_Buffer
+                  </Button>
+                  <Button 
+                    onClick={() => handleUpload()}
+                    disabled={isPending}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-sm h-14 px-10 font-black text-[10px] uppercase tracking-[0.2em] gap-3 shadow-xl shadow-blue-100"
+                  >
+                    {isPending ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+                    {isPending ? "Executing_Ingestion..." : "Execute_Batch_Upload"}
+                  </Button>
+                </>
+              )}
+            </div>
 
-          {/* Validation Alert */}
-          <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
-            <AlertCircle className="text-amber-600 shrink-0" size={20} />
-            <p className="text-xs font-bold text-amber-800 leading-relaxed">
-              Ensure your CSV follows the official template to avoid AWB generation errors. 
-              The system supports up to 5,000 rows per upload.
-            </p>
-          </div>
-        </div>
-
-        {/* --- RIGHT: SIDEBAR --- */}
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6">Instructions</h3>
-            <ul className="space-y-6">
-              <InstructionStep step="1" title="Download Template" desc="Get the latest .csv format" />
-              <InstructionStep step="2" title="Prepare Data" desc="Fill in customer & SKU details" />
-              <InstructionStep step="3" title="Validation" desc="Check for pincode errors" />
-            </ul>
-
-            <div className="mt-8 pt-6 border-t border-slate-50">
-              <Button variant="outline" className="w-full rounded-2xl py-6 border-slate-200 gap-3 font-bold hover:bg-slate-50">
-                <Download size={18} className="text-blue-600" />
-                Download Sample CSV
-              </Button>
+            {/* Background Decor */}
+            <div className="absolute top-0 right-0 opacity-[0.03] pointer-events-none">
+              <Cpu size={240} />
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-[2rem] p-6 text-white overflow-hidden relative">
+          <div className="bg-amber-50 border border-amber-100 p-5 rounded-sm flex gap-4">
+            <AlertCircle className="text-amber-600 shrink-0" size={20} />
+            <div>
+              <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Validation_Warning</p>
+              <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase">
+                Critical: Ensure "consignee_pincode" and "weight" columns are populated. System will automatically attempt to map similar headers.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ───────────────── RIGHT: PROTOCOL SIDEBAR ───────────────── */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-sm shadow-sm">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+              <ShieldCheck size={14} className="text-blue-500" />
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Ingestion_Steps</h3>
+            </div>
+            <div className="p-6 space-y-8">
+              <InstructionStep step="01" title="Template Sync" desc="Fetch standardized .CSV structure" />
+              <InstructionStep step="02" title="Data Mapping" desc="Populate manifest with node data" />
+              <InstructionStep step="03" title="Pre-Flight" desc="Validate pincodes & zone coverage" />
+              
+              <div className="pt-6 border-t border-slate-100">
+                <Button variant="outline" className="w-full h-14 rounded-sm border-slate-200 gap-3 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50">
+                  <Download size={18} className="text-blue-600" />
+                  Download_Template.csv
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-sm p-6 text-white relative overflow-hidden">
             <CheckCircle2 className="absolute -right-4 -bottom-4 opacity-10" size={120} />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-2">Automated Mapping</p>
-            <p className="text-sm font-bold leading-snug">
-              Our AI automatically maps your column headers to our system requirements.
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={14} className="text-blue-400" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Automated_Mapping</p>
+            </div>
+            <p className="text-[11px] font-bold leading-relaxed uppercase tracking-tight opacity-80">
+              The ingestion engine uses fuzzy-logic to map column headers to DTDC system requirements. Manual mapping is not required for standard CSVs.
             </p>
           </div>
         </div>
@@ -138,17 +175,18 @@ export default function DTDCBulkUpload({ params }: { params: { id: string } }) {
   );
 }
 
-// Sub-component Helper
+// ───────────────── ERP SUB-COMPONENTS ─────────────────
+
 function InstructionStep({ step, title, desc }: { step: string, title: string, desc: string }) {
   return (
-    <li className="flex gap-4">
-      <span className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-xs font-black text-slate-900 shrink-0 border border-slate-100">
+    <div className="flex gap-4">
+      <span className="w-10 h-10 bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-900 shrink-0 border border-slate-200 rounded-sm">
         {step}
       </span>
       <div>
-        <p className="text-sm font-black text-slate-900">{title}</p>
-        <p className="text-xs font-medium text-slate-400 leading-tight mt-0.5">{desc}</p>
+        <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{title}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-tight mt-1">{desc}</p>
       </div>
-    </li>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, BadRequestException, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Res } from '@nestjs/common';
 import { DtdcService } from './dtdc.service';
 import { DtdcServiceabilityDto } from './dto/serviceability.dto';
 import { DtdcPriceTatPayload } from './dto/DtdcPriceTatDto';
@@ -45,8 +45,19 @@ export class DtdcController {
 
   // 🔹 4. Print Label
   @Get('/label/:awb')
-  async printLabel(@Param('awb') awb: string) {
-    return this.service.printLabel(awb);
+  async printLabel(
+    @Param('awb') awb: string,
+    @Res() res: Response,
+  ) {
+    const fileBuffer = await this.service.printLabel(awb);
+
+    // res.setHeader('Content-Type', 'application/pdf');
+    // res.setHeader(
+    //   'Content-Disposition',
+    //   `attachment; filename="DTDC-${awb}.pdf"`,
+    // );
+
+    // res.send(fileBuffer);
   }
 
   // 🔹 5. Cancel Shipment

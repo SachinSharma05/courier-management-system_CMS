@@ -1,157 +1,213 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { 
-  User, Lock, Shield, Bell, 
-  Camera, Mail, Briefcase, Building2, 
+  User, Lock, Shield, Mail, Briefcase, Building2, 
   KeyRound, Fingerprint, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Save
+  CheckCircle2, Save, Camera, Hash, MapPin, 
+  Clock, LogOut, ShieldCheck, Activity
 } from 'lucide-react';
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 
-export default function AccountPage() {
+export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-4 space-y-4 bg-slate-50 min-h-screen font-sans">
       
-      {/* ───────────────── HEADER ───────────────── */}
-      <div className="flex items-center gap-6">
-        <div className="relative group">
-          <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-indigo-100 ring-4 ring-white">
-            SS
+      {/* ───────────────── ERP IDENTITY HEADER ───────────────── */}
+      <div className="bg-white border border-slate-200 p-6 rounded-sm shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <div className="relative shrink-0">
+            <div className="h-20 w-20 bg-slate-900 flex items-center justify-center text-white text-2xl font-black rounded-sm shadow-md border-4 border-white ring-1 ring-slate-200">
+              SS
+            </div>
+            <button className="absolute -bottom-1 -right-1 p-1.5 bg-white rounded-sm shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 transition-all">
+              <Camera size={14} />
+            </button>
           </div>
-          <button className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl shadow-lg border border-slate-100 text-slate-600 hover:text-indigo-600 transition-all">
-            <Camera size={18} />
-          </button>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Sachin Sharma</h1>
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest">
+                Active_Session
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-y-1 gap-x-4">
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Shield size={12} className="text-indigo-600" /> Clearance: Super_Admin
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono font-bold flex items-center gap-1.5">
+                <Hash size={12} /> ID_NODE: 88291-X-CMS
+              </p>
+            </div>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Sachin Sharma</h1>
-          <p className="text-slate-500 font-medium flex items-center gap-2">
-            <Shield size={14} className="text-indigo-500" /> Super Administrator • <span className="text-slate-400 font-mono text-xs">ID: 88291-X</span>
-          </p>
+
+        <div className="flex items-center gap-2">
+            <div className="text-right hidden xl:block">
+                <p className="text-[9px] font-black text-slate-400 uppercase leading-none">Last_Access_Point</p>
+                <p className="text-[10px] font-bold text-slate-700 mt-1 uppercase">Indore, India (103.22.XX.X)</p>
+            </div>
+            <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden xl:block" />
+            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm">
+                <Activity size={14}/> System_Audit
+            </button>
         </div>
       </div>
 
-      {/* ───────────────── TABS ───────────────── */}
-      <div className="flex border-b border-slate-200 gap-8">
+      {/* ───────────────── TERMINAL TABS ───────────────── */}
+      <div className="flex bg-white border border-slate-200 rounded-sm p-1 shadow-sm w-fit">
         <TabButton 
           active={activeTab === 'profile'} 
           onClick={() => setActiveTab('profile')}
-          icon={<User size={18}/>} 
-          label="General Profile" 
+          icon={<User size={14}/>} 
+          label="Identity_Profile" 
         />
         <TabButton 
           active={activeTab === 'security'} 
           onClick={() => setActiveTab('security')}
-          icon={<Lock size={18}/>} 
-          label="Security & Password" 
+          icon={<Lock size={14}/>} 
+          label="Security_Protocol" 
         />
       </div>
 
-      {/* ───────────────── CONTENT ───────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
-        {activeTab === 'profile' ? (
-          <>
-            <div className="lg:col-span-2 space-y-6">
-              <SectionCard title="Personal Information">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputGroup label="Full Name" value="Sachin Sharma" icon={<User size={16}/>} />
-                  <InputGroup label="Email Address" value="admin@cms.com" icon={<Mail size={16}/>} />
-                  <InputGroup label="Department" value="Platform Operations" icon={<Briefcase size={16}/>} />
-                  <InputGroup label="Organization" value="CMS Logistics HQ" icon={<Building2 size={16}/>} />
-                </div>
-                <div className="pt-4">
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">
-                        <Save size={18}/> Update Profile
-                    </button>
-                </div>
-              </SectionCard>
+        {/* ───────────────── PROFILE TERMINAL ───────────────── */}
+        <div className={clsx("lg:col-span-8 space-y-4", activeTab !== 'profile' && 'hidden')}>
+          <SectionCard title="General_Information_Matrix">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputGroup label="Entity_Full_Name" value="Sachin Sharma" icon={<User size={14}/>} />
+              <InputGroup label="Network_Email" value="admin@cms.com" icon={<Mail size={14}/>} />
+              <InputGroup label="Department_Node" value="Platform Operations" icon={<Briefcase size={14}/>} />
+              <InputGroup label="Parent_Organization" value="CMS Logistics HQ" icon={<Building2 size={14}/>} />
+            </div>
+            <div className="pt-6 border-t border-slate-100 mt-6">
+                <button className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md">
+                    <Save size={14}/> Commit_Changes
+                </button>
+            </div>
+          </SectionCard>
 
-              <SectionCard title="Preferences">
-                <div className="space-y-4">
-                    <ToggleItem title="Email Notifications" description="Receive daily summaries of failed DLQ jobs." defaultChecked />
-                    <ToggleItem title="Two-Factor Authentication" description="Require a security code for every login attempt." defaultChecked />
-                </div>
-              </SectionCard>
+          <SectionCard title="Notification_&_Access_Preferences">
+            <div className="space-y-2">
+                <ToggleItem title="Critical DLQ Alerts" description="Automatic dispatch of daily failure summaries to admin mail." defaultChecked />
+                <ToggleItem title="Two-Factor Protocol" description="Mandatory cryptographic verification for every login node." defaultChecked />
+                <ToggleItem title="Public API Access" description="Allow external read-only access to tracking endpoints." />
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* ───────────────── SECURITY TERMINAL ───────────────── */}
+        <div className={clsx("lg:col-span-8 space-y-4", activeTab !== 'security' && 'hidden')}>
+          <SectionCard title="Credential_Update_Sequence">
+            <p className="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-tight flex items-center gap-2">
+              <ShieldCheck size={14} className="text-emerald-500" /> Min requirements: 12 chars, alpha-numeric, special symbols.
+            </p>
+            <div className="space-y-4 max-w-xl">
+              <PasswordField label="Auth_Current_Password" />
+              <div className="h-px bg-slate-100 my-2" />
+              <PasswordField label="New_Password_String" />
+              <PasswordField label="Confirm_New_String" />
             </div>
 
-            <div className="space-y-6">
-                <div className="rounded-3xl bg-indigo-600 p-6 text-white shadow-xl shadow-indigo-100">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-white/20 rounded-lg"><Fingerprint size={24}/></div>
-                        <h3 className="font-bold">Session Security</h3>
-                    </div>
-                    <p className="text-xs text-indigo-100 mb-6 leading-relaxed">
-                        Your account is currently active on 2 devices. Last login was 42 minutes ago from Indore, India.
-                    </p>
-                    <button className="w-full py-2 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all">
-                        Log out all devices
-                    </button>
-                </div>
-            </div>
-          </>
-        ) : (
-          <div className="lg:col-span-2 max-w-2xl space-y-6">
-            <SectionCard title="Update Password">
-              <p className="text-xs text-slate-400 mb-6 font-medium">
-                Use a strong password with at least 12 characters, including numbers and symbols.
-              </p>
-              <div className="space-y-4">
-                <PasswordField label="Current Password" />
-                <div className="h-[1px] bg-slate-100 my-2" />
-                <PasswordField label="New Password" />
-                <PasswordField label="Confirm New Password" />
-              </div>
-
-              <div className="mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Password Strength</h4>
+            <div className="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-sm">
+                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Entropy_Analysis</h4>
                  <div className="flex gap-1 mb-2">
-                    <div className="h-1 flex-1 rounded-full bg-emerald-500" />
-                    <div className="h-1 flex-1 rounded-full bg-emerald-500" />
-                    <div className="h-1 flex-1 rounded-full bg-emerald-500" />
-                    <div className="h-1 flex-1 rounded-full bg-slate-200" />
+                    <div className="h-1.5 flex-1 rounded-full bg-emerald-500" />
+                    <div className="h-1.5 flex-1 rounded-full bg-emerald-500" />
+                    <div className="h-1.5 flex-1 rounded-full bg-emerald-500" />
+                    <div className="h-1.5 flex-1 rounded-full bg-slate-200" />
                  </div>
-                 <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                    <CheckCircle2 size={12}/> Secure: High Entropy
+                 <p className="text-[10px] text-emerald-600 font-black uppercase flex items-center gap-1 tracking-tighter">
+                    <CheckCircle2 size={12}/> Security_Status: High_Entropy_Pass
                  </p>
-              </div>
+            </div>
 
-              <div className="pt-6">
-                 <button className="flex items-center justify-center gap-2 w-full md:w-auto px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all">
-                    <KeyRound size={18}/> Change Password
+            <div className="pt-6">
+                 <button className="flex items-center justify-center gap-2 px-8 py-2.5 bg-slate-900 text-white rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
+                    <KeyRound size={16}/> Update_Credentials
                  </button>
-              </div>
-            </SectionCard>
-          </div>
-        )}
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* ───────────────── SESSION AUDIT SIDEBAR ───────────────── */}
+        <div className="lg:col-span-4 space-y-4">
+            <div className="bg-slate-900 p-5 rounded-sm shadow-xl text-white">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-600 rounded-sm text-white"><Fingerprint size={20}/></div>
+                    <h3 className="text-xs font-black uppercase tracking-widest">Active_Node_Security</h3>
+                </div>
+                <div className="space-y-4 mb-6">
+                    <div className="flex items-start gap-3">
+                        <MapPin size={14} className="text-indigo-400 mt-0.5" />
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Current_Location</p>
+                            <p className="text-[11px] font-bold mt-1">Indore, India (IPv4: 103.22.XX.X)</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <Clock size={14} className="text-indigo-400 mt-0.5" />
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Last_Auth_Timestamp</p>
+                            <p className="text-[11px] font-bold mt-1 uppercase font-mono">30-JAN-2024 17:12:04</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-3 bg-slate-800 border border-slate-700 rounded-sm mb-6">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase mb-1">Warning</p>
+                    <p className="text-[10px] text-slate-300 font-medium leading-relaxed uppercase tracking-tighter">
+                        Account is active on 2 external hardware nodes.
+                    </p>
+                </div>
+                <button className="w-full py-2 bg-white text-slate-900 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
+                    <LogOut size={14}/> Terminate_All_Sessions
+                </button>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-5 rounded-sm shadow-sm">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Account_Health</h3>
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-slate-600">Verification_Status</span>
+                        <span className="text-[10px] font-black text-emerald-600 uppercase">Verified</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-slate-600">Storage_Quota</span>
+                        <span className="text-[10px] font-black text-slate-900 uppercase">1.2GB / 5.0GB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ───────────────── COMPONENTS ───────────────── */
+/* ───────────────── ERP UI COMPONENTS ───────────────── */
 
 function TabButton({ active, onClick, icon, label }: any) {
   return (
     <button 
       onClick={onClick}
       className={clsx(
-        "flex items-center gap-2 pb-4 text-sm font-bold transition-all relative",
-        active ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
+        "flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-sm",
+        active ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
       )}
     >
       {icon} {label}
-      {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full animate-in fade-in zoom-in duration-300" />}
     </button>
   );
 }
 
 function SectionCard({ title, children }: any) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
-      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">{title}</h3>
+    <div className="bg-white border border-slate-200 rounded-sm p-6 shadow-sm">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+        <div className="h-1 w-4 bg-indigo-600" /> {title}
+      </h3>
       {children}
     </div>
   );
@@ -160,12 +216,12 @@ function SectionCard({ title, children }: any) {
 function InputGroup({ label, value, icon }: any) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-tight ml-1">{label}</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-tight ml-0.5">{label}</label>
       <div className="relative">
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</div>
         <input 
           defaultValue={value}
-          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/40 transition-all outline-none"
+          className="w-full bg-slate-50 border border-slate-200 rounded-sm pl-9 pr-4 py-2 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all"
         />
       </div>
     </div>
@@ -176,18 +232,18 @@ function PasswordField({ label }: { label: string }) {
     const [show, setShow] = useState(false);
     return (
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-tight ml-1">{label}</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-tight ml-0.5">{label}</label>
           <div className="relative">
             <input 
               type={show ? 'text' : 'password'}
               placeholder="••••••••••••"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/40 transition-all outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-2 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all"
             />
             <button 
                 onClick={() => setShow(!show)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600"
             >
-                {show ? <EyeOff size={18}/> : <Eye size={18}/>}
+                {show ? <EyeOff size={16}/> : <Eye size={16}/>}
             </button>
           </div>
         </div>
@@ -196,14 +252,14 @@ function PasswordField({ label }: { label: string }) {
 
 function ToggleItem({ title, description, defaultChecked }: any) {
     return (
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+        <div className="flex items-center justify-between p-4 bg-slate-50/50 border border-slate-100 rounded-sm group hover:border-slate-200 transition-all">
             <div className="space-y-0.5">
-                <p className="text-sm font-bold text-slate-800">{title}</p>
-                <p className="text-xs text-slate-400 font-medium">{description}</p>
+                <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{title}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter leading-tight">{description}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" defaultChecked={defaultChecked} />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-sm peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
         </div>
     )

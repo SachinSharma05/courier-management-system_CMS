@@ -1,14 +1,11 @@
 "use client";
 
+import React, { useEffect, useRef, useState } from 'react';
 import { 
-  Package, Users, AlertCircle, 
-  Activity, Clock, 
-  Download,
-  TrendingUp,
-  Zap,
-  BarChart3,
-  Timer,
-  Truck,
+  Package, Users, AlertCircle, Activity, Clock, Download,
+  TrendingUp, Zap, BarChart3, Timer, Truck, ChevronRight,
+  Server, ShieldCheck, Database, RefreshCw, ArrowUpRight,
+  AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { 
@@ -16,22 +13,10 @@ import {
   getProviderPerformance,
   getAlerts
  } from '@/lib/api/dashboard.api';
-import { useEffect, useRef, useState } from 'react';
-
-interface StatCardProps {
-  label: string;
-  value: any;
-  icon: any;
-  color: string;
-  bg?: string; // Icon background color (e.g., bg-blue-50)
-  trend?: string;
-  isLoading?: boolean;
-  isDark?: boolean; // New prop to toggle theme
-}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
-  const [providers, setProviders] = useState<any[]>([]); // Renamed for clarity
+  const [providers, setProviders] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any>(null);
   const fetchedRef = useRef(false);
 
@@ -41,7 +26,7 @@ export default function AdminDashboard() {
 
     Promise.all([
       getDashboardSummary(),
-      getProviderPerformance(), // New API call
+      getProviderPerformance(),
       getAlerts(),
     ])
       .then(([summary, performanceData, alertsData]) => {
@@ -52,240 +37,209 @@ export default function AdminDashboard() {
       .catch(console.error);
   }, []);
 
-  if (!stats) return null;
+  if (!stats) return (
+    <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+            <RefreshCw className="animate-spin text-slate-400" size={32} />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Booting_System_Core...</p>
+        </div>
+    </div>
+  );
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
-       {/* ... Header and StatCards as defined in previous messages ... */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">SuperAdmin Command Center</h1>
-          <p className="text-sm text-slate-500 font-medium">Platform-wide performance and aggregator health metrics.</p>
+    <div className="p-4 space-y-4 bg-slate-50 min-h-screen font-sans">
+      
+      {/* ───────────────── TOP COMMAND BAR ───────────────── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-white p-4 border border-slate-200 rounded-sm shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 bg-slate-900 flex items-center justify-center text-white rounded-sm shadow-lg">
+            <Server size={20} />
+          </div>
+          <div>
+            <h1 className="text-lg font-black text-slate-900 leading-none uppercase tracking-tight">System_Command_Center</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1 font-bold flex items-center gap-2">
+                <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" /> Platform_Node: 01-Active
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all">
-            <Download size={14} /> Export Report
+
+        <div className="flex items-center gap-2 mt-4 lg:mt-0">
+          <button className="flex items-center gap-2 rounded-sm bg-white border border-slate-200 px-4 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest">
+            <Download size={14} /> Export_Report
           </button>
-          <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
-            <Activity size={14} /> System Health
+          <button className="flex items-center gap-2 rounded-sm bg-indigo-600 px-4 py-2 text-[10px] font-black text-white shadow-md hover:bg-indigo-700 transition-all uppercase tracking-widest">
+            <Activity size={14} /> System_Health
           </button>
         </div>
       </div>
 
-      {/* ───────────────── EXECUTIVE STATS ───────────────── */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Platform Volume" value={stats.totalShipments} icon={Package} color="text-blue-600" bg="bg-blue-50" trend="+14% vs LW" />
-        <StatCard label="Client Base" value={stats.activeClients} icon={Users} color="text-purple-600" bg="bg-purple-50" />
-        <StatCard label="Avg Delivery TAT" value={stats.avgTat} icon={Zap} color="text-amber-600" bg="bg-amber-50" trend="-0.2 days" />
-        <StatCard label="Aggregator Margin" value={stats.margin} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" />
-        <StatCard label="Critical DLQ" value={stats.dlqCount} icon={AlertCircle} color="text-red-600" bg="bg-red-50" />
+      {/* ───────────────── EXECUTIVE KPI GRID ───────────────── */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <KPICard label="Total_Volume" value={stats.totalShipments} trend="+14.2%" icon={Package} color="border-blue-600" />
+        <KPICard label="Active_Clients" value={stats.activeClients} icon={Users} color="border-purple-600" />
+        <KPICard label="Avg_Delivery_SLA" value={`${stats.avgTat}d`} trend="-0.2d" icon={Zap} color="border-amber-600" />
+        <KPICard label="Platform_Margin" value={`${stats.margin}%`} icon={TrendingUp} color="border-emerald-600" />
+        <KPICard label="Critical_DLQ" value={stats.dlqCount} trend="High" icon={AlertCircle} color="border-rose-600" isWarning={stats.dlqCount > 0} />
       </section>
 
-      {/* ───────────────── SPECIAL FOCUS WIDGETS ───────────────── */}
-      {/* <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8"> */}
-        {/* Weight Discrepancy Widget */}
-        {/* <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-black text-slate-800 tracking-tight">Weight Discrepancies</h3>
-            <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-1 rounded-lg">High Risk</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        
+        {/* ───────────────── CARRIER PERFORMANCE TERMINAL ───────────────── */}
+        <section className="lg:col-span-8 space-y-3">
+          <div className="flex items-center justify-between bg-slate-900 p-3 rounded-t-sm">
+            <h2 className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <Truck size={14} /> Carrier_Performance_Matrix
+            </h2>
+            <span className="text-[9px] font-black text-slate-400 uppercase font-mono">Realtime_Update_Synced</span>
           </div>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Total Flagged AWBs</span>
-              <span className="font-bold text-slate-900">142</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Potential Loss</span>
-              <span className="font-bold text-rose-600">₹12,450</span>
-            </div>
+          
+          <div className="bg-white border border-slate-200 rounded-b-sm shadow-sm overflow-hidden">
+             <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <Th className="pl-6">Carrier_Entity</Th>
+                        <Th>Load_Volume</Th>
+                        <Th>Avg_TAT</Th>
+                        <Th>RTO_Rate</Th>
+                        <Th className="w-40">Node_Health</Th>
+                        <Th className="pr-6"></Th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {providers.map((p, i) => (
+                        <tr key={i} className="hover:bg-slate-50 transition-colors group">
+                            <Td className="pl-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 bg-slate-100 rounded-sm flex items-center justify-center font-black text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all text-xs">
+                                        {p.name[0]}
+                                    </div>
+                                    <span className="font-black text-slate-900 uppercase tracking-tight text-xs">{p.name}</span>
+                                </div>
+                            </Td>
+                            <Td><span className="font-mono font-bold text-slate-600">{p.activeShipments?.toLocaleString()}</span></Td>
+                            <Td>
+                                <div className="flex flex-col">
+                                    <span className="font-mono font-black text-slate-900 text-xs">{p.tat}d</span>
+                                    <span className="text-[9px] text-emerald-600 font-bold">-0.5 Target</span>
+                                </div>
+                            </Td>
+                            <Td>
+                                <span className={clsx(
+                                    "font-mono font-black text-xs px-2 py-0.5 rounded-sm border",
+                                    p.rto > 10 ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                )}>
+                                    {p.rto}%
+                                </span>
+                            </Td>
+                            <Td>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
+                                        <span>Status</span>
+                                        <span>{Math.round(p.healthScore)}%</span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className={clsx(
+                                                "h-full transition-all",
+                                                p.healthScore > 80 ? "bg-emerald-500" : "bg-amber-500"
+                                            )}
+                                            style={{ width: `${p.healthScore}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </Td>
+                            <Td className="pr-6 text-right">
+                                <button className="p-1.5 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
+                                    <ArrowUpRight size={14} />
+                                </button>
+                            </Td>
+                        </tr>
+                    ))}
+                </tbody>
+             </table>
           </div>
-        </div> */}
+        </section>
 
-        {/* NDR Recovery Widget */}
-        {/* <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <h3 className="font-black text-slate-800 tracking-tight mb-6">NDR Recovery Rate</h3>
-          <div className="flex items-end gap-2">
-            <span className="text-4xl font-black text-indigo-600">64%</span>
-            <span className="text-xs font-bold text-emerald-500 mb-2">↑ 4% this week</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 font-medium">Out of 500 NDRs, 320 were successfully delivered.</p>
-        </div> */}
-      {/* </section> */}
-
-       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* PROVIDER LEADERBOARD */}
-          <section className="lg:col-span-2 space-y-4">
-            <h2 className="text-lg font-black text-slate-800">Provider Performance</h2>
-            <div className="grid grid-cols-1 gap-4">
-              {providers.map((p, i) => (
-                <ProviderRow key={i} provider={p} />
-              ))}
-            </div>
-          </section>
-
-          {/* SYSTEM ALERTS */}
-          <section className="space-y-4">
-            <h2 className="text-lg font-black text-slate-800">System Health</h2>
+        {/* ───────────────── SYSTEM ALERTS AUDIT FEED ───────────────── */}
+        <section className="lg:col-span-4 space-y-3">
+          <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+            <AlertTriangle size={14} /> Critical_Audit_Feed
+          </h2>
+          <div className="space-y-2">
             {alerts?.map((a: any, i: number) => (
-              <AlertItem key={i} alert={a} />
+              <AlertAuditItem key={i} alert={a} />
             ))}
-          </section>
-       </div>
+          </div>
+          <button className="w-full py-2 bg-white border border-slate-200 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 hover:bg-slate-50 transition-all rounded-sm">
+            View_Full_Audit_Logs
+          </button>
+        </section>
+
+      </div>
     </div>
   );
 }
 
-// ───────────────── UPDATED STAT CARD ─────────────────
-function StatCard({ 
-  label, value, icon: Icon, color, bg, trend, isLoading, isDark = false 
-}: StatCardProps) {
+/* ───────────────── UI COMPONENTS ───────────────── */
+
+function KPICard({ label, value, trend, icon: Icon, color, isWarning }: any) {
   return (
     <div className={clsx(
-      "p-4 rounded-[2.5rem] border transition-all duration-300",
-      // Switch background and border based on theme
-      isDark 
-        ? "bg-slate-950/50 border-slate-800 text-white" 
-        : "bg-white border-slate-100 shadow-sm text-slate-900"
+      "bg-white p-4 border-l-4 border rounded-sm shadow-sm transition-all hover:translate-y-[-2px]",
+      color,
+      isWarning ? "bg-rose-50/30 border-rose-500" : "border-slate-200"
     )}>
-      <div className="flex justify-between items-start mb-4">
-        {/* Icon Container */}
-        <div className={clsx(
-          "p-3 rounded-2xl transition-transform hover:scale-110 duration-300",
-          bg, // Background for the icon circle
-          color // Text color for the icon
-        )}>
-          {Icon && <Icon size={20} />}
-        </div>
-        
-        {/* Trend badge */}
-        {trend && !isLoading && (
-          <div className={clsx(
-            "text-[10px] font-black px-2 py-1 rounded-lg",
-            trend.includes('+') ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-          )}>
-            {trend}
-          </div>
-        )}
+      <div className="flex justify-between items-start mb-2">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+        <Icon size={14} className="text-slate-300" />
       </div>
-      
-      <div>
-        <p className={clsx(
-          "text-[10px] font-bold uppercase tracking-widest",
-          isDark ? "text-slate-500" : "text-slate-400"
-        )}>
-          {label}
-        </p>
-        
-        {isLoading ? (
-          <div className="h-8 w-24 bg-slate-100 animate-pulse rounded-xl mt-1" />
-        ) : (
-          <h3 className="text-2xl font-black mt-1">
-            {value?.toLocaleString() || 0}
-          </h3>
+      <div className="flex items-end justify-between">
+        <h3 className="text-2xl font-mono font-black text-slate-900 leading-none">{value}</h3>
+        {trend && (
+            <span className={clsx(
+                "text-[10px] font-bold px-1.5 py-0.5 rounded-sm",
+                trend.includes('+') ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+            )}>
+                {trend}
+            </span>
         )}
       </div>
     </div>
   );
 }
 
-// ───────────────── ALERT ITEM COMPONENT ─────────────────
-function AlertItem({ alert }: { alert: any }) {
-  const isDLQ = alert.type === 'DLQ';
-  
+function AlertAuditItem({ alert }: { alert: any }) {
+  const isHigh = alert.type === 'DLQ' || alert.message.toLowerCase().includes('failed');
   return (
-    <div className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition-all group">
-      {/* Visual Indicator Bar */}
-      <div className={clsx(
-        "absolute left-0 top-0 h-full w-1.5 transition-colors",
-        isDLQ ? "bg-rose-500" : "bg-amber-500"
-      )} />
-      
-      <div className="flex justify-between items-start mb-2">
+    <div className={clsx(
+      "bg-white border p-3 rounded-sm relative group hover:shadow-md transition-all",
+      isHigh ? "border-rose-100 bg-rose-50/20" : "border-slate-200"
+    )}>
+      <div className="flex justify-between items-center mb-2">
         <span className={clsx(
-          "text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg",
-          isDLQ ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600"
+          "text-[8px] font-black uppercase px-2 py-0.5 rounded-sm border",
+          isHigh ? "bg-rose-600 text-white border-rose-600" : "bg-slate-100 text-slate-600 border-slate-200"
         )}>
           {alert.type}
         </span>
-        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+        <span className="text-[9px] font-mono font-bold text-slate-400 flex items-center gap-1">
           <Clock size={10} /> {alert.time}
         </span>
       </div>
-      
-      <div>
-        <h4 className="text-sm font-black text-slate-900 leading-tight">
-          {alert.entity}
-        </h4>
-        <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed group-hover:text-slate-700 transition-colors">
-          {alert.message}
-        </p>
-      </div>
+      <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">
+        {alert.entity}
+      </h4>
+      <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tighter">
+        {alert.message}
+      </p>
     </div>
   );
 }
 
-function ProviderRow({ provider }: { provider: any }) {
-  return (
-    <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col md:flex-row items-center justify-between group hover:border-indigo-200 transition-all gap-6">
-      
-      {/* 1. PROVIDER IDENTITY */}
-      <div className="flex items-center gap-4 w-full md:w-auto">
-        <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all duration-300">
-          {provider.name[0]}
-        </div>
-        <div>
-          <h4 className="font-black text-slate-900 text-lg tracking-tight">{provider.name}</h4>
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            <Truck size={12} className="text-slate-300" />
-            {provider.activeShipments?.toLocaleString()} Active Shipments
-          </div>
-        </div>
-      </div>
+function Th({ children, className }: any) {
+  return <th className={clsx("px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>{children}</th>;
+}
 
-      {/* 2. PERFORMANCE METRICS */}
-      <div className="flex flex-1 justify-around md:justify-end gap-8 lg:gap-16 items-center w-full">
-        
-        {/* AVG TAT */}
-        <div className="text-center md:text-left">
-          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
-            <Timer size={10} /> Avg TAT
-          </p>
-          <p className="text-sm font-black text-slate-900">
-            {provider.tat} <span className="text-[10px] text-slate-400">Days</span>
-          </p>
-        </div>
-
-        {/* RTO RATE */}
-        <div className="text-center md:text-left">
-          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
-            <BarChart3 size={10} /> RTO Rate
-          </p>
-          <p className={clsx(
-            "text-sm font-black", 
-            provider.rto > 10 ? "text-rose-600" : "text-emerald-600"
-          )}>
-            {provider.rto}%
-          </p>
-        </div>
-
-        {/* HEALTH SCORE PROGRESS */}
-        <div className="hidden sm:block w-32">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Health</span>
-            <span className="text-[9px] font-black text-indigo-600">{Math.round(provider.healthScore)}%</span>
-          </div>
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div 
-              className={clsx(
-                "h-full rounded-full transition-all duration-1000 ease-out",
-                provider.healthScore > 80 ? "bg-emerald-500" : 
-                provider.healthScore > 50 ? "bg-indigo-500" : "bg-rose-500"
-              )}
-              style={{ width: `${provider.healthScore}%` }} 
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function Td({ children, className }: any) {
+  return <td className={clsx("px-4 py-3 text-sm", className)}>{children}</td>;
 }

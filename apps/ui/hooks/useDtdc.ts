@@ -71,6 +71,11 @@ export async function getSinglePincodeServiceability(src: string) {
   return (await res).data;
 }
 
+export async function getLabel(awb: string) {
+  const res = api.get(`/providers/dtdc/label/${awb}`, { responseType: 'blob' });
+  return res;
+}
+
 export function useDtdc() {
 
   const createShipment = async (payload: DtdcCreateShipmentPayload) =>
@@ -78,9 +83,6 @@ export function useDtdc() {
 
   const bulkShipment = async (payload: DtdcBulkShipmentPayload) =>
     api.post('/providers/dtdc/shipments/bulk', payload);
-
-  const printLabel = async (awb: string) =>
-    api.get(`/providers/dtdc/label/${awb}`, { responseType: 'blob' });
 
   const cancelShipment = async (awb: string) =>
     api.post(`/providers/dtdc/cancel/${awb}`);
@@ -91,7 +93,6 @@ export function useDtdc() {
   return {
     createShipment,
     bulkShipment,
-    printLabel,
     cancelShipment,
     getNdr,
   };
