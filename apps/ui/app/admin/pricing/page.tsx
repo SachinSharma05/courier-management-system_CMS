@@ -302,12 +302,15 @@ function EditableRateCell({ initialValue, rateCardId, zoneCode, slabType, gstEna
         />
       ) : (
         <div 
-          onClick={() => setStatus('idle') || setIsEditing(true)}
+          onClick={() => {
+            setStatus('idle');
+            setIsEditing(true);
+          }}
           className={clsx(
             "w-full h-full flex items-center justify-center text-xs font-black cursor-pointer transition-all",
             status === 'success' ? "text-emerald-600 bg-emerald-50" : "text-slate-900 group-hover/cell:bg-blue-50"
           )}
-        >
+          >
           {displayValue}
           {status === 'saving' && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><RefreshCw size={10} className="animate-spin text-blue-500"/></div>}
           {status === 'success' && <Check size={10} className="absolute right-1 top-1 text-emerald-500" />}
