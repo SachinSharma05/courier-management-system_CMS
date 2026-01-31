@@ -17,6 +17,7 @@ import { useConsignments, useConsignmentsSummary, useConsignmentEvents } from '@
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/axios';
+import { ProviderOption } from '@/lib/api/providers.api';
 
 export default function ConsignmentsPage() {
   const queryClient = useQueryClient();
@@ -140,7 +141,7 @@ export default function ConsignmentsPage() {
         <div className="xl:col-span-8 flex flex-wrap gap-2">
           <SelectFilter 
             value={filters.clientId} 
-            onChange={v => setFilters(f => ({ ...f, clientId: v }))}
+            onChange={(v: string) => setFilters(f => ({ ...f, clientId: v }))}
             options={clients || []}
             labelKey="company_name"
             placeholder="ALL_CLIENTS"
@@ -153,7 +154,7 @@ export default function ConsignmentsPage() {
             className="bg-white border border-slate-200 rounded-sm px-3 py-2 text-[10px] font-black uppercase text-slate-600 outline-none focus:border-slate-400 min-w-[140px]"
           >
             <option value="">ALL_CARRIERS</option>
-            {providers?.map((p: any) => (
+            {providers?.map((p: ProviderOption) => (
               <option key={p.id || p.name} value={p.name}>{p.name.toUpperCase()}</option>
             ))}
           </select>
