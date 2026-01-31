@@ -28,15 +28,3 @@ export async function getProviderPerformance(): Promise<ProviderPerformance[]> {
   const res = await api.get('/admin/dashboard/performance');
   return res.data;
 }
-
-export type AlertItem = {
-  type: 'DLQ' | 'CREDENTIAL';
-  entity: string;
-  message: string;
-  createdAt: string;
-};
-
-export async function getAlerts(): Promise<AlertItem[]> {
-  const res = await api.get('/admin/dashboard/alerts');
-  return res.data;
-}

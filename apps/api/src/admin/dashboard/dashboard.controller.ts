@@ -21,11 +21,4 @@ export class DashboardController {
   getProviderPerformance() {
     return this.service.getProviderPerformance();
   }
-
-  @Get('alerts')
-  getAlerts() {
-    return this.service.getAlerts();
-  }
-
-  
 }
