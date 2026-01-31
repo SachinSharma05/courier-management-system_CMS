@@ -9,17 +9,17 @@ export class DashboardService {
     const rows = await db.execute(sql`
       SELECT
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE LOWER(current_status) LIKE '%deliver%' AND LOWER(current_status) NOT LIKE '%rto%')::int AS delivered,
-        COUNT(*) FILTER (WHERE LOWER(current_status) LIKE '%rto%')::int AS rto,
+        COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%deliver%' AND LOWER(status_group) NOT LIKE '%rto%')::int AS delivered,
+        COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%rto%')::int AS rto,
         
         -- NDR / DLQ Count
         COUNT(*) FILTER (
-          WHERE LOWER(current_status) SIMILAR TO '%(undelivered|not delivered|ndr|wrong pincode|non serviceable|delivery attempted|refused|mis route)%'
+          WHERE LOWER(status_group) SIMILAR TO '%(undelivered|not delivered|ndr|wrong pincode|non serviceable|delivery attempted|refused|mis route)%'
         )::int AS ndr_count,
 
         -- OPTIMIZED: Avg TAT only for Completed Shipments (Delivered or RTO)
         ROUND(AVG(EXTRACT(EPOCH FROM (last_status_at - created_at))/86400) 
-          FILTER (WHERE LOWER(current_status) LIKE '%deliver%' OR LOWER(current_status) LIKE '%rto%')::numeric, 1) AS global_tat,
+          FILTER (WHERE LOWER(status_group) LIKE '%deliver%' OR LOWER(status_group) LIKE '%rto%')::numeric, 1) AS global_tat,
       
         -- Aggregator Margin
         (COUNT(*) * 10)::int AS total_margin
@@ -52,8 +52,8 @@ export class DashboardService {
         provider,
         COUNT(*)::int AS active_shipments,
         ROUND(AVG(EXTRACT(EPOCH FROM (last_status_at - created_at))/86400) 
-          FILTER (WHERE LOWER(current_status) LIKE '%deliver%' OR LOWER(current_status) LIKE '%rto%')::numeric, 1) AS avg_tat,
-        ROUND((COUNT(*) FILTER (WHERE LOWER(current_status) LIKE '%rto%')::float / NULLIF(COUNT(*), 0)::float * 100)::numeric, 1) AS rto_rate
+          FILTER (WHERE LOWER(status_group) LIKE '%deliver%' OR LOWER(status_group) LIKE '%rto%')::numeric, 1) AS avg_tat,
+        ROUND((COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%rto%')::float / NULLIF(COUNT(*), 0)::float * 100)::numeric, 1) AS rto_rate
       FROM consignments
       GROUP BY provider
     `);
@@ -72,14 +72,5 @@ export class DashboardService {
         healthScore: healthScore
       };
     });
-  }
-
-  // Alerts remain as mock until you have a system_logs table
-  async getAlerts() {
-    // Ideally, this should pull from a 'system_logs' or 'dlq' table
-    return [
-      { type: 'DLQ', entity: 'DTDC', message: 'Tracking retry failed for 3 consignments', time: '2m ago' },
-      { type: 'CREDENTIAL', entity: 'Client B', message: 'API key expired', time: '15m ago' },
-    ];
   }
 }
