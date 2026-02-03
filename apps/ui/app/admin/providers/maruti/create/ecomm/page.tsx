@@ -165,7 +165,7 @@ export default function CreateMarutiOrder() {
         <div className="space-y-6">
            <FormSection title="Financial_Config" icon={<CreditCard size={14}/>}>
               <div className="p-4 space-y-4">
-                <Select label="Payment_Mode" options={['COD', 'PREPAID']} value={form.paymentType} onChange={(v) => setForm({...form, paymentType: v})} />
+                <Select label="Payment_Mode" options={['COD', 'PREPAID']} value={form.paymentType} onChange={(v: string) => setForm({...form, paymentType: v})} />
                 <Input label="Total_Invoice_Value" type="number" value={form.amount} onChange={(v: number) => setForm({...form, amount: v})} />
                 <div className="grid grid-cols-2 gap-2">
                   <Input label="GST (%)" type="number" value={form.gst} onChange={(v: number) => setForm({...form, gst: v})} />
