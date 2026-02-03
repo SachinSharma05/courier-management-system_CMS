@@ -6,7 +6,21 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, ChevronLeft, ChevronRight, Package, Search, 
   MessageSquareWarning, Users, Truck, IndianRupee, UserCog, Shield, 
-  AlertTriangle, ClipboardList, Settings, Menu, X, Terminal, Activity
+  AlertTriangle, ClipboardList, Settings, Menu, X, Terminal, Activity,
+  BarChart3,
+  PlusCircle,
+  FileUp,
+  Calculator,
+  DollarSign,
+  Edit3,
+  Hash,
+  MapPin,
+  MapPinCheckIcon,
+  PackageSearch,
+  Printer,
+  ScanLine,
+  XCircle,
+  ChevronDown
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -23,7 +37,6 @@ const NAV_SECTIONS = [
     title: 'Entity_Management',
     items: [
       { label: 'Client_Nodes', href: '/admin/clients', icon: Users },
-      { label: 'Provider_Matrix', href: '/admin/providers', icon: Truck },
       { label: 'Pricing_Slabs', href: '/admin/pricing', icon: IndianRupee },
     ],
   },
@@ -45,10 +58,63 @@ const NAV_SECTIONS = [
   },
 ];
 
+const PROVIDER_CONFIG = [
+  {
+    name: 'Delhivery',
+    basePath: '/admin/providers/delhivery',
+    items: [
+      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
+      { key: 'create', label: 'CREATE_NODE', icon: PlusCircle },
+      { key: 'bulk', label: 'BULK_INGEST', icon: FileUp },
+      { key: 'cost', label: 'COST_ENGINE', icon: Calculator },
+      { key: 'pincode', label: 'SERVICE_MAP', icon: MapPin },
+      { key: 'label', label: 'PRINT_QUEUE', icon: Printer },
+      { key: 'update', label: 'PATCH_SHIPMENT', icon: Edit3 },
+      { key: 'ndr', label: 'NDR_REPORTS', icon: AlertTriangle },
+      { key: 'cancel', label: 'TERMINATE_ID', icon: XCircle },
+    ]
+  },
+  {
+    name: 'DTDC',
+    basePath: '/admin/providers/dtdc',
+    items: [
+      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
+      { key: 'create', label: 'CREATE_NODE', icon: PlusCircle },
+      { key: 'bulk', label: 'BULK_INGEST', icon: FileUp },
+      { key: 'cost', label: 'COST_ENGINE', icon: Calculator },
+      { key: 'pincode', label: 'SERVICE_MAP', icon: MapPin },
+      { key: 'label', label: 'PRINT_QUEUE', icon: Printer },
+      { key: 'ndr', label: 'NDR_REPORTS', icon: AlertTriangle },
+      { key: 'cancel', label: 'TERMINATE_ID', icon: XCircle },
+    ]
+  },
+  {
+    name: 'Maruti',
+    basePath: '/admin/providers/maruti',
+    items: [
+      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
+      { key: 'create/ecomm', label: 'E-COMM_BOOK', icon: PlusCircle },
+      { key: 'create/hyperlocal', label: 'HYPERLOCAL_BOOK', icon: PlusCircle },
+      { key: 'label', label: 'LABEL_INVOICE', icon: Printer },
+      { key: 'manifest', label: 'MANIFEST_SHIPPING', icon: Hash },
+      { key: 'tracking/ecomm', label: 'TRACK_ECOMM', icon: MapPin },
+      { key: 'tracking/hyperlocal', label: 'TRACK_HYPERLOCAL', icon: MapPin },
+      { key: 'pincode/ecomm', label: 'PINCODE_ECOMM', icon: MapPinCheckIcon },
+      { key: 'pincode/hyperlocal', label: 'PINCODE_HYPERLOCAL', icon: MapPinCheckIcon },
+      { key: 'cost', label: 'COST_CALCULATOR', icon: DollarSign },
+      { key: 'cancel', label: 'VOID_AWB', icon: XCircle },
+      { key: 'drs', label: 'DRS_CONSOLE', icon: Truck },
+      { key: 'prs', label: 'PRS_MANAGER', icon: PackageSearch },
+      { key: 'scan', label: 'OPS_SCANNER', icon: ScanLine },
+    ]
+  }
+];
+
 export function Sidebar() {
   const [isLocked, setIsLocked] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const pathname = usePathname();
 
   const isOpen = isLocked || isHovered;
@@ -59,7 +125,7 @@ export function Sidebar() {
       <div className="lg:hidden fixed top-4 left-4 z-[70]">
         <button 
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 bg-slate-900 text-white shadow-lg border border-slate-700"
+          className="p-2 bg-[#0f172a] text-white shadow-lg border border-slate-700 rounded-sm"
         >
           {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -76,7 +142,7 @@ export function Sidebar() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={clsx(
-          "fixed inset-y-0 left-0 z-[60] flex flex-col bg-slate-950 text-slate-400 transition-all duration-300 ease-in-out border-r border-slate-800",
+          "fixed inset-y-0 left-0 z-[60] flex flex-col bg-[#0f172a] text-slate-400 transition-all duration-300 ease-in-out border-r border-slate-800",
           "lg:sticky lg:top-0 lg:h-screen",
           isMobileOpen ? "w-64 translate-x-0" : "-translate-x-full lg:translate-x-0",
           isOpen ? "lg:w-64" : "lg:w-20"
@@ -85,14 +151,14 @@ export function Sidebar() {
         {/* DESKTOP LOCK TOGGLE */}
         <button 
           onClick={() => setIsLocked(!isLocked)}
-          className="absolute -right-3 top-12 z-[70] hidden lg:flex h-6 w-6 items-center justify-center bg-slate-900 border border-slate-700 text-white hover:bg-indigo-600 transition-colors shadow-xl"
+          className="absolute -right-3 top-12 z-[70] hidden lg:flex h-6 w-6 items-center justify-center bg-slate-800 border border-slate-700 text-white hover:bg-indigo-600 transition-all shadow-xl rounded-full"
         >
           {isLocked ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
         </button>
 
         {/* LOGO NODE */}
-        <div className="flex h-16 shrink-0 items-center px-5 border-b border-slate-900 bg-slate-950">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-600 rounded-sm font-black text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+        <div className="flex h-16 shrink-0 items-center px-5 border-b border-slate-800 bg-[#1e293b]/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-600 rounded-sm font-black text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]">
             CMS
           </div>
           <div className={clsx(
@@ -100,7 +166,7 @@ export function Sidebar() {
             (isOpen || isMobileOpen) ? "opacity-100" : "lg:opacity-0 lg:invisible"
           )}>
             <span className="text-xs font-black text-white uppercase tracking-[0.2em] leading-none">Command_Center</span>
-            <span className="text-[9px] font-bold text-slate-600 uppercase mt-1">Platform_Node_v1.0.4</span>
+            <span className="text-[9px] font-bold text-slate-500 uppercase mt-1">Platform_Node_v1.0.4</span>
           </div>
         </div>
 
@@ -117,13 +183,34 @@ export function Sidebar() {
             />
           </div>
 
+          {/* PROVIDER DROPDOWN SECTION */}
+          <div className="space-y-2">
+             <div className={clsx(
+                "px-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2 mb-2",
+                !isOpen && "lg:justify-center lg:px-0"
+             )}>
+               <div className="h-px w-2 bg-slate-700" /> {isOpen && "Provider_Stack"}
+             </div>
+             
+             {PROVIDER_CONFIG.map((provider) => (
+               <ProviderDropdown 
+                  key={provider.name}
+                  provider={provider}
+                  isOpen={isOpen || isMobileOpen}
+                  isExpanded={expandedProvider === provider.name}
+                  onToggle={() => setExpandedProvider(expandedProvider === provider.name ? null : provider.name)}
+                  pathname={pathname}
+               />
+             ))}
+          </div>
+
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="space-y-2">
               <div className={clsx(
-                "px-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 transition-opacity flex items-center gap-2",
+                "px-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 transition-opacity flex items-center gap-2",
                 (isOpen || isMobileOpen) ? "opacity-100" : "lg:opacity-0"
               )}>
-                <div className="h-px w-2 bg-slate-800" /> {section.title}
+                <div className="h-px w-2 bg-slate-700" /> {section.title}
               </div>
               <div className="space-y-1">
                 {section.items.map((item) => (
@@ -140,24 +227,74 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {/* OPERATOR STATUS FOOTER */}
-        <div className="mt-auto border-t border-slate-900 p-4 bg-slate-950/50">
+        {/* OPERATOR STATUS FOOTER (MAX READABILITY) */}
+        <div className="mt-auto border-t border-slate-800 p-4 bg-slate-900/30">
           <div className={clsx(
-            "flex items-center gap-3 transition-all duration-300 bg-slate-900/50 p-2 border border-slate-800/50 rounded-sm",
+            "flex items-center gap-3 transition-all duration-300 bg-slate-900/50 p-2 border border-slate-800 rounded-sm",
             (isOpen || isMobileOpen) ? "opacity-100" : "lg:opacity-0 lg:invisible"
           )}>
-            <div className="h-8 w-8 bg-slate-800 flex items-center justify-center text-[10px] font-black text-indigo-400 border border-slate-700">SA</div>
+            <div className="h-9 w-9 bg-slate-800 flex items-center justify-center text-[11px] font-black text-white border border-slate-700 rounded-sm shadow-inner">
+              SA
+            </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-white uppercase tracking-tight">Super_Admin</span>
-              <div className="flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-bold text-slate-500 uppercase">Status: Online</span>
+              <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none">Super_Admin</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Online</span>
               </div>
             </div>
           </div>
         </div>
       </aside>
     </>
+  );
+}
+
+function ProviderDropdown({ provider, isOpen, isExpanded, onToggle, pathname }: any) {
+  const isActive = pathname.startsWith(provider.basePath);
+
+  return (
+    <div className="space-y-1">
+      <button 
+        onClick={onToggle}
+        className={clsx(
+          "w-full flex items-center gap-4 px-3 py-2.5 transition-all duration-200 border-l-2 group",
+          isActive ? "text-white border-indigo-500 bg-indigo-500/10" : "border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
+        )}
+      >
+        <Truck size={16} className={clsx(isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300")} />
+        {isOpen && (
+          <>
+            <span className="flex-1 text-left text-[11px] font-black uppercase tracking-widest leading-none">{provider.name}</span>
+            <ChevronDown size={12} className={clsx("transition-transform duration-200", isExpanded && "rotate-180")} />
+          </>
+        )}
+      </button>
+
+      {isExpanded && isOpen && (
+        <div className="ml-4 border-l border-slate-800 space-y-0.5 mt-1 animate-in slide-in-from-top-2 duration-200">
+          {provider.items.map((item: any) => {
+            const fullPath = `${provider.basePath}${item.key ? `/${item.key}` : ''}`;
+            const isCurrent = pathname === fullPath;
+            return (
+              <Link
+                key={item.label}
+                href={fullPath}
+                className={clsx(
+                  "flex items-center gap-3 pl-6 pr-3 py-2 text-[10px] font-bold uppercase transition-all",
+                  isCurrent 
+                    ? "text-indigo-400 bg-indigo-500/10" 
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <item.icon size={12} className={isCurrent ? "text-indigo-400" : "text-slate-500"} />
+                <span className="truncate tracking-wide">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -170,19 +307,19 @@ function SidebarLink({ href, icon: Icon, label, active, isOpen, onClick }: any) 
         'group relative flex items-center gap-4 px-3 py-2.5 transition-all duration-200 border-l-2',
         active 
             ? 'bg-indigo-600/10 border-indigo-600 text-white shadow-[inset_4px_0_10px_rgba(79,70,229,0.1)]' 
-            : 'border-transparent hover:bg-slate-900/50 hover:text-slate-200'
+            : 'border-transparent hover:bg-slate-800/50 text-slate-400 hover:text-white'
       )}
     >
       <Icon className={clsx("h-4 w-4 shrink-0 transition-colors", active ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300")} />
       <span className={clsx(
-        "truncate text-[11px] font-black uppercase tracking-widest transition-all duration-300",
+        "truncate text-[11px] font-bold uppercase tracking-widest transition-all duration-300",
         isOpen ? "opacity-100 translate-x-0" : "lg:opacity-0 lg:-translate-x-4 lg:invisible"
       )}>
         {label}
       </span>
       {active && isOpen && (
-          <div className="absolute right-2">
-            <Activity size={10} className="text-indigo-500/50 animate-pulse" />
+          <div className="absolute right-3">
+            <div className="h-1 w-1 rounded-full bg-indigo-500 animate-ping" />
           </div>
       )}
     </Link>

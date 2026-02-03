@@ -10,19 +10,7 @@ export class DashboardService {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%deliver%' AND LOWER(status_group) NOT LIKE '%rto%')::int AS delivered,
-        COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%rto%')::int AS rto,
-        
-        -- NDR / DLQ Count
-        COUNT(*) FILTER (
-          WHERE LOWER(status_group) SIMILAR TO '%(undelivered|not delivered|ndr|wrong pincode|non serviceable|delivery attempted|refused|mis route)%'
-        )::int AS ndr_count,
-
-        -- OPTIMIZED: Avg TAT only for Completed Shipments (Delivered or RTO)
-        ROUND(AVG(EXTRACT(EPOCH FROM (last_status_at - created_at))/86400) 
-          FILTER (WHERE LOWER(status_group) LIKE '%deliver%' OR LOWER(status_group) LIKE '%rto%')::numeric, 1) AS global_tat,
-      
-        -- Aggregator Margin
-        (COUNT(*) * 10)::int AS total_margin
+        COUNT(*) FILTER (WHERE LOWER(status_group) LIKE '%rto%')::int AS rto
       FROM consignments
     `);
 
@@ -39,9 +27,6 @@ export class DashboardService {
       inTransit: Number(summary.total) - Number(summary.delivered) - Number(summary.rto), // Calculated for consistency
       rto: Number(summary.rto),
       activeClients: Number(clientsCount[0].count),
-      avgTat: summary.global_tat ? `${summary.global_tat} Days` : '—',
-      margin: `₹${Number(summary.total_margin).toLocaleString()}`,
-      dlqCount: Number(summary.ndr_count),
     };
   }
 

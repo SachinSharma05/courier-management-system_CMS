@@ -24,6 +24,7 @@ import { RbacModule } from './rbac/rbac.module';
 import { DelhiveryC2CModule } from './providers/delhivery/delhivery.module';
 import { DtdcModule } from './providers/dtdc/dtdc.module';
 import { ComplaintsModule } from './admin/complaints/complaints.module';
+import { MarutiModule } from './providers/maruti/maruti.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ComplaintsModule } from './admin/complaints/complaints.module';
     DelhiveryC2CModule,
     DtdcModule,
     ComplaintsModule,
+    MarutiModule,
   ],
   providers:[
     {
