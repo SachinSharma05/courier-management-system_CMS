@@ -138,7 +138,7 @@ export default function MarutiHyperlocalBooking() {
              <div className="p-4 space-y-3">
                 {form.lineItems.map((item: any, idx: number) => (
                    <div key={idx} className="grid grid-cols-6 gap-2 items-center bg-slate-50 p-2 border border-slate-100">
-                      <div className="col-span-2"><Input label="Item_Name" value={item.name} onChange={(v) => {
+                      <div className="col-span-2"><Input label="Item_Name" value={item.name} onChange={(v: string) => {
                         const itm = [...form.lineItems]; itm[idx].name = v; setForm({...form, lineItems: itm});
                       }} /></div>
                       <Input label="SKU" value={item.sku} onChange={(v: string) => {
