@@ -144,8 +144,8 @@ export interface MarutiHyperlocalServiceabilityRequest {
 
 export interface MarutiEcommRateRequest {
   deliveryPromise: string;
-  fromPincode: number;
-  toPincode: number;
+  fromPincode: string;
+  toPincode: string;
   weight: number;
   length?: number;
   width?: number;

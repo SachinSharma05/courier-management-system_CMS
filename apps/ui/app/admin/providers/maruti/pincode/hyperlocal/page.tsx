@@ -16,8 +16,28 @@ export default function HyperlocalServiceability() {
 
   const [form, setForm] = useState({
     orderType: "HYPERLOCAL",
-    pickupAddress: { city: '', zip: '', latitude: '', longitude: '' },
-    shippingAddress: { city: '', zip: '', latitude: '', longitude: '' }
+    pickupAddress: { 
+      name: '', 
+      phone: '', 
+      address1: '', 
+      city: '', 
+      state: '', 
+      country: '', 
+      zip: '', 
+      latitude: 0, 
+      longitude: 0 
+    },
+    shippingAddress: { 
+      name: '', 
+      phone: '', 
+      address1: '', 
+      city: '', 
+      state: '', 
+      country: '', 
+      zip: '', 
+      latitude: 0, 
+      longitude: 0 
+    }
   });
 
   const handleCheck = async (e: React.FormEvent) => {
@@ -58,10 +78,15 @@ export default function HyperlocalServiceability() {
               <div className="space-y-4">
                 <SectionHeader icon={<Navigation size={14}/>} title="01_Pickup_Origin_Node" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Latitude" value={form.pickupAddress.latitude} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, latitude: v}})} />
-                  <Input label="Longitude" value={form.pickupAddress.longitude} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, longitude: v}})} />
-                  <Input label="City" value={form.pickupAddress.city} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, city: v}})} />
-                  <Input label="Zip_Code" value={form.pickupAddress.zip} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, zip: v}})} />
+                  <Input label="Name" value={form.pickupAddress.name} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, name: v}})} />
+                  <Input label="Phone" value={form.pickupAddress.phone} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, phone: v}})} />
+                  <Input label="Address1" value={form.pickupAddress.address1} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, address1: v}})} />
+                  <Input label="City" value={form.pickupAddress.city} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, city: v}})} />
+                  <Input label="State" value={form.pickupAddress.state} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, state: v}})} />
+                  <Input label="Country" value={form.pickupAddress.country} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, country: v}})} />
+                  <Input label="Zip_Code" value={form.pickupAddress.zip} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, zip: v}})} />
+                  <Input label="Latitude" value={form.pickupAddress.latitude} onChange={(v: number) => setForm({...form, pickupAddress: {...form.pickupAddress, latitude: v}})} />
+                  <Input label="Longitude" value={form.pickupAddress.longitude} onChange={(v: number) => setForm({...form, pickupAddress: {...form.pickupAddress, longitude: v}})} />
                 </div>
               </div>
 
@@ -75,10 +100,15 @@ export default function HyperlocalServiceability() {
               <div className="space-y-4">
                 <SectionHeader icon={<MapPin size={14}/>} title="02_Delivery_Destination_Node" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Latitude" value={form.shippingAddress.latitude} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, latitude: v}})} />
-                  <Input label="Longitude" value={form.shippingAddress.longitude} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, longitude: v}})} />
-                  <Input label="City" value={form.shippingAddress.city} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, city: v}})} />
-                  <Input label="Zip_Code" value={form.shippingAddress.zip} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, zip: v}})} />
+                  <Input label="Name" value={form.shippingAddress.name} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, name: v}})} />
+                  <Input label="Phone" value={form.shippingAddress.phone} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, phone: v}})} />
+                  <Input label="Address1" value={form.shippingAddress.address1} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, address1: v}})} />
+                  <Input label="City" value={form.shippingAddress.city} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, city: v}})} />
+                  <Input label="State" value={form.shippingAddress.state} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, state: v}})} />
+                  <Input label="Country" value={form.shippingAddress.country} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, country: v}})} />
+                  <Input label="Zip_Code" value={form.shippingAddress.zip} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, zip: v}})} />
+                  <Input label="Latitude" value={form.shippingAddress.latitude} onChange={(v: number) => setForm({...form, shippingAddress: {...form.shippingAddress, latitude: v}})} />
+                  <Input label="Longitude" value={form.shippingAddress.longitude} onChange={(v: number) => setForm({...form, shippingAddress: {...form.shippingAddress, longitude: v}})} />
                 </div>
               </div>
 

@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import { 
   Zap, MapPin, Navigation, ShoppingBag, 
-  Trash2, Plus, Save, Clock, Store
+  Trash2, Plus, Clock, Store
 } from 'lucide-react';
-import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
 
 export default function MarutiHyperlocalBooking() {
@@ -71,8 +70,8 @@ export default function MarutiHyperlocalBooking() {
         <div className="lg:col-span-4 space-y-6">
           <FormSection title="Store_Context" icon={<Store size={14}/>}>
             <div className="p-4 space-y-4">
-              <Input label="External_Order_No" value={form.orderNumber} onChange={(v) => setForm({...form, orderNumber: v})} />
-              <Input label="Store_Channel_Code" value={form.channelCode} onChange={(v) => setForm({...form, channelCode: v})} />
+              <Input label="External_Order_No" value={form.orderNumber} onChange={(v: string) => setForm({...form, orderNumber: v})} />
+              <Input label="Store_Channel_Code" value={form.channelCode} onChange={(v: string) => setForm({...form, channelCode: v})} />
               <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200">
                  <label className="text-[10px] font-black text-slate-500 uppercase">Returnable_Order</label>
                  <input 
@@ -91,9 +90,9 @@ export default function MarutiHyperlocalBooking() {
                  label="Delivery_Promise" 
                  options={['90_MIN_DELIVERY', 'SAME_DAY', '2_HOUR_EXPRESS']} 
                  value={form.deliveryPromise} 
-                 onChange={(v) => setForm({...form, deliveryPromise: v})} 
+                 onChange={(v: string) => setForm({...form, deliveryPromise: v})} 
                />
-               <Input label="Instruction_Remarks" value={form.remarks} onChange={(v) => setForm({...form, remarks: v})} />
+               <Input label="Instruction_Remarks" value={form.remarks} onChange={(v: string) => setForm({...form, remarks: v})} />
              </div>
           </FormSection>
         </div>
@@ -104,10 +103,10 @@ export default function MarutiHyperlocalBooking() {
             {/* PICKUP */}
             <FormSection title="Pickup_Hub (Geospatial)" icon={<Navigation size={14}/>}>
               <div className="p-4 space-y-3">
-                <Input label="Hub_Name" value={form.pickupAddress.name} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, name: v}})} />
+                <Input label="Hub_Name" value={form.pickupAddress.name} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, name: v}})} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input label="Lat" value={form.pickupAddress.latitude} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, latitude: v}})} />
-                  <Input label="Long" value={form.pickupAddress.longitude} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, longitude: v}})} />
+                  <Input label="Lat" value={form.pickupAddress.latitude} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, latitude: v}})} />
+                  <Input label="Long" value={form.pickupAddress.longitude} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, longitude: v}})} />
                 </div>
                 <textarea 
                    placeholder="WAREHOUSE_STREET_LEVEL_ADDRESS"
@@ -120,10 +119,10 @@ export default function MarutiHyperlocalBooking() {
             {/* DELIVERY */}
             <FormSection title="Customer_Drop (Geospatial)" icon={<MapPin size={14}/>}>
               <div className="p-4 space-y-3">
-                <Input label="Customer_Name" value={form.shippingAddress.name} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, name: v}})} />
+                <Input label="Customer_Name" value={form.shippingAddress.name} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, name: v}})} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input label="Lat" value={form.shippingAddress.latitude} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, latitude: v}})} />
-                  <Input label="Long" value={form.shippingAddress.longitude} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, longitude: v}})} />
+                  <Input label="Lat" value={form.shippingAddress.latitude} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, latitude: v}})} />
+                  <Input label="Long" value={form.shippingAddress.longitude} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, longitude: v}})} />
                 </div>
                 <textarea 
                    placeholder="DESTINATION_STREET_LEVEL_ADDRESS"
@@ -142,13 +141,13 @@ export default function MarutiHyperlocalBooking() {
                       <div className="col-span-2"><Input label="Item_Name" value={item.name} onChange={(v) => {
                         const itm = [...form.lineItems]; itm[idx].name = v; setForm({...form, lineItems: itm});
                       }} /></div>
-                      <Input label="SKU" value={item.sku} onChange={(v) => {
+                      <Input label="SKU" value={item.sku} onChange={(v: string) => {
                         const itm = [...form.lineItems]; itm[idx].sku = v; setForm({...form, lineItems: itm});
                       }} />
-                      <Input label="Price" type="number" value={item.price} onChange={(v) => {
+                      <Input label="Price" type="number" value={item.price} onChange={(v: number) => {
                         const itm = [...form.lineItems]; itm[idx].price = v; setForm({...form, lineItems: itm});
                       }} />
-                      <Input label="Qty" type="number" value={item.quantity} onChange={(v) => {
+                      <Input label="Qty" type="number" value={item.quantity} onChange={(v: number) => {
                         const itm = [...form.lineItems]; itm[idx].quantity = v; setForm({...form, lineItems: itm});
                       }} />
                       <button onClick={() => {

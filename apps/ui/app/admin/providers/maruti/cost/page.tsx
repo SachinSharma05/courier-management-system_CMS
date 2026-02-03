@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Calculator, 
   Scale, 
   Box, 
   IndianRupee, 
-  Info, 
   Zap, 
   ArrowRight,
   Loader2,
-  AlertCircle
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
@@ -69,8 +67,8 @@ export default function MarutiRateCalculator() {
               
               {/* GEOGRAPHY SLAB */}
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Origin_Pincode" value={form.fromPincode} onChange={(v) => setForm({...form, fromPincode: v})} />
-                <Input label="Destination_Pincode" value={form.toPincode} onChange={(v) => setForm({...form, toPincode: v})} />
+                <Input label="Origin_Pincode" value={form.fromPincode} onChange={(v: string) => setForm({...form, fromPincode: v})} />
+                <Input label="Destination_Pincode" value={form.toPincode} onChange={(v: string) => setForm({...form, toPincode: v})} />
               </div>
 
               {/* SERVICE TYPE */}
@@ -95,10 +93,10 @@ export default function MarutiRateCalculator() {
 
               {/* DIMENSIONS & WEIGHT */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 border border-slate-100">
-                <Input label="Weight (Grams)" type="number" value={form.weight} onChange={(v) => setForm({...form, weight: v})} />
-                <Input label="Length (CM)" type="number" value={form.length} onChange={(v) => setForm({...form, length: v})} />
-                <Input label="Width (CM)" type="number" value={form.width} onChange={(v) => setForm({...form, width: v})} />
-                <Input label="Height (CM)" type="number" value={form.height} onChange={(v) => setForm({...form, height: v})} />
+                <Input label="Weight (Grams)" type="number" value={form.weight} onChange={(v: string) => setForm({...form, weight: parseFloat(v) || 0})} />
+                <Input label="Length (CM)" type="number" value={form.length} onChange={(v: string) => setForm({...form, length: parseFloat(v) || 0})} />
+                <Input label="Width (CM)" type="number" value={form.width} onChange={(v: string) => setForm({...form, width: parseFloat(v) || 0})} />
+                <Input label="Height (CM)" type="number" value={form.height} onChange={(v: string) => setForm({...form, height: parseFloat(v) || 0})} />
               </div>
 
               <button 

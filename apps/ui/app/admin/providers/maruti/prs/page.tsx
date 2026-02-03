@@ -2,9 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-  PackageSearch, MapPin, Truck, ScanLine, 
-  History, CheckCircle, ArrowUpRight, 
-  User, Building2, Save, Loader2, RefreshCcw
+  PackageSearch, Truck, ScanLine, CheckCircle, ArrowUpRight, Loader2, RefreshCcw
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
@@ -21,11 +19,14 @@ export default function MarutiPRSPage() {
   const [newPrs, setNewPrs] = useState({
     awbNumberList: [] as string[],
     sellerInfo: { name: "", mobile: "", companyName: "" },
-    pickupInfo: { city: "", zip: "", address1: "" }
+    pickupInfo: { name: "", mobile: "", city: "", zip: "", address1: "", state: "", geoLocation: { cordinates: [0, 0] } },
+    dropInfo: { name: "", mobile: "", city: "", zip: "", address1: "", state: "", geoLocation: { cordinates: [0, 0] } },
+    source: ""
   });
 
   // 2. Scan Update State
   const [scanList, setScanList] = useState("");
+  const [deliveryAgentId, setDeliveryAgentId] = useState("");
 
   // HANDLERS
   const handleFetchPRS = async () => {
@@ -83,7 +84,7 @@ export default function MarutiPRSPage() {
             <section className="space-y-3">
               <p className="text-[9px] font-black text-indigo-600 uppercase">Seller_Entity</p>
               <div className="grid grid-cols-1 gap-2">
-                <Input label="Company_Name" placeholder="Test Pvt Ltd" onChange={(v) => setNewPrs({...newPrs, sellerInfo: {...newPrs.sellerInfo, companyName: v}})} />
+                <Input label="Company_Name" placeholder="Test Pvt Ltd" onChange={(v: string) => setNewPrs({...newPrs, sellerInfo: {...newPrs.sellerInfo, companyName: v}})} />
                 <div className="grid grid-cols-2 gap-2">
                   <Input label="Contact_Name" placeholder="Rohan" />
                   <Input label="Mobile" placeholder="987xxxxxxx" />
@@ -92,10 +93,15 @@ export default function MarutiPRSPage() {
             </section>
             <section className="space-y-3 pt-4">
               <p className="text-[9px] font-black text-indigo-600 uppercase">Pickup_Coordinate_Node</p>
-              <Input label="Street_Address" placeholder="34, Floor 2" />
+              <Input label="Contact_Name" placeholder="John" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, name: v}})} />
+              <Input label="Mobile" placeholder="987xxxxxxx" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, mobile: v}})} />
+              <Input label="Street_Address" placeholder="34, Floor 2" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, address1: v}})} />
               <div className="grid grid-cols-2 gap-2">
-                <Input label="City" placeholder="Ahmedabad" />
-                <Input label="Zip_Code" placeholder="380015" />
+                <Input label="City" placeholder="Ahmedabad" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, city: v}})} />
+                <Input label="State" placeholder="Gujarat" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, state: v}})} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Zip_Code" placeholder="380015" onChange={(v: string) => setNewPrs({...newPrs, pickupInfo: {...newPrs.pickupInfo, zip: v}})} />
               </div>
             </section>
             <button 
@@ -117,6 +123,13 @@ export default function MarutiPRSPage() {
           </div>
           
           <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Delivery_Agent_ID</label>
+            <input 
+              className="w-full bg-white border-2 border-slate-200 p-2 font-mono text-xs font-black outline-none focus:border-amber-500 mb-3"
+              placeholder="AGENT_ID..."
+              value={deliveryAgentId}
+              onChange={(e) => setDeliveryAgentId(e.target.value)}
+            />
             <label className="text-[9px] font-black text-slate-500 uppercase block mb-1">Batch_Scan_AWBs (Comma Separated)</label>
             <textarea 
               rows={3}
@@ -126,7 +139,7 @@ export default function MarutiPRSPage() {
               onChange={(e) => setScanList(e.target.value)}
             />
             <button 
-              onClick={() => updatePrsScanned({ prsNumber: activePrsId, awbNumberList: scanList.split(',') })}
+              onClick={() => updatePrsScanned({ prsNumber: activePrsId, awbNumberList: scanList.split(','), deliveryAgentId })}
               className="mt-2 w-full bg-slate-900 text-white py-2 text-[10px] font-black uppercase tracking-widest hover:bg-black"
             >
               Update_Scanned_Inventory

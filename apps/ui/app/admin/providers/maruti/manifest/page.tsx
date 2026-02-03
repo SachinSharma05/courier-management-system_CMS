@@ -38,8 +38,8 @@ export default function MarutiManifestPage() {
     setLoading(true);
     
     const payload = {
-      awbNumber: manifestList.filter(i => i.type === 'AWB').map(i => i.id),
-      cAwbNumber: manifestList.filter(i => i.type === 'CAWB').map(i => i.id)
+      awbNumber: manifestList.filter(i => i.type === 'AWB').map(i => i.id).join(','),
+      cAwbNumber: manifestList.filter(i => i.type === 'CAWB').map(i => i.id).join(',')
     };
 
     try {

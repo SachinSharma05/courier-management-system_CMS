@@ -17,7 +17,7 @@ import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
 
 export default function MarutiServiceability() {
-  const { checkServiceability } = useMaruti();
+  const { checkEcommServiceability } = useMaruti();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [form, setForm] = useState({
@@ -32,7 +32,7 @@ export default function MarutiServiceability() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await checkServiceability(form);
+      const res = await checkEcommServiceability(form);
       setResult(res.data);
     } catch (err) {
       setResult({ status: 'FAILED', message: 'ROUTE_NOT_SERVICEABLE' });
@@ -65,7 +65,7 @@ export default function MarutiServiceability() {
                   label="Origin_Pincode" 
                   placeholder="380051"
                   value={form.fromPincode}
-                  onChange={(v) => setForm({...form, fromPincode: v})}
+                  onChange={(v: string) => setForm({...form, fromPincode: v})}
                 />
                 <div className="flex justify-center -my-2 opacity-30">
                   <ArrowRightLeft size={16} className="rotate-90" />
@@ -74,7 +74,7 @@ export default function MarutiServiceability() {
                   label="Destination_Pincode" 
                   placeholder="440010"
                   value={form.toPincode}
-                  onChange={(v) => setForm({...form, toPincode: v})}
+                  onChange={(v: string) => setForm({...form, toPincode: v})}
                 />
               </div>
 

@@ -2,9 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Zap, MapPin, Navigation, Clock, 
-  Phone, User, ShieldCheck, Timer,
-  Search, Loader2, AlertCircle
+  Zap, MapPin, Navigation, Phone, User, ShieldCheck, Timer, Loader2 
 } from 'lucide-react';
 import { useMaruti } from '@/hooks/useMaruti';
 

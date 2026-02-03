@@ -24,7 +24,7 @@ export default function MarutiLabelInvoicePage() {
 
     try {
       // API expects either awb or cawb in params
-      const response = await getLabelInvoice({ awb: query }); 
+      const response = await getLabelInvoice({ awb: query } as any); 
       
       if (response.data?.url) {
         setResult({ 

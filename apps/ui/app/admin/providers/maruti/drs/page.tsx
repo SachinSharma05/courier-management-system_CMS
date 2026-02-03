@@ -2,11 +2,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Scan, Truck, ClipboardList, CheckCircle2, 
-  Camera, MapPin, UserCheck, ChevronRight,
-  PackageCheck, Save, Loader2, Plus, Trash2
+  Scan, ClipboardList, CheckCircle2, 
+  Camera, MapPin, UserCheck, Save, Loader2, Trash2
 } from 'lucide-react';
-import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
 
 export default function MarutiDRSCommander() {
@@ -41,7 +39,7 @@ export default function MarutiDRSCommander() {
     setLoading(true);
     try {
       // Payload 1: validateDrsAwbs
-      const res = await validateDrsAwbs({ ...drsConfig, awbList: [awbInput] });
+      const res = await validateDrsAwbs({ ...drsConfig, awbList: [awbInput], type: drsConfig.type as 'ECOM' | 'NORMAL' | 'HYPERLOCAL' });
       setValidatedList(prev => [...new Set([...prev, awbInput])]);
       setAwbInput("");
     } catch (err) { alert("AWB_VALIDATION_FAILED: Check Pincode/Status"); }
@@ -52,11 +50,31 @@ export default function MarutiDRSCommander() {
     setLoading(true);
     try {
       // Payload 3: createDrs
-      const res = await createDrs({ ...drsConfig, awbList: validatedList });
+      const res = await createDrs({ ...drsConfig, awbList: validatedList, type: drsConfig.type as 'ECOM' | 'HYPERLOCAL' });
       setActiveDrsId(res.data?.drsId || "DRS-8829-X");
       alert("DRS_COMMITTED_TO_FLEET");
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  const handleUpdateStatus = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const payload = {
+          ...podData,
+          location: `${pos.coords.latitude},${pos.coords.longitude}`,
+          status_timestamp: new Date().toISOString(),
+        };
+        updateDrsStatus(payload);
+      });
+    } else {
+      // Fallback if GPS is unavailable
+      updateDrsStatus({
+        ...podData,
+        location: "MANUAL_ENTRY_BRANCH",
+        status_timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   return (
@@ -166,8 +184,8 @@ export default function MarutiDRSCommander() {
                 />
                 
                 <div className="grid grid-cols-2 gap-4">
-                   <MiniInput label="Receiver_Name" value={podData.receiver_name} onChange={(v) => setPodData({...podData, receiver_name: v})} />
-                   <MiniInput label="Receiver_Phone" value={podData.receiver_phone} onChange={(v) => setPodData({...podData, receiver_phone: v})} />
+                   <MiniInput label="Receiver_Name" value={podData.receiver_name} onChange={(v: string) => setPodData({...podData, receiver_name: v})} />
+                   <MiniInput label="Receiver_Phone" value={podData.receiver_phone} onChange={(v: string) => setPodData({...podData, receiver_phone: v})} />
                 </div>
 
                 <div className="flex items-center gap-3 py-2">
@@ -180,7 +198,7 @@ export default function MarutiDRSCommander() {
                 </button>
 
                 <button 
-                  onClick={() => updateDrsStatus(podData)}
+                  onClick={handleUpdateStatus}
                   className="w-full bg-emerald-600 text-white py-3 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg"
                 >
                    Update_Mission_Status

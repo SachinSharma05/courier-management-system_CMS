@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Package, MapPin, CreditCard, Plus, Trash2, 
-  Save, Truck, ChevronRight, Info, 
+  Save, Truck, Info, 
   Hash
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -83,17 +83,17 @@ export default function CreateMarutiOrder() {
           {/* SECTION 1: CORE TELEMETRY */}
           <FormSection title="01_Order_Telemetry" icon={<Info size={14}/>}>
             <div className="grid grid-cols-2 gap-4 p-4">
-              <Input label="External_Order_ID" value={form.orderId} onChange={(v) => setForm({...form, orderId: v})} />
+              <Input label="External_Order_ID" value={form.orderId} onChange={(v: string) => setForm({...form, orderId: v})} />
               <Select 
                 label="Order_Subtype" 
                 options={['FORWARD', 'REVERSE']} 
                 value={form.orderSubtype} 
-                onChange={(v) => setForm({...form, orderSubtype: v})} 
+                onChange={(v: string) => setForm({...form, orderSubtype: v})} 
               />
               <div className="grid grid-cols-3 gap-2 col-span-2">
-                <Input label="Length (cm)" type="number" value={form.length} onChange={(v) => setForm({...form, length: v})} />
-                <Input label="Width (cm)" type="number" value={form.width} onChange={(v) => setForm({...form, width: v})} />
-                <Input label="Height (cm)" type="number" value={form.height} onChange={(v) => setForm({...form, height: v})} />
+                <Input label="Length (cm)" type="number" value={form.length} onChange={(v: string) => setForm({...form, length: v})} />
+                <Input label="Width (cm)" type="number" value={form.width} onChange={(v: string) => setForm({...form, width: v})} />
+                <Input label="Height (cm)" type="number" value={form.height} onChange={(v: string) => setForm({...form, height: v})} />
               </div>
             </div>
           </FormSection>
@@ -104,17 +104,17 @@ export default function CreateMarutiOrder() {
               {form.lineItems.map((item: any, idx: number) => (
                 <div key={idx} className="flex gap-2 items-end border-b border-slate-100 pb-4 group">
                    <div className="flex-1 grid grid-cols-4 gap-2">
-                      <Input label="SKU" value={item.sku} onChange={(v) => {
+                      <Input label="SKU" value={item.sku} onChange={(v: string) => {
                         const items = [...form.lineItems];
                         items[idx].sku = v;
                         setForm({...form, lineItems: items});
                       }} />
-                      <Input label="Item_Name" className="col-span-2" value={item.name} onChange={(v) => {
+                      <Input label="Item_Name" className="col-span-2" value={item.name} onChange={(v: string) => {
                         const items = [...form.lineItems];
                         items[idx].name = v;
                         setForm({...form, lineItems: items});
                       }} />
-                      <Input label="Qty" type="number" value={item.quantity} onChange={(v) => {
+                      <Input label="Qty" type="number" value={item.quantity} onChange={(v: number) => {
                         const items = [...form.lineItems];
                         items[idx].quantity = v;
                         setForm({...form, lineItems: items});
@@ -135,9 +135,9 @@ export default function CreateMarutiOrder() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormSection title="Pickup_Source" icon={<MapPin size={14}/>}>
               <div className="p-4 space-y-3">
-                <Input label="Contact_Name" value={form.pickupAddress.name} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, name: v}})} />
-                <Input label="Phone" value={form.pickupAddress.phone} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, phone: v}})} />
-                <Input label="Zip_Code" value={form.pickupAddress.zip} onChange={(v) => setForm({...form, pickupAddress: {...form.pickupAddress, zip: v}})} />
+                <Input label="Contact_Name" value={form.pickupAddress.name} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, name: v}})} />
+                <Input label="Phone" value={form.pickupAddress.phone} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, phone: v}})} />
+                <Input label="Zip_Code" value={form.pickupAddress.zip} onChange={(v: string) => setForm({...form, pickupAddress: {...form.pickupAddress, zip: v}})} />
                 <textarea 
                    placeholder="FULL_ADDRESS_STREET_HOUSE_NO"
                    className="w-full text-[11px] font-bold p-2 bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 min-h-[80px]"
@@ -148,9 +148,9 @@ export default function CreateMarutiOrder() {
 
             <FormSection title="Delivery_Destination" icon={<Truck size={14}/>}>
               <div className="p-4 space-y-3">
-                <Input label="Customer_Name" value={form.shippingAddress.name} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, name: v}})} />
-                <Input label="Phone" value={form.shippingAddress.phone} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, phone: v}})} />
-                <Input label="Zip_Code" value={form.shippingAddress.zip} onChange={(v) => setForm({...form, shippingAddress: {...form.shippingAddress, zip: v}})} />
+                <Input label="Customer_Name" value={form.shippingAddress.name} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, name: v}})} />
+                <Input label="Phone" value={form.shippingAddress.phone} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, phone: v}})} />
+                <Input label="Zip_Code" value={form.shippingAddress.zip} onChange={(v: string) => setForm({...form, shippingAddress: {...form.shippingAddress, zip: v}})} />
                 <textarea 
                    placeholder="STREET_LOCALITY_LANDMARK"
                    className="w-full text-[11px] font-bold p-2 bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 min-h-[80px]"
@@ -166,10 +166,10 @@ export default function CreateMarutiOrder() {
            <FormSection title="Financial_Config" icon={<CreditCard size={14}/>}>
               <div className="p-4 space-y-4">
                 <Select label="Payment_Mode" options={['COD', 'PREPAID']} value={form.paymentType} onChange={(v) => setForm({...form, paymentType: v})} />
-                <Input label="Total_Invoice_Value" type="number" value={form.amount} onChange={(v) => setForm({...form, amount: v})} />
+                <Input label="Total_Invoice_Value" type="number" value={form.amount} onChange={(v: number) => setForm({...form, amount: v})} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input label="GST (%)" type="number" value={form.gst} onChange={(v) => setForm({...form, gst: v})} />
-                  <Input label="Discount" type="number" value={form.discount} onChange={(v) => setForm({...form, discount: v})} />
+                  <Input label="GST (%)" type="number" value={form.gst} onChange={(v: number) => setForm({...form, gst: v})} />
+                  <Input label="Discount" type="number" value={form.discount} onChange={(v: number) => setForm({...form, discount: v})} />
                 </div>
               </div>
            </FormSection>
