@@ -67,8 +67,8 @@ export default function MarutiRateCalculator() {
               
               {/* GEOGRAPHY SLAB */}
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Origin_Pincode" value={form.fromPincode} onChange={(v: string) => setForm({...form, fromPincode: v})} />
-                <Input label="Destination_Pincode" value={form.toPincode} onChange={(v: string) => setForm({...form, toPincode: v})} />
+                <Input label="Origin_Pincode" value={form.fromPincode} onChange={(v: number) => setForm({...form, fromPincode: v})} />
+                <Input label="Destination_Pincode" value={form.toPincode} onChange={(v: number) => setForm({...form, toPincode: v})} />
               </div>
 
               {/* SERVICE TYPE */}
