@@ -6,38 +6,38 @@ export function useMaruti() {
   const checkEcommServiceability = (
     payload: MarutiEcommServiceabilityRequest,
   ) =>
-    api.post('/admin/maruti/serviceability/ecomm', payload);
+    api.post('/admin/providers/maruti/serviceability', payload);
 
   const checkHyperlocalServiceability = (
     payload: MarutiHyperlocalServiceabilityRequest,
   ) =>
-    api.post('/admin/maruti/serviceability/hyperlocal', payload);
+    api.post('/admin/providers/maruti/serviceability/hyperlocal', payload);
 
   const calculateEcommRate = (
     payload: MarutiEcommRateRequest,
   ) =>
-    api.post('/admin/maruti/rate/ecomm', payload);
+    api.post('/admin/providers/maruti/rate/ecomm', payload);
 
   const trackOrder = (awb: string) =>
-    api.get(`/admin/maruti/tracking/${awb}`);
+    api.get(`/admin/providers/maruti/tracking/${awb}`);
 
   const createEcommOrder = (
     payload: MarutiBookingRequest,
   ) =>
-    api.post('/admin/maruti/orders/ecomm', payload);
+    api.post('/admin/providers/maruti/orders/ecomm', payload);
 
   const createHyperlocalOrder = (
     payload: MarutiBookingRequest,
   ) =>
-    api.post('/admin/maruti/orders/hyperlocal', payload);
+    api.post('/admin/providers/maruti/orders/hyperlocal', payload);
 
   const createManifest = (payload: AwbOptional) =>
-    api.post('/admin/maruti/manifest', payload);
+    api.post('/admin/providers/maruti/manifest', payload);
 
   const cancelOrder = (
     payload: MarutiCancelOrderRequest,
   ) =>
-    api.put('/admin/maruti/cancel', payload);
+    api.put('/admin/providers/maruti/cancel', payload);
 
   const getLabelInvoice = (params: AwbOptional) =>
     api.get('/admin/maruti/label-invoice', { params });
@@ -47,42 +47,42 @@ export function useMaruti() {
   const validateDrsAwbs = (
     payload: MarutiValidateDrsAwbsRequest,
   ) =>
-    api.post('/admin/maruti/ops/drs/validate-awbs', payload);
+    api.post('/admin/providers/maruti/ops/drs/validate-awbs', payload);
 
   const createDrs = (
     payload: MarutiCreateDrsRequest,
   ) =>
-    api.post('/admin/maruti/ops/drs/create', payload);
+    api.post('/admin/providers/maruti/ops/drs/create', payload);
 
   const getDrsShipmentList = (daId: string) =>
-    api.get('/admin/maruti/ops/drs/list', {
+    api.get('/admin/providers/maruti/ops/drs/list', {
       params: { daId },
     });
 
   const updateDrsStatus = (
     payload: MarutiUpdateDrsStatusRequest,
   ) =>
-    api.post('/admin/maruti/ops/drs/update-status', payload);
+    api.post('/admin/providers/maruti/ops/drs/update-status', payload);
 
   /* ========= OPS – PRS ========= */
 
   const createPrs = (
     payload: MarutiPrsCreateRequest,
   ) =>
-    api.post('/admin/maruti/ops/prs/create', payload);
+    api.post('/admin/providers/maruti/ops/prs/create', payload);
 
   const updatePrsScanned = (
     payload: MarutiPrsUpdateScannedRequest,
   ) =>
-    api.patch('/admin/maruti/ops/prs/update-scanned', payload);
+    api.patch('/admin/providers/maruti/ops/prs/update-scanned', payload);
 
   const updatePrsStatus = (
     payload: MarutiPrsUpdateStatusRequest,
   ) =>
-    api.patch('/admin/maruti/ops/prs/update-status', payload);
+    api.patch('/admin/providers/maruti/ops/prs/update-status', payload);
 
   const getPrsOrders = (prsNumber: string) =>
-    api.get(`/admin/maruti/ops/prs/${prsNumber}/orders`);
+    api.get(`/admin/providers/maruti/ops/prs/${prsNumber}/orders`);
 
   return {
     // Seller
@@ -117,8 +117,8 @@ export type AwbOptional = {
 };
 
 export interface MarutiEcommServiceabilityRequest {
-  fromPincode: string;
-  toPincode: string;
+  fromPincode: number;
+  toPincode: number;
   isCodOrder: boolean;
   deliveryMode: string;
 }
@@ -144,8 +144,8 @@ export interface MarutiHyperlocalServiceabilityRequest {
 
 export interface MarutiEcommRateRequest {
   deliveryPromise: string;
-  fromPincode: string;
-  toPincode: string;
+  fromPincode: number;
+  toPincode: number;
   weight: number;
   length?: number;
   width?: number;

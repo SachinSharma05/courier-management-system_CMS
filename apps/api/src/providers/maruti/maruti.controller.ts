@@ -11,7 +11,7 @@ import { MarutiEcommLabelDto } from './dto/maruti-ecomm-label.dto';
 import { MarutiEcommBookingDto } from './dto/maruti-ecomm-booking.dto';
 import { MarutiHyperlocalBookingDto } from './dto/maruti-hyperlocal-booking.dto';
 
-@Controller('/admin/maruti')
+@Controller('/admin/providers/maruti')
 export class MarutiController {
   constructor(private readonly service: MarutiService) {}
 

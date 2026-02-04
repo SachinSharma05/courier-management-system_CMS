@@ -1,13 +1,11 @@
-import { IsBoolean, IsString, Length } from 'class-validator';
+import { IsBoolean, IsNumber, IsString, Length } from 'class-validator';
 
 export class MarutiServiceabilityDto {
-  @IsString()
-  @Length(6, 6)
-  fromPincode: string;
+  @IsNumber()
+  fromPincode: number;
 
-  @IsString()
-  @Length(6, 6)
-  toPincode: string;
+  @IsNumber()
+  toPincode: number;
 
   @IsBoolean()
   isCodOrder: boolean;

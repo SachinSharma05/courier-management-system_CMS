@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import { MarutiService } from "./maruti.service";
-import { MarutiDrsUpdateDto } from "./dto/ops/drs/maruti-drs-update.dto";
-import { MarutiCreateDrsDto } from "./dto/ops/drs/maruti-create-drs.dto";
-import { MarutiDrsListDto } from "./dto/ops/drs/maruti-drs-list.dto";
-import { MarutiValidateAwbDto } from "./dto/ops/drs/maruti-validate-awb.dto";
-import { MarutiPrsCreateDto } from "./dto/ops/prs/maruti-prs-create.dto";
-import { MarutiPrsUpdateScannedDto } from "./dto/ops/prs/maruti-prs-update-scanned.dto";
-import { MarutiPrsUpdateStatusDto } from "./dto/ops/prs/maruti-prs-update-status.dto";
-import { MarutiPrsListDto } from "./dto/ops/prs/maruti-prs-list.dto";
+import { MarutiService } from "../maruti.service";
+import { MarutiDrsUpdateDto } from "../dto/ops/drs/maruti-drs-update.dto";
+import { MarutiCreateDrsDto } from "../dto/ops/drs/maruti-create-drs.dto";
+import { MarutiDrsListDto } from "../dto/ops/drs/maruti-drs-list.dto";
+import { MarutiValidateAwbDto } from "../dto/ops/drs/maruti-validate-awb.dto";
+import { MarutiPrsCreateDto } from "../dto/ops/prs/maruti-prs-create.dto";
+import { MarutiPrsUpdateScannedDto } from "../dto/ops/prs/maruti-prs-update-scanned.dto";
+import { MarutiPrsUpdateStatusDto } from "../dto/ops/prs/maruti-prs-update-status.dto";
+import { MarutiPrsListDto } from "../dto/ops/prs/maruti-prs-list.dto";
 
 @Controller('/admin/maruti/ops')
 export class MarutiOpsController {

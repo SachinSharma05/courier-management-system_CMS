@@ -4,9 +4,9 @@ import { MarutiServiceabilityDto } from './dto/serviceability.dto';
 import { MarutiHyperlocalServiceabilityDto } from './dto/maruti-hyperlocal-serviceability.dto';
 import { MarutiEcommRateDto } from './dto/maruti-rate.dto';
 import { MarutiEcommTrackingDto } from './dto/maruti-ecomm-tracking.dto';
-import { MARUTI_STATUS_MAP, MarutiNormalizedStatus } from './maruti.tracking-status';
+import { MARUTI_STATUS_MAP, MarutiNormalizedStatus } from './status/maruti.tracking-status';
 import { MarutiHyperlocalTrackingDto } from './dto/maruti-hyperlocal-tracking.dto';
-import { MARUTI_HYPERLOCAL_STATUS_MAP, MarutiHyperlocalNormalizedStatus } from './maruti.hyperlocal-status';
+import { MARUTI_HYPERLOCAL_STATUS_MAP, MarutiHyperlocalNormalizedStatus } from './status/maruti.hyperlocal-status';
 import { MarutiEcommManifestDto } from './dto/maruti-ecomm-manifest.dto';
 import { MarutiCancelOrderDto } from './dto/maruti-cancel.dto';
 import { MarutiEcommLabelDto } from './dto/maruti-ecomm-label.dto';
@@ -59,7 +59,12 @@ export class MarutiService {
   async checkServiceability(dto: MarutiServiceabilityDto) {
     const client = this.getClient();
 
-    const res = await client.checkServiceability(dto);
+    const res = await client.checkServiceability({
+      fromPincode: Number(dto.fromPincode),
+      toPincode: Number(dto.toPincode),
+      isCodOrder: dto.isCodOrder,
+      deliveryMode: dto.deliveryMode as 'SURFACE' | 'AIR',
+    });
 
     // sync refreshed token back to cache
     this.accessToken = client['accessToken'];

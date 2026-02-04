@@ -98,13 +98,14 @@ export class MarutiClient {
     const res = await this.httpSeller.post(
       MARUTI_ENDPOINTS.LOGIN,
       {
-        username: this.config.username,
+        email: this.config.username,
         password: this.config.password,
+        vendorType: 'SELLER'
       },
     );
 
-    const token = res.data?.access_token;
-    const expiresIn = res.data?.expires_in ?? 86400;
+    const token = res.data.data?.accessToken;
+    const expiresIn = res.data.data?.expiresIn ?? 86400;
 
     if (!token) throw new Error('Maruti login failed');
 
@@ -184,20 +185,29 @@ export class MarutiClient {
   ========================== */
 
   checkServiceability(payload: {
-    fromPincode: string;
-    toPincode: string;
+    fromPincode: number;
+    toPincode: number;
     isCodOrder: boolean;
-    deliveryMode: string;
+    deliveryMode: 'SURFACE' | 'AIR';
   }) {
-    return this.sellerPost(
-      MARUTI_ENDPOINTS.ECOMM_SERVICEABILITY,
-      {
-        originPincode: payload.fromPincode,
-        destinationPincode: payload.toPincode,
-        isCodOrder: payload.isCodOrder,
-        deliveryMode: payload.deliveryMode,
-      },
-    );
+    try{
+      return this.sellerPost(
+        MARUTI_ENDPOINTS.ECOMM_SERVICEABILITY,
+        {
+          fromPincode: payload.fromPincode,
+          toPincode: payload.toPincode,
+          isCodOrder: payload.isCodOrder,
+          deliveryMode: payload.deliveryMode,
+        },
+      );
+    }
+    catch(err: any){
+      console.error(
+        '[MARUTI SERVICEABILITY ERROR]',
+        err?.response?.data || err.message,
+      );
+      throw err;
+    }
   }
 
   checkHyperlocalServiceability(payload: any) {

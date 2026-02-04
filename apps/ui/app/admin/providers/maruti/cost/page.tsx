@@ -75,7 +75,7 @@ export default function MarutiRateCalculator() {
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase">Delivery_Promise</label>
                 <div className="flex gap-2">
-                  {['SURFACE', 'AIR', 'EXPRESS'].map((mode) => (
+                  {['SURFACE', 'AIR'].map((mode) => (
                     <button 
                       key={mode}
                       type="button"

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, ChevronLeft, ChevronRight, Package, Search, 
   MessageSquareWarning, Users, Truck, IndianRupee, UserCog, Shield, 
-  AlertTriangle, ClipboardList, Settings, Menu, X, Terminal, Activity,
+  AlertTriangle, ClipboardList, Settings, Menu, X, 
   BarChart3,
   PlusCircle,
   FileUp,
@@ -18,9 +18,9 @@ import {
   MapPinCheckIcon,
   PackageSearch,
   Printer,
-  ScanLine,
   XCircle,
-  ChevronDown
+  ChevronDown,
+  Terminal
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -36,16 +36,16 @@ const NAV_SECTIONS = [
   {
     title: 'Entity_Management',
     items: [
-      { label: 'Client_Nodes', href: '/admin/clients', icon: Users },
+      { label: 'Clients', href: '/admin/clients', icon: Users },
       { label: 'Pricing_Slabs', href: '/admin/pricing', icon: IndianRupee },
     ],
   },
   {
     title: 'Access_Protocol',
     items: [
-      { label: 'User_Index', href: '/admin/users', icon: UserCog },
-      { label: 'Employee_Registry', href: '/admin/employees', icon: Users },
-      { label: 'Security_Roles', href: '/admin/roles', icon: Shield },
+      { label: 'Users', href: '/admin/users', icon: UserCog },
+      { label: 'Employees', href: '/admin/employees', icon: Users },
+      { label: 'Roles_Permission', href: '/admin/roles', icon: Shield },
     ],
   },
   {
@@ -63,49 +63,48 @@ const PROVIDER_CONFIG = [
     name: 'Delhivery',
     basePath: '/admin/providers/delhivery',
     items: [
-      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
-      { key: 'create', label: 'CREATE_NODE', icon: PlusCircle },
-      { key: 'bulk', label: 'BULK_INGEST', icon: FileUp },
-      { key: 'cost', label: 'COST_ENGINE', icon: Calculator },
-      { key: 'pincode', label: 'SERVICE_MAP', icon: MapPin },
-      { key: 'label', label: 'PRINT_QUEUE', icon: Printer },
-      { key: 'update', label: 'PATCH_SHIPMENT', icon: Edit3 },
-      { key: 'ndr', label: 'NDR_REPORTS', icon: AlertTriangle },
-      { key: 'cancel', label: 'TERMINATE_ID', icon: XCircle },
+      { key: '', label: 'Overview', icon: BarChart3 },
+      { key: 'create', label: 'Create Shipment', icon: PlusCircle },
+      { key: 'bulk', label: 'Bulk Create Shipment', icon: FileUp },
+      { key: 'cost', label: 'Cost Calculator', icon: Calculator },
+      { key: 'pincode', label: 'Pincode Serviceability', icon: MapPin },
+      { key: 'label', label: 'Print Label', icon: Printer },
+      { key: 'update', label: 'Update Shipment', icon: Edit3 },
+      { key: 'ndr', label: 'NDR Reports', icon: AlertTriangle },
+      { key: 'cancel', label: 'Cancel Shipment', icon: XCircle },
     ]
   },
   {
     name: 'DTDC',
     basePath: '/admin/providers/dtdc',
     items: [
-      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
-      { key: 'create', label: 'CREATE_NODE', icon: PlusCircle },
-      { key: 'bulk', label: 'BULK_INGEST', icon: FileUp },
-      { key: 'cost', label: 'COST_ENGINE', icon: Calculator },
-      { key: 'pincode', label: 'SERVICE_MAP', icon: MapPin },
-      { key: 'label', label: 'PRINT_QUEUE', icon: Printer },
-      { key: 'ndr', label: 'NDR_REPORTS', icon: AlertTriangle },
-      { key: 'cancel', label: 'TERMINATE_ID', icon: XCircle },
+      { key: '', label: 'Overview', icon: BarChart3 },
+      { key: 'create', label: 'Create Shipment', icon: PlusCircle },
+      { key: 'bulk', label: 'Bulk Create Shipment', icon: FileUp },
+      { key: 'cost', label: 'Cost Calculator', icon: Calculator },
+      { key: 'pincode', label: 'Pincode Serviceability', icon: MapPin },
+      { key: 'label', label: 'Print Label', icon: Printer },
+      { key: 'ndr', label: 'NDR Reports', icon: AlertTriangle },
+      { key: 'cancel', label: 'Cancel Shipment', icon: XCircle },
     ]
   },
   {
     name: 'Maruti',
     basePath: '/admin/providers/maruti',
     items: [
-      { key: '', label: 'OVERVIEW_HUB', icon: BarChart3 },
-      { key: 'create/ecomm', label: 'E-COMM_BOOK', icon: PlusCircle },
-      { key: 'create/hyperlocal', label: 'HYPERLOCAL_BOOK', icon: PlusCircle },
-      { key: 'label', label: 'LABEL_INVOICE', icon: Printer },
-      { key: 'manifest', label: 'MANIFEST_SHIPPING', icon: Hash },
-      { key: 'tracking/ecomm', label: 'TRACK_ECOMM', icon: MapPin },
-      { key: 'tracking/hyperlocal', label: 'TRACK_HYPERLOCAL', icon: MapPin },
-      { key: 'pincode/ecomm', label: 'PINCODE_ECOMM', icon: MapPinCheckIcon },
-      { key: 'pincode/hyperlocal', label: 'PINCODE_HYPERLOCAL', icon: MapPinCheckIcon },
-      { key: 'cost', label: 'COST_CALCULATOR', icon: DollarSign },
-      { key: 'cancel', label: 'VOID_AWB', icon: XCircle },
-      { key: 'drs', label: 'DRS_CONSOLE', icon: Truck },
-      { key: 'prs', label: 'PRS_MANAGER', icon: PackageSearch },
-      { key: 'scan', label: 'OPS_SCANNER', icon: ScanLine },
+      { key: '', label: 'Overview', icon: BarChart3 },
+      { key: 'create/ecomm', label: 'E-Comm Booking', icon: PlusCircle },
+      { key: 'create/hyperlocal', label: 'Hyperlocal Booking', icon: PlusCircle },
+      { key: 'label', label: 'Print Label Invoice', icon: Printer },
+      { key: 'manifest', label: 'Manifest Shipping', icon: Hash },
+      { key: 'tracking/ecomm', label: 'Track Ecomm', icon: MapPin },
+      { key: 'tracking/hyperlocal', label: 'Track Hyperlocal', icon: MapPin },
+      { key: 'pincode/ecomm', label: 'Pincode Serviceability Ecomm', icon: MapPinCheckIcon },
+      { key: 'pincode/hyperlocal', label: 'Pincode Serviceability Hyperlocal', icon: MapPinCheckIcon },
+      { key: 'cost', label: 'Cost Calculator', icon: DollarSign },
+      { key: 'cancel', label: 'Cancel Shipment', icon: XCircle },
+      { key: 'drs', label: 'DRS Console', icon: Truck },
+      { key: 'prs', label: 'PRS Manager', icon: PackageSearch },
     ]
   }
 ];
@@ -125,7 +124,7 @@ export function Sidebar() {
       <div className="lg:hidden fixed top-4 left-4 z-[70]">
         <button 
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 bg-[#0f172a] text-white shadow-lg border border-slate-700 rounded-sm"
+          className="p-2 bg-[#172b58] text-white shadow-lg border border-slate-700 rounded-sm"
         >
           {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -157,16 +156,16 @@ export function Sidebar() {
         </button>
 
         {/* LOGO NODE */}
-        <div className="flex h-16 shrink-0 items-center px-5 border-b border-slate-800 bg-[#1e293b]/20">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-600 rounded-sm font-black text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]">
-            CMS
+        <div className="flex h-20 shrink-0 items-center px-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-indigo-600 rounded-xl font-black text-white shadow-sm">
+            <Terminal size={20} />
           </div>
           <div className={clsx(
             "ml-3 transition-all duration-300 flex flex-col",
             (isOpen || isMobileOpen) ? "opacity-100" : "lg:opacity-0 lg:invisible"
           )}>
-            <span className="text-xs font-black text-white uppercase tracking-[0.2em] leading-none">Command_Center</span>
-            <span className="text-[9px] font-bold text-slate-500 uppercase mt-1">Platform_Node_v1.0.4</span>
+            <span className="text-lg font-bold text-white-900 tracking-tight leading-none">CMS_Pro</span>
+            <span className="text-[10px] font-medium text-slate-400 mt-1">v1.0.4 • Stable</span>
           </div>
         </div>
 
@@ -176,7 +175,7 @@ export function Sidebar() {
             <SidebarLink 
                 href="/admin" 
                 icon={LayoutDashboard} 
-                label="Primary_Dashboard" 
+                label="Dashboard" 
                 active={pathname === '/admin'} 
                 isOpen={isOpen || isMobileOpen}
                 onClick={() => setIsMobileOpen(false)}

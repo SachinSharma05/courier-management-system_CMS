@@ -8,10 +8,8 @@ import {
   Plane, 
   CheckCircle2, 
   XCircle, 
-  ShieldCheck, 
   ArrowRightLeft,
-  Loader2,
-  Info
+  Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useMaruti } from '@/hooks/useMaruti';
@@ -21,8 +19,8 @@ export default function MarutiServiceability() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [form, setForm] = useState({
-    fromPincode: "",
-    toPincode: "",
+    fromPincode: 0,
+    toPincode: 0,
     isCodOrder: false,
     deliveryMode: "AIR" as "AIR" | "Surface"
   });
@@ -65,7 +63,7 @@ export default function MarutiServiceability() {
                   label="Origin_Pincode" 
                   placeholder="380051"
                   value={form.fromPincode}
-                  onChange={(v: string) => setForm({...form, fromPincode: v})}
+                  onChange={(v: number) => setForm({...form, fromPincode: v})}
                 />
                 <div className="flex justify-center -my-2 opacity-30">
                   <ArrowRightLeft size={16} className="rotate-90" />
@@ -74,7 +72,7 @@ export default function MarutiServiceability() {
                   label="Destination_Pincode" 
                   placeholder="440010"
                   value={form.toPincode}
-                  onChange={(v: string) => setForm({...form, toPincode: v})}
+                  onChange={(v: number) => setForm({...form, toPincode: v})}
                 />
               </div>
 
