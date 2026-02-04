@@ -20,8 +20,8 @@ export default function MarutiRateCalculator() {
   
   const [form, setForm] = useState({
     deliveryPromise: "SURFACE",
-    fromPincode: "",
-    toPincode: "",
+    fromPincode: 0,
+    toPincode: 0,
     weight: 0,
     length: 0,
     width: 0,
