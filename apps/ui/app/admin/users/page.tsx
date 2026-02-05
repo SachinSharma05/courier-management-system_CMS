@@ -5,7 +5,8 @@ import {
   UserPlus, Search, ShieldCheck,
   Mail, Building2, UserCog, Filter, CheckCircle,
   Save, X, Power, ChevronRight, ChevronLeft,
-  Phone, User as UserIcon
+  Phone, User as UserIcon,
+  RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 import { getUsers, createUser, updateUser } from '@/hooks/useUsers';
@@ -329,9 +330,9 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="space-y-4">
             <SectionHeader label="Identity & Permissions" />
-            <Input label="Username" value={form.username} onChange={(e) => setForm({...form, username: e.target.value})} placeholder="e.g. admin_pro" />
-            <Input label="Email Address" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="email@organization.com" />
-            {!user && <Input label="Secure Password" type="password" value={form.password_hash} onChange={(e) => setForm({...form, password_hash: e.target.value})} />}
+            <Input label="Username" value={form.username} onChange={(e: any) => setForm({...form, username: e.target.value})} placeholder="e.g. admin_pro" />
+            <Input label="Email Address" value={form.email} onChange={(e: any) => setForm({...form, email: e.target.value})} placeholder="email@organization.com" />
+            {!user && <Input label="Secure Password" type="password" value={form.password_hash} onChange={(e: any) => setForm({...form, password_hash: e.target.value})} />}
             
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-tighter ml-1">System Privilege</label>
@@ -347,10 +348,10 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
             </div>
 
             <SectionHeader label="Organizational Metadata" />
-            <Input label="Company Name" value={form.company_name ?? ''} onChange={(e) => setForm({...form, company_name: e.target.value})} />
+            <Input label="Company Name" value={form.company_name ?? ''} onChange={(e: any) => setForm({...form, company_name: e.target.value})} />
             <div className="grid grid-cols-2 gap-4">
-                <Input label="Contact Person" value={form.contact_person ?? ''} onChange={(e) => setForm({...form, contact_person: e.target.value})} />
-                <Input label="Phone Number" value={form.phone ?? ''} onChange={(e) => setForm({...form, phone: e.target.value})} />
+                <Input label="Contact Person" value={form.contact_person ?? ''} onChange={(e: any) => setForm({...form, contact_person: e.target.value})} />
+                <Input label="Phone Number" value={form.phone ?? ''} onChange={(e: any) => setForm({...form, phone: e.target.value})} />
             </div>
           </div>
 
