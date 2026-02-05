@@ -244,16 +244,16 @@ import { useCreateCredential, useCredentials, useUpdateCredential } from '@/hook
 //   isActive: boolean;
 // }
 
-// interface ClientPayload {
-//   email: string;
-//   companyName: string;
-//   contactPerson: string;
-//   phone: string;
-//   isActive: boolean;
-//   role: 'client';
-//   username?: string;
-//   password?: string;
-// }
+interface ClientPayload {
+  email: string;
+  companyName: string;
+  contactPerson: string;
+  phone: string;
+  isActive: boolean;
+  role: 'client';
+  username?: string;
+  password?: string;
+}
 
 // function ClientFormView({ client, mode, onClose, onRefresh }: {
 //     client: Client | null;
@@ -818,23 +818,33 @@ function ClientFormView({ client, mode, onClose, onRefresh }: {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const payload = {
+      // Manually map Form Data (camelCase) to Payload (snake_case)
+      const payload: ClientPayload = {
         email: formData.email,
-        company_name: formData.companyName,
-        contact_person: formData.contactPerson,
+        companyName: formData.companyName,
+        contactPerson: formData.contactPerson,
         phone: formData.phone,
-        is_active: formData.isActive,
+        isActive: formData.isActive,
         role: 'client',
-        ...(formData.username && { username: formData.username }),
-        ...(formData.password && { password: formData.password }),
       };
-      if (mode === 'edit' && client) { await updateClient(client.id, payload); } 
-      else { await createClient(payload); }
+
+      // Add optional fields only if they exist
+      if (formData.username) payload.username = formData.username;
+      if (formData.password) payload.password = formData.password;
+
+      if (mode === 'edit' && client) {
+        // TypeScript is now happy because payload is explicitly ClientPayload
+        await updateClient(client.id, payload);
+      } else {
+        await createClient(payload);
+      }
+
       onRefresh();
       onClose();
     } catch (err) {
-      alert("Error processing record.");
+      alert("CRITICAL_ERROR: Failed to update client record.");
     } finally {
       setLoading(false);
     }
