@@ -37,114 +37,117 @@ export class EmployeesService {
   }
 
   async findOverview() {
-  const today = new Date().toISOString().slice(0, 10);
-  const month = today.slice(0, 7); // YYYY-MM
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const month = today.slice(0, 7); // "2026-02"
+    const startOfMonth = `${month}-01`; // "2026-02-01"
 
-  const result = await db.execute(sql`
-    SELECT
-      e.id,
-      e.name,
-      e.email,
-      e.designation,
-      e.department,
-      e.is_active,
-      e.base_salary,
-      e.phone,
-
-      -- today attendance summary
-      today.status AS attendance_status,
-      today.check_in,
-      today.check_out,
-
-      -- salary snapshot
-      s.id AS salary_id,
-      s.net_salary,
-
-      -- outstanding advance total
-      COALESCE(adv.total_advance, 0) AS advance_balance,
-
-      -- net due after payments
-      COALESCE(s.net_salary, e.base_salary)
-        - COALESCE(paid.total_paid, 0) AS net_due,
-
-      -- 🔥 FULL ATTENDANCE LIST (MONTH)
-      COALESCE(attendance_list.attendance, '[]'::json) AS attendance_list,
-
-      -- 🔥 FULL ADVANCE LIST
-      COALESCE(advance_list.advances, '[]'::json) AS advances
-
-    FROM employees e
-
-    /* ---------- TODAY ATTENDANCE ---------- */
-    LEFT JOIN employee_attendance today
-      ON today.employee_id = e.id
-      AND today.date = ${today}
-
-    /* ---------- SALARY SNAPSHOT ---------- */
-    LEFT JOIN employee_salary s
-      ON s.employee_id = e.id
-      AND s.month = ${month}
-
-    /* ---------- ADVANCE TOTAL ---------- */
-    LEFT JOIN (
+    const result = await db.execute(sql`
       SELECT
-        employee_id,
-        SUM(amount) AS total_advance
-      FROM employee_advances
-      WHERE is_settled = false
-      GROUP BY employee_id
-    ) adv ON adv.employee_id = e.id
+        e.id,
+        e.name,
+        e.email,
+        e.designation,
+        e.department,
+        e.is_active,
+        e.base_salary,
+        e.phone,
 
-    /* ---------- PAYMENT TOTAL ---------- */
-    LEFT JOIN (
-      SELECT
-        salary_id,
-        SUM(amount) AS total_paid
-      FROM employee_salary_payments
-      GROUP BY salary_id
-    ) paid ON paid.salary_id = s.id
+        -- today attendance summary
+        today.status AS attendance_status,
+        today.check_in,
+        today.check_out,
 
-    /* ---------- ATTENDANCE LIST ---------- */
-    LEFT JOIN (
-      SELECT
-        employee_id,
-        json_agg(
-          json_build_object(
-            'date', date,
-            'status', status,
-            'check_in', check_in,
-            'check_out', check_out
-          )
-          ORDER BY date
-        ) AS attendance
-      FROM employee_attendance
-      WHERE date BETWEEN ${month + '-01'} AND ${month + '-31'}
-      GROUP BY employee_id
-    ) attendance_list ON attendance_list.employee_id = e.id
+        -- salary snapshot
+        s.id AS salary_id,
+        s.net_salary,
 
-    /* ---------- ADVANCE LIST ---------- */
-    LEFT JOIN (
-      SELECT
-        employee_id,
-        json_agg(
-          json_build_object(
-            'id', id,
-            'amount', amount,
-            'date', date,
-            'remarks', remarks,
-            'is_settled', is_settled
-          )
-          ORDER BY date DESC
-        ) AS advances
-      FROM employee_advances
-      GROUP BY employee_id
-    ) advance_list ON advance_list.employee_id = e.id
+        -- outstanding advance total
+        COALESCE(adv.total_advance, 0) AS advance_balance,
 
-    ORDER BY e.name ASC
-  `);
+        -- net due after payments
+        COALESCE(s.net_salary, e.base_salary)
+          - COALESCE(paid.total_paid, 0) AS net_due,
 
-  return result.rows ?? result;
-}
+        -- 🔥 FULL ATTENDANCE LIST (MONTH)
+        COALESCE(attendance_list.attendance, '[]'::json) AS attendance_list,
+
+        -- 🔥 FULL ADVANCE LIST
+        COALESCE(advance_list.advances, '[]'::json) AS advances
+
+      FROM employees e
+
+      /* ---------- TODAY ATTENDANCE ---------- */
+      LEFT JOIN employee_attendance today
+        ON today.employee_id = e.id
+        AND today.date = ${today}
+
+      /* ---------- SALARY SNAPSHOT ---------- */
+      LEFT JOIN employee_salary s
+        ON s.employee_id = e.id
+        AND s.month = ${month}
+
+      /* ---------- ADVANCE TOTAL ---------- */
+      LEFT JOIN (
+        SELECT
+          employee_id,
+          SUM(amount) AS total_advance
+        FROM employee_advances
+        WHERE is_settled = false
+        GROUP BY employee_id
+      ) adv ON adv.employee_id = e.id
+
+      /* ---------- PAYMENT TOTAL ---------- */
+      LEFT JOIN (
+        SELECT
+          salary_id,
+          SUM(amount) AS total_paid
+        FROM employee_salary_payments
+        GROUP BY salary_id
+      ) paid ON paid.salary_id = s.id
+
+      /* ---------- ATTENDANCE LIST ---------- */
+      LEFT JOIN (
+        SELECT
+          employee_id,
+          json_agg(
+            json_build_object(
+              'date', date,
+              'status', status,
+              'check_in', check_in,
+              'check_out', check_out
+            )
+            ORDER BY date
+          ) AS attendance
+        FROM employee_attendance
+        WHERE date >= ${startOfMonth}::date 
+          AND date < (${startOfMonth}::date + interval '1 month')
+        GROUP BY employee_id
+      ) attendance_list ON attendance_list.employee_id = e.id
+
+      /* ---------- ADVANCE LIST ---------- */
+      LEFT JOIN (
+        SELECT
+          employee_id,
+          json_agg(
+            json_build_object(
+              'id', id,
+              'amount', amount,
+              'date', date,
+              'remarks', remarks,
+              'is_settled', is_settled
+            )
+            ORDER BY date DESC
+          ) AS advances
+        FROM employee_advances
+        GROUP BY employee_id
+      ) advance_list ON advance_list.employee_id = e.id
+
+      ORDER BY e.name ASC
+    `);
+
+    return result.rows ?? result;
+  }
 
   async create(dto: CreateEmployeeDto) {
     // 1. Await the code generation
