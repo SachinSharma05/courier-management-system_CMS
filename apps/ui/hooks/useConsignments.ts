@@ -1,20 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/axios';
+import { NormalizedConsignmentFilters } from '@/app/admin/interface/adminInterface';
 
-export type Consignment = {
-  id: number;
-  awb: string;
-  provider: string;
-  status: string;
-  booked: string;
-  lastUpdated: string;
-  origin: string;
-  destination: string;
-  createdAt: string;
-  client: string;
-};
-
-export function useConsignments(params: any) {
+export function useConsignments(params: NormalizedConsignmentFilters) {
   return useQuery({
     queryKey: [
       'consignments',

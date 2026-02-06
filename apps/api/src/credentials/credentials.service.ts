@@ -13,6 +13,7 @@ export class CredentialsService {
       .select({
         id: clientCredentials.id,
         key: clientCredentials.env_key,
+        value: clientCredentials.encrypted_value,
         provider: clientCredentials.provider,
         createdAt: clientCredentials.created_at,
       })
@@ -25,6 +26,7 @@ export class CredentialsService {
       );
 
     // ⚠️ Do NOT return decrypted values
+    console.log("Credentials", rows)
     return rows;
   }
 
