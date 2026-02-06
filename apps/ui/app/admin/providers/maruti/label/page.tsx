@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Printer, FileText, Download, Search, 
-  FileCheck, AlertCircle, ExternalLink, Loader2, 
+  FileCheck, AlertCircle, ExternalLink, Activity, 
   Fingerprint
 } from 'lucide-react';
 import { useMaruti } from '@/hooks/useMaruti';

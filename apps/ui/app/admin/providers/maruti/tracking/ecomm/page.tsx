@@ -1,13 +1,13 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Search, 
   MapPin, 
   Clock,  
   AlertCircle,
   Navigation2,
-  Loader2,
+  Activity,
   Box,
   ShieldCheck,
   Cpu,
