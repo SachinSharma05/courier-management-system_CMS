@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Zap, Navigation, MapPin, LocateFixed, 
-  CheckCircle, XCircle, Loader2, ArrowDown,
+  CheckCircle, XCircle, Loader2, ArrowDown, Activity, 
   Info, Compass,
   ShieldCheck,
   Globe

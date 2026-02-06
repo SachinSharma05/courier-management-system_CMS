@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Package, MapPin, CreditCard, Plus, Trash2, 
-  Save, Truck, Info, 
+  Save, Truck, Info, Activity, 
   Hash,
   ChevronDown,
   Box,

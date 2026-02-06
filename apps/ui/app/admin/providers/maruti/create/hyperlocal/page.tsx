@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Zap, MapPin, Navigation, ShoppingBag, 
-  Trash2, Plus, Clock, Store,
+  Trash2, Plus, Clock, Store, Activity, 
   ChevronDown,
   Navigation2,
   Globe,
