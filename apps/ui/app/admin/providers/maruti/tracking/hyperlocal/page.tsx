@@ -1,8 +1,8 @@
 "use client";
 
-import React, { Activity, useState } from 'react';
+import React, { useState } from 'react';
 import { 
-  Zap, MapPin, Navigation, Phone, User, ShieldCheck, Timer, Loader2, 
+  Zap, MapPin, Navigation, Phone, User, Activity, Timer, Loader2, 
   Package,
   Clock,
   Radar
