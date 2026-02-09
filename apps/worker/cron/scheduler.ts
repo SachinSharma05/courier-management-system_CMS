@@ -21,7 +21,7 @@ export async function startScheduler() {
     {},
     {
       jobId: 'DTDC_POLL_NO_DATA_CRON',
-      repeat: { every: 10 * 60 * 1000 },
+      repeat: { pattern: '*/10 * * * *' },
       attempts: 3,
       backoff: { type: 'exponential', delay: 30000 },
       removeOnFail: false,

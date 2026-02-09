@@ -1,4 +1,4 @@
-import { inArray, sql } from 'drizzle-orm';
+import { inArray, sql, and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { consignments, trackingEvents } from '../db/schema';
 import { logger } from '../utils/logger';
@@ -10,8 +10,11 @@ export async function cleanupOldConsignments() {
     .select({ id: consignments.id })
     .from(consignments)
     .where(
-      sql`COALESCE(${consignments.booked_at}, ${consignments.created_at}) 
-          <= NOW() - INTERVAL '20 days'`
+      and(
+        eq(consignments.normalized_status, 'delivered'),
+        sql`COALESCE(${consignments.booked_at}, ${consignments.created_at}) 
+          <= NOW() - INTERVAL '10 days'`
+      )
     )
     .limit(500);
 

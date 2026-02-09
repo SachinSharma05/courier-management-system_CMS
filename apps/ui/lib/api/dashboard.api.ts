@@ -1,60 +1,17 @@
+import { 
+  DailyBookingTrend, 
+  DashboardSummary, 
+  ProviderPerformance, 
+  ProviderShare, 
+  ShipmentAgeing, 
+  StuckShipment, 
+  YesterdayBookings } 
+from '@/app/admin/interface/adminInterface';
 import { api } from '@/lib/api/axios';
-
-/* =========================
-   EXISTING TYPES
-========================= */
-
-export type DashboardSummary = {
-  totalShipments: number;
-  delivered: number;
-  inTransit: number;
-  rto: number;
-  activeClients: number;
-};
-
-export type ProviderPerformance = {
-  provider: string;
-  activeShipments: number;
-  avgTatDays: number | null;
-  rtoRate: number;
-  healthScore: number;
-};
-
-/* =========================
-   NEW TYPES
-========================= */
-
-export type ShipmentAgeing = {
-  fresh: number;
-  aging_24_48: number;
-  aging_48_plus: number;
-};
-
-export type DailyBookingTrend = {
-  day: string;
-  total: number;
-};
-
-export type ProviderShare = {
-  provider: string;
-  total: number;
-};
-
-export type StuckShipment = {
-  awb: string;
-  provider: string;
-  current_status: string | null;
-  last_status_at: string;
-};
-
-export type YesterdayBookings = {
-  total: number;
-};
 
 /* =========================
    HOOK FUNCTIONS
 ========================= */
-
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const res = await api.get('/admin/dashboard/summary');
   return res.data;
@@ -70,8 +27,8 @@ export async function getShipmentAgeing(): Promise<ShipmentAgeing> {
   return res.data;
 }
 
-export async function getDailyBookingTrend(): Promise<DailyBookingTrend[]> {
-  const res = await api.get('/admin/dashboard/daily-booking-trend');
+export async function getDailyBookingTrend(days: number = 7): Promise<DailyBookingTrend[]> {
+  const res = await api.get(`/admin/dashboard/get-daily-booking-trend?days=${days}`);
   return res.data;
 }
 

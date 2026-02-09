@@ -110,23 +110,6 @@ export class DashboardService {
   }
 
   /* =========================
-     DAILY BOOKING TREND
-  ========================= */
-  async dailyBookingTrend() {
-    const rows = await db.execute(sql`
-      SELECT
-        DATE(created_at) AS day,
-        COUNT(*)::int AS total
-      FROM consignments
-      WHERE created_at >= CURRENT_DATE - INTERVAL '14 days'
-      GROUP BY day
-      ORDER BY day
-    `);
-
-    return rows.rows;
-  }
-
-  /* =========================
      PROVIDER SHARE
   ========================= */
   async providerShare() {
@@ -173,5 +156,29 @@ export class DashboardService {
     `);
 
     return { total: rows.rows[0].total };
+  }
+
+  /* =========================
+   DYNAMIC BOOKING TREND
+  ========================= */
+  async getDailyBookingTrend(days: number) {
+    const rows = await db.execute(sql`
+      WITH date_range AS (
+        SELECT generate_series(
+          CURRENT_DATE - ((${days} - 1) || ' days')::interval, 
+          CURRENT_DATE, 
+          '1 day'::interval
+        )::date AS day
+      )
+      SELECT 
+        dr.day, 
+        COALESCE(COUNT(c.id), 0)::int AS total
+      FROM date_range dr
+      LEFT JOIN consignments c ON DATE(c.booked_at) = dr.day
+      GROUP BY dr.day
+      ORDER BY dr.day ASC
+    `);
+
+    return rows.rows;
   }
 }

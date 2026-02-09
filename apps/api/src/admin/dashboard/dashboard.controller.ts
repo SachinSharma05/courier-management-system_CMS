@@ -23,9 +23,9 @@ export class DashboardController {
     return this.service.shipmentAgeing();
   }
 
-  @Get('/daily-booking-trend')
-  dailyBookingTrend() {
-    return this.service.dailyBookingTrend();
+  @Get('/get-daily-booking-trend')
+  getDailyBookingTrend(@Query('days') days: number = 7) { // ✅ Correct: Extracts ?days= from URL
+    return this.service.getDailyBookingTrend(Number(days));
   }
 
   @Get('/provider-share')

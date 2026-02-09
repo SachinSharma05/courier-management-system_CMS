@@ -58,10 +58,16 @@ export async function processDtdcSingleTrack(job: Job) {
 
   await db.insert(trackingEvents).values(events).onConflictDoNothing();
 
+  const bookedAt = parseDtdcDateTime(
+    json.header?.strBookedDate,
+    json.header?.strBookedTime
+  );
+
   const latest = events[events.length - 1];
   const { normalized, group } = mapDtdcStatus(latest.status);
 
   await db.update(consignments).set({
+    booked_at: row.booked_at ?? parseDtdcDateTime(json.header?.strBookedDate) ?? bookedAt,
     current_status: latest.status,
     normalized_status: normalized,
     status_group: group,
@@ -244,80 +250,6 @@ async function bulkUpdatePublicConsignments(
 // ------------------------------------------
 // PARSERS (UNCHANGED)
 // ------------------------------------------
-async function bulkUpdateConsignments(
-  updates: Array<{
-    id: string;
-    origin: string | null;
-    destination: string | null;
-    current_status: string;
-    normalized_status: string;
-    status_group: string;
-    last_status_at: Date;
-  }>
-) {
-  if (!updates.length) return;
-
-  const ids = updates.map(u => u.id);
-
-  const currentStatusCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.current_status}`
-    ),
-    sql` `
-  );
-
-  const normalizedStatusCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.normalized_status}`
-    ),
-    sql` `
-  );
-
-  const statusGroupCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.status_group}`
-    ),
-    sql` `
-  );
-
-  const lastStatusAtCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.last_status_at}`
-    ),
-    sql` `
-  );
-
-  const originCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.origin}`
-    ),
-    sql` `
-  );
-
-  const destinationCase = sql.join(
-    updates.map(
-      u => sql`WHEN ${consignments.id} = ${u.id} THEN ${u.destination}`
-    ),
-    sql` `
-  );
-
-  await db.execute(sql`
-    UPDATE ${consignments}
-    SET
-      current_status = CASE ${currentStatusCase} ELSE current_status END,
-      normalized_status = CASE ${normalizedStatusCase} ELSE normalized_status END,
-      status_group = CASE ${statusGroupCase} ELSE status_group END,
-      last_status_at = CASE ${lastStatusAtCase} ELSE last_status_at END,
-
-      -- 🔒 Never overwrite existing origin/destination
-      origin = COALESCE(origin, CASE ${originCase} ELSE origin END),
-      destination = COALESCE(destination, CASE ${destinationCase} ELSE destination END),
-
-      updated_at = NOW()
-    WHERE ${consignments.id} IN (${sql.join(ids, sql`, `)});
-  `);
-}
-
 function parseDtdcDateTime(date?: string, time?: string): Date | null {
   if (!date) return null;
 

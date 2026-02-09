@@ -123,6 +123,20 @@ export interface DrawerInfoBoxProps {
   icon: React.ComponentType<{ size: number }>;
 }
 
+export interface KPICardProps {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ size: number }>;
+  color: string;
+}
+
+export interface AgeingBarProps {
+  label: string;
+  value: number;
+  color: string;
+  total: number;
+}
+
 export interface Consignment {
   id: string;
   awb: string;
@@ -260,3 +274,61 @@ export interface FormattedClient {
   id: number;
   company_name: string;
 }
+
+export interface StuckDetailProps {
+  shipment: StuckShipment;
+  onClose: () => void;
+}
+
+export type ShipmentAgeing = {
+  fresh: number;
+  aging_24_48: number;
+  aging_48_plus: number;
+};
+
+export type DailyBookingTrend = {
+  day: string;
+  total: number;
+};
+
+export type ProviderShare = {
+  provider: string;
+  total: number;
+};
+
+export type StuckShipment = {
+  awb: string;
+  provider: string;
+  current_status: string | null;
+  last_status_at: string;
+};
+
+export type YesterdayBookings = {
+  total: number;
+};
+
+export type DashboardSummary = {
+  totalShipments: number;
+  delivered: number;
+  inTransit: number;
+  rto: number;
+  activeClients: number;
+};
+
+export type ProviderPerformance = {
+  name: string;
+  activeShipments: number;
+  tat: number | null;
+  rto: number;
+  healthScore: number;
+};
+
+export type DashboardData = {
+  summary: DashboardSummary;
+  performance: ProviderPerformance[];
+  ageing: ShipmentAgeing;
+  trends: DailyBookingTrend[];
+  share: ProviderShare[];
+  stuck: StuckShipment[];
+  yesterday: YesterdayBookings;
+};
