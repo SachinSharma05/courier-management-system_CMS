@@ -15,7 +15,7 @@ import clsx from 'clsx';
 import { useRateCard } from '@/hooks/useRateCard';
 import { getClients } from '@/lib/api/clients.api';
 import { api } from '@/lib/api/axios';
-import { EditableRateCellProps, FormattedClient, RateRowProps, RateSlab, RawClient } from '../interface/adminInterface';
+import { EditableRateCellProps, FormattedClient, RateSlab, RawClient } from '../interface/adminInterface';
 
 /* ================= STRICT TYPES ================= */
 const ZONES = ['A', 'B', 'C1', 'C2', 'D1', 'D2', 'E', 'F'] as const;
@@ -218,7 +218,8 @@ export default function PricingPage() {
 }
 
 /* ================= HELPER COMPONENTS ================= */
-function RateRow({ label, slabType, rates, rateCardId, isHighlight, gst }: RateRowProps) {
+function RateRow({ label, slabType, rates, rateCardId, isHighlight, gst }: 
+      {label: string, slabType: string, rates: Record<string, number | undefined>, rateCardId: number, isHighlight?: boolean, gst: boolean }) {
   return (
     <tr className={clsx("transition-colors group", isHighlight ? "bg-indigo-50/20" : "hover:bg-slate-50/50")}>
       <Td className="font-bold text-slate-700 pl-6 border-r border-slate-100 text-sm" colSpan={0}>{label}</Td>

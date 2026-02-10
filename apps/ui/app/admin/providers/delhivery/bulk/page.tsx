@@ -1,10 +1,8 @@
 import React from 'react';
 import { 
-  Layers, Terminal, Activity, FileUp, FileSpreadsheet, 
-  AlertCircle, ShieldCheck, Download, Database, CheckCircle2,
+  Layers, Terminal, FileUp, FileSpreadsheet, AlertCircle, ShieldCheck, Download, Database, CheckCircle2,
   ChevronRight, ArrowRight, CloudLightning
 } from 'lucide-react';
-import { clsx } from 'clsx';
 import { Button } from "@/components/ui/button";
 
 export default function BulkUploadPage() {

@@ -56,15 +56,6 @@ export interface CredentialItem {
   createdAt: string;
 }
 
-export interface FormFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  showToggle?: boolean;
-  icon?: React.ReactNode;
-}
-
 export type ComplaintStatus = 'Open' | 'In Progress' | 'Resolved';
 
 export interface Complaint {
@@ -77,64 +68,6 @@ export interface Complaint {
   comments?: string;
   resolved_at: string;
   createdAt: string;
-}
-
-export interface MiniStatProps {
-  label: string;
-  value: number;
-  color: string;
-  bg: string;
-  icon: React.ComponentType<{ size: number }>;
-}
-
-export interface TableCellProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-export interface SummaryMiniProps {
-  label: string;
-  value: number | undefined;
-  loading: boolean;
-  color: string;
-}
-
-export interface SelectFilterProps {
-  value: string | number;
-  onChange: (value: string) => void;
-  options: Array<Record<string, string | number>>;
-  labelKey: string;
-  placeholder: string;
-}
-
-export interface PaginationBtnProps {
-  icon: React.ComponentType<{ size: number }>;
-  onClick: () => void;
-  disabled: boolean;
-}
-
-export interface StatusBadgeProps {
-  status: string;
-}
-
-export interface DrawerInfoBoxProps {
-  label: string;
-  value: string | undefined;
-  icon: React.ComponentType<{ size: number }>;
-}
-
-export interface KPICardProps {
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ size: number }>;
-  color: string;
-}
-
-export interface AgeingBarProps {
-  label: string;
-  value: number;
-  color: string;
-  total: number;
 }
 
 export interface Consignment {
@@ -234,21 +167,6 @@ export type InputValue = string | number;
 
 const ZONES = ['A', 'B', 'C1', 'C2', 'D1', 'D2', 'E', 'F'] as const;
 type ZoneCode = typeof ZONES[number];
-export interface Slab {
-  id: number;
-  slab_type: string;
-  zone_code: ZoneCode;
-  rate: string | number;
-}
-
-export interface RateRowProps {
-    label: string;
-    slabType: string;
-    rates: Record<string, number | undefined>; 
-    rateCardId: number;
-    isHighlight?: boolean;
-    gst: boolean;
-}
 
 export interface EditableRateCellProps {
     initialValue: number; 
@@ -332,3 +250,232 @@ export type DashboardData = {
   stuck: StuckShipment[];
   yesterday: YesterdayBookings;
 };
+
+export interface PermissionMatrix {
+  permissionKey: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canFull: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  permissions: PermissionMatrix[];
+}
+
+export type SystemStatus = 'healthy' | 'degraded' | 'down';
+
+export interface SystemItem {
+  name: string;
+  status: SystemStatus;
+  details?: string;
+}
+
+export interface TrackingEvent {
+  status: string;
+  eventAt: string;
+  description?: string;
+  remarks?: string;
+  location: string;
+}
+
+export interface Consignment {
+  awb: string;
+  provider: string;
+  status: string;
+  movement: 'Critical' | 'Normal' | string;
+  origin: string;
+  destination: string;
+  bookedAt: string;
+}
+
+export interface TrackingResult {
+  consignment: Consignment;
+  timeline: TrackingEvent[];
+}
+
+export type Provider = 'DTDC' | 'DELHIVERY';
+
+export type ParsedRow = {
+  code: string;
+  awb: string;
+  reference_number: string | null;
+  origin_pincode: string | null;
+  destination_pincode?: string | null;
+  booked_at: Date | null;
+};
+
+export interface GroupedData {
+  code: string;
+  awbs: Omit<ParsedRow, 'code'>[];
+}
+
+export type BulkGroup = {
+  code: string;
+  awbs: {
+    awb: string;
+    reference_number: string | null;
+    origin_pincode: string | null;
+    destination_pincode: string | null;
+    booked_at: string | null;
+  }[];
+};
+
+export type UserRole = 'client' | 'super_admin' | 'public';
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password_hash: string;
+  role: UserRole;
+  company_name?: string | null;
+  company_address?: string | null;
+  contact_person?: string | null;
+  phone?: string | null;
+  providers: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserFilters {
+  role: UserRole | 'all';
+  status: 'Active' | 'Disabled' | 'all';
+}
+
+export type UserFormData = Omit<User, 'id' | 'created_at'>;
+
+export interface Option<T> {
+  label: string;
+  value: T;
+}
+
+export interface SelectFilterProp<T> {
+  icon: React.ReactNode;
+  value: T;
+  onChange: (value: T) => void;
+  options: Option<T>[];
+}
+
+export type UserOption = {
+  id: number;
+  username: string;
+  email: string;
+  password_hash: string;
+  role: UserRole;
+  company_name?: string | null;
+  contact_person?: string | null;
+  phone?: string | null;
+  providers: string[];
+  is_active: boolean;
+  created_at: string;
+};
+
+export type CreateUserDto = {
+  username: string;
+  email: string;
+  password_hash: string;
+  role?: "client" | "super_admin" | "public";
+  company_name?: string;
+  company_address?: string;
+  contact_person?: string;
+  phone?: string;
+  providers?: string[];
+  is_active: boolean;
+};
+
+export type UpdateUserDto = {
+  username?: string;
+  email?: string;
+  password_hash: string;
+  role?: "client" | "super_admin" | "public";
+  company_name?: string;
+  company_address?: string;
+  contact_person?: string;
+  phone?: string;
+  providers?: string[];
+  is_active?: boolean;
+};
+
+export interface ApiResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface ShipmentDetail {
+  order_id: string | number;
+  waybill: string;
+  status: {
+    status: string;
+    status_date: string;
+    status_location: string;
+    instructions?: string;
+  };
+  origin: string;
+  destination: string;
+  consignee: {
+    name: string;
+    address: string;
+    city: string;
+  };
+}
+
+export interface CancellationResult {
+  success: boolean;
+  message: string;
+  waybill?: string;
+}
+
+export interface FloatingInputProps<T extends string | number> {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  type?: "text" | "number"; // Allow switching the input behavior
+}
+
+export interface RawCostResponse {
+  zone: string;
+  slab_type: string | number;
+  breakdown: {
+    base: number;
+    total: number;
+  };
+}
+
+export interface SimplifiedCost {
+  zone: string;
+  slab: string | number;
+  base_charge: number;
+  fsc: number;
+  cod_charge: number;
+  taxes: {
+    cgst: number;
+    sgst: number;
+    igst: number;
+  };
+  total: number;
+}
+
+export interface ActionResult {
+  success: boolean;
+  message: string;
+  awb?: string;
+  upload_wbn?: string;
+  destination_node: string;
+  route: string;
+}
+
+export interface PincodeInfo {
+  pincode: string | number;
+  district: string;
+  state: string;
+  is_serviceable: boolean;
+  city?: string;
+  inc: string;
+}

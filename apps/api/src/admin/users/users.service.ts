@@ -37,6 +37,8 @@ export class UsersService {
         email: users.email,
         role: users.role,
         company_name: users.company_name,
+        contact_person: users.contact_person,
+        phone: users.phone,
         is_active: users.is_active,
         created_at: users.created_at,
       })

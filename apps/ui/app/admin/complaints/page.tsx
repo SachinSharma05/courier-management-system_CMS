@@ -10,7 +10,7 @@ import clsx from 'clsx';
 import { useAllComplaints, useUpdateComplaintStatus } from '@/hooks/useAdminComplaints';
 import { useCreateComplaint } from '@/hooks/useComplaints';
 import { useQueryClient } from '@tanstack/react-query';
-import { Complaint, ComplaintStatus, MiniStatProps } from '../interface/adminInterface';
+import { Complaint, ComplaintStatus } from '../interface/adminInterface';
 
 export default function ComplaintsPage() {
   const queryClient = useQueryClient();
@@ -406,7 +406,8 @@ export default function ComplaintsPage() {
 }
 
 /* ================= COMPONENT HELPERS ================= */
-function MiniStat({ label, value, color, bg, icon: Icon }: MiniStatProps) {
+function MiniStat({ label, value, color, bg, icon: Icon }: 
+      {label: string, value: number, color: string, bg: string, icon: React.ComponentType<{ size: number }>}) {
   return (
     <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm group hover:border-slate-300 transition-all">
       <div className="flex items-center gap-4">

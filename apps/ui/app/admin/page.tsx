@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
-  Package, Users, Zap, Truck, Server, RefreshCw, BarChart3, ShieldCheck,
-  Clock, AlertTriangle, Info, X} from 'lucide-react';
+  Package, Users, Zap, Truck, Server, RefreshCw, ShieldCheck,
+  Clock, AlertTriangle, Info, X 
+} from 'lucide-react';
 import clsx from 'clsx';
 import { 
   getDashboardSummary, 
@@ -14,13 +15,7 @@ import {
   getStuckShipments, 
   getYesterdayBookings,
 } from '@/lib/api/dashboard.api';
-import { 
-  AgeingBarProps,
-  DashboardData, 
-  KPICardProps, 
-  StuckDetailProps, 
-  StuckShipment, 
-} from './interface/adminInterface';
+import { DashboardData, StuckDetailProps, StuckShipment } from './interface/adminInterface';
 import BookingTrendChart from '@/components/ui/BookingTrendChart';
 
 export default function AdminDashboard() {
@@ -230,7 +225,7 @@ export default function AdminDashboard() {
 
 /* ───────────────── UPDATED SUB-COMPONENTS ───────────────── */
 
-function KPICard({ label, value, icon: Icon, color }: KPICardProps) {
+function KPICard({ label, value, icon: Icon, color }: { label: string, value: number, icon: React.ComponentType<{ size: number }>, color: string }) {
   return (
     <div className={clsx("bg-white p-5 border border-slate-200 rounded-xl hover:border-slate-400 transition-colors", color)}>
       <div className="flex justify-between items-start mb-4">
@@ -242,7 +237,7 @@ function KPICard({ label, value, icon: Icon, color }: KPICardProps) {
   );
 }
 
-function AgeingBar({ label, value, color, total }: AgeingBarProps) {
+function AgeingBar({ label, value, color, total }: { label: string, value: number, color: string, total: number }) {
   const percentage = Math.round((value / total) * 100) || 0;
   return (
     <div className="space-y-2">

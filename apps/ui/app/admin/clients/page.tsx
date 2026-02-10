@@ -9,7 +9,7 @@ import clsx from 'clsx';
 // ✅ Logic Imports Preserved
 import { getClients, createClient, updateClient } from '@/lib/api/clients.api';
 import { useCreateCredential, useCredentials, useUpdateCredential } from '@/hooks/useCredentials';
-import { Client, ClientFormData, ClientPayload, CredentialItem, FormFieldProps } from '../interface/adminInterface';
+import { Client, ClientFormData, ClientPayload, CredentialItem } from '../interface/adminInterface';
 
 /* ================= TYPES ================= */
 type DrawerMode = 'create' | 'edit' | 'manage' | null;
@@ -462,7 +462,8 @@ function CredentialFormView({ clientId, provider, onBack }: { clientId: number; 
 }
 
 /* ───────────────── UI HELPERS ───────────────── */
-function FormField({ label, value, onChange, type = "text", showToggle = false, icon }: FormFieldProps) {
+function FormField({ label, value, onChange, type = "text", showToggle = false, icon }: 
+    { label: string, value: string, onChange: (value: string) => void, type?: string, showToggle?: boolean, icon?: React.ReactNode }) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const inputType = showToggle ? (isPasswordVisible ? 'text' : 'password') : type;
 

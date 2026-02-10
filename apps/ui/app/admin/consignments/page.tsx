@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/axios';
 import { ProviderOption } from '@/lib/api/providers.api';
-import { Consignment, DrawerInfoBoxProps, PaginationBtnProps, SelectFilterProps, StatusBadgeProps, SummaryMiniProps, TableCellProps } from '../interface/adminInterface';
+import { Consignment } from '../interface/adminInterface';
 
 export default function ConsignmentsPage() {
   const queryClient = useQueryClient();
@@ -301,15 +301,15 @@ export default function ConsignmentsPage() {
 }
 
 /* ───────────────── REFACTORED HELPERS ───────────────── */
-function Th({ children, className }: TableCellProps) { 
+function Th({ children, className }: { children: React.ReactNode, className?: string }) { 
   return <th className={clsx("px-4 py-3 text-[11px] font-bold uppercase tracking-wider", className)}>{children}</th>; 
 }
 
-function Td({ children, className }: TableCellProps) { 
+function Td({ children, className }: { children: React.ReactNode, className?: string}) { 
   return <td className={clsx("px-4 py-4 text-xs", className)}>{children}</td>; 
 }
 
-function SummaryMini({ label, value, loading, color }: SummaryMiniProps) {
+function SummaryMini({ label, value, loading, color }: { label: string, value: number | undefined, loading: boolean, color: string}) {
   return (
     <div className="px-4 border-r border-slate-200 last:border-0">
       <p className="text-[10px] font-bold text-slate-400 uppercase">{label}</p>
@@ -318,7 +318,8 @@ function SummaryMini({ label, value, loading, color }: SummaryMiniProps) {
   );
 }
 
-function SelectFilter({ value, onChange, options, labelKey, placeholder }: SelectFilterProps) {
+function SelectFilter({ value, onChange, options, labelKey, placeholder }: 
+    { value: string | number, onChange: (value: string) => void, options: Array<Record<string, string | number>>, labelKey: string, placeholder: string}) {
   return (
     <select 
       value={value} 
@@ -333,7 +334,7 @@ function SelectFilter({ value, onChange, options, labelKey, placeholder }: Selec
   );
 }
 
-function PaginationBtn({ icon: Icon, onClick, disabled }: PaginationBtnProps) {
+function PaginationBtn({ icon: Icon, onClick, disabled }: {icon: React.ComponentType<{ size: number }>, onClick: () => void, disabled: boolean}) {
   return (
     <button 
       onClick={onClick} 
@@ -345,7 +346,7 @@ function PaginationBtn({ icon: Icon, onClick, disabled }: PaginationBtnProps) {
   );
 }
 
-function StatusBadge({ status }: StatusBadgeProps) {
+function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     'Delivered': 'bg-emerald-100 text-emerald-800 border-emerald-200',
     'In Transit': 'bg-blue-100 text-blue-800 border-blue-200',
@@ -357,7 +358,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
   return <span className={clsx("px-2.5 py-0.5 rounded-full border text-[10px] font-bold", styles[status] || styles.default)}>{status || 'Unknown'}</span>;
 }
 
-function DrawerInfoBox({ label, value, icon: Icon }: DrawerInfoBoxProps) {
+function DrawerInfoBox({ label, value, icon: Icon }: { label: string, value: string | undefined, icon: React.ComponentType<{ size: number }> }) {
   return (
     <div className="bg-slate-50 p-4 border border-slate-100 rounded-xl">
       <div className="flex items-center gap-2 text-slate-400 mb-1.5">

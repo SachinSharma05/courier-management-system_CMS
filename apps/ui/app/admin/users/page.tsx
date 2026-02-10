@@ -1,41 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
-  UserPlus, Search, ShieldCheck,
-  Mail, Building2, UserCog, Filter, CheckCircle,
-  Save, X, Power, ChevronRight, ChevronLeft,
-  Phone, User as UserIcon,
-  RefreshCw
+  UserPlus, Search, ShieldCheck, Mail, Building2, UserCog, Filter, CheckCircle,
+  Save, X, Power, ChevronRight, ChevronLeft, Phone, User as UserIcon, RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 import { getUsers, createUser, updateUser } from '@/hooks/useUsers';
-
-/* ================= TYPES (Strictly Defined) ================= */
-
-type UserRole = 'client' | 'super_admin' | 'public';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  password_hash: string;
-  role: UserRole;
-  company_name?: string | null;
-  company_address?: string | null;
-  contact_person?: string | null;
-  phone?: string | null;
-  providers: string[];
-  is_active: boolean;
-  created_at: string;
-}
-
-interface UserFilters {
-  role: UserRole | 'all';
-  status: 'Active' | 'Disabled' | 'all';
-}
-
-type UserFormData = Omit<User, 'id' | 'created_at'>;
+import { SelectFilterProp, User, UserFilters, UserFormData, UserRole } from '../interface/adminInterface';
 
 /* ================= MAIN COMPONENT ================= */
 
@@ -58,13 +30,8 @@ export default function UsersPage() {
   const loadUsers = async (): Promise<void> => {
     setLoading(true);
     try {
-      const response: any = await getUsers();
-      // If response has a .data property, use that, otherwise check if response itself is an array
-      const userArray = response?.data && Array.isArray(response.data) 
-        ? response.data 
-        : Array.isArray(response) ? response : [];
-      
-      setUsers(userArray);
+      const response = await getUsers();
+      setUsers(response.data);
     } catch (error) {
       console.error("Failed to load users:", error);
       setUsers([]);
@@ -330,9 +297,9 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="space-y-4">
             <SectionHeader label="Identity & Permissions" />
-            <Input label="Username" value={form.username} onChange={(e: any) => setForm({...form, username: e.target.value})} placeholder="e.g. admin_pro" />
-            <Input label="Email Address" value={form.email} onChange={(e: any) => setForm({...form, email: e.target.value})} placeholder="email@organization.com" />
-            {!user && <Input label="Secure Password" type="password" value={form.password_hash} onChange={(e: any) => setForm({...form, password_hash: e.target.value})} />}
+            <Input label="Username" value={form.username} onChange={(e) => setForm({...form, username: e.target.value})} placeholder="e.g. admin_pro" />
+            <Input label="Email Address" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="email@organization.com" />
+            {!user && <Input label="Secure Password" type="password" value={form.password_hash} onChange={(e) => setForm({...form, password_hash: e.target.value})} />}
             
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-tighter ml-1">System Privilege</label>
@@ -348,10 +315,10 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
             </div>
 
             <SectionHeader label="Organizational Metadata" />
-            <Input label="Company Name" value={form.company_name ?? ''} onChange={(e: any) => setForm({...form, company_name: e.target.value})} />
+            <Input label="Company Name" value={form.company_name ?? ''} onChange={(e) => setForm({...form, company_name: e.target.value})} />
             <div className="grid grid-cols-2 gap-4">
-                <Input label="Contact Person" value={form.contact_person ?? ''} onChange={(e: any) => setForm({...form, contact_person: e.target.value})} />
-                <Input label="Phone Number" value={form.phone ?? ''} onChange={(e: any) => setForm({...form, phone: e.target.value})} />
+                <Input label="Contact Person" value={form.contact_person ?? ''} onChange={(e) => setForm({...form, contact_person: e.target.value})} />
+                <Input label="Phone Number" value={form.phone ?? ''} onChange={(e) => setForm({...form, phone: e.target.value})} />
             </div>
           </div>
 
@@ -389,15 +356,15 @@ function UserFormDrawer({ user, onClose, onSaved }: { user: User | null; onClose
 
 /* ================= HELPERS (Consistent UI) ================= */
 
-function Th({ children, className }: any) {
+function Th({ children, className }: { children: ReactNode, className?: string }) {
   return <th className={clsx("px-4 py-4 text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em]", className)}>{children}</th>;
 }
 
-function Td({ children, className }: any) {
+function Td({ children, className }: { children: ReactNode, className?: string }) {
   return <td className={clsx("px-4 py-4 text-xs", className)}>{children}</td>;
 }
 
-function Input({ label, ...props }: any) {
+function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-tighter ml-1">{label}</label>
@@ -440,19 +407,23 @@ function StatusBadge({ status }: { status: 'Active' | 'Disabled' }) {
   );
 }
 
-function SelectFilter({ icon, value, onChange, options }: any) {
+function SelectFilter<T extends string | number>({ icon, value, onChange, options }: SelectFilterProp<T>) {
   return (
     <div className="relative border border-slate-200 rounded-xl px-3 py-2 bg-white flex items-center gap-2 hover:border-indigo-400 transition-all cursor-pointer shadow-sm group">
       <span className="text-slate-400 group-hover:text-indigo-500">{icon}</span>
       <span className="text-[10px] font-bold text-slate-700 uppercase">
-        {options.find((o: any) => o.value === value)?.label}
+        {options.find((o) => o.value === value)?.label}
       </span>
       <select 
         className="absolute inset-0 opacity-0 cursor-pointer w-full"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value as T)} // Cast back to our generic type
       >
-        {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => (
+          <option key={String(o.value)} value={o.value}>
+            {o.label}
+          </option>
+        ))}
       </select>
     </div>
   );

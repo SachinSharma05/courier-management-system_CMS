@@ -4,16 +4,19 @@ import { consignments, trackingEvents } from '../db/schema';
 import { logger } from '../utils/logger';
 
 export async function cleanupOldConsignments() {
-  // 1. Fetch IDs using Drizzle Query Builder
-  // We use sql`` for the complex date logic
   const rows = await db
     .select({ id: consignments.id })
     .from(consignments)
     .where(
       and(
         eq(consignments.normalized_status, 'delivered'),
-        sql`COALESCE(${consignments.booked_at}, ${consignments.created_at}) 
-          <= NOW() - INTERVAL '10 days'`
+        sql`(
+          (${consignments.booked_at} IS NOT NULL 
+            AND ${consignments.booked_at} <= NOW() - INTERVAL '10 days')
+          OR
+          (${consignments.booked_at} IS NULL 
+            AND ${consignments.created_at} <= NOW() - INTERVAL '10 days')
+        )`
       )
     )
     .limit(500);
