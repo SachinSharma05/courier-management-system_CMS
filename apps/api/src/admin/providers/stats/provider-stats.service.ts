@@ -96,7 +96,7 @@ function classifyStatus(rawStatus: string) {
 
   // 🚚 In-transit / active
   if (
-    status.includes('in transit') ||
+    status.includes('in_transit') ||
     status.includes('out for delivery') ||
     status.includes('manifest') ||
     status.includes('booked') ||

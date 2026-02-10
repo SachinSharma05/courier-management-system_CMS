@@ -24,7 +24,7 @@ export default function DtdcOverviewPage() {
             <div className="h-1 w-4 bg-blue-600 rounded-full" /> Real-Time Metrics
           </h2>
           <h3 className="text-2xl font-bold text-slate-900 mt-2">DTDC Operational Insight</h3>
-          <p className="text-sm text-slate-500 mt-1">Aggregated performance data across DTDC's regional clusters.</p>
+          <p className="text-sm text-slate-500 mt-1">Aggregated performance data across DTDCs regional clusters.</p>
         </div>
         <div className="text-[11px] font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full border border-blue-100 flex items-center gap-2 shadow-sm uppercase">
           <TrendingUp size={14} /> Network Health: Optimized
@@ -103,7 +103,7 @@ export default function DtdcOverviewPage() {
 
 // ───────────────── SHARED ERP COMPONENTS ─────────────────
 
-function StatNode({ label, value, icon, color }: any) {
+function StatNode({ label, value, icon, color }: { label: string, value: number, icon: React.ReactNode, color: string }) {
   const themes: any = {
     blue: "text-blue-600 bg-blue-50 border-blue-100",
     emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
@@ -128,7 +128,9 @@ function StatNode({ label, value, icon, color }: any) {
   );
 }
 
-function ActionTile({ title, icon, theme, href, desc }: any) {
+type themeType = 'dark' | 'white' | 'danger';
+
+function ActionTile({ title, icon, theme, href, desc }: { title: string, icon: React.ReactNode, theme: themeType, href: string, desc: string }) {
   const styles = {
     dark: "bg-[#0F172A] text-white border-slate-800 hover:bg-slate-800 shadow-blue-100",
     white: "bg-white text-slate-900 border-slate-100 hover:border-blue-200 hover:bg-slate-50 shadow-slate-100",
