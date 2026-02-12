@@ -15,7 +15,7 @@ export default function DtdcOverviewPage() {
   if (isLoading) return <LoadingTerminal />;
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700 font-sans">
       
       {/* EXECUTIVE SUMMARY */}
       <div className="flex items-end justify-between border-b border-slate-100 pb-6">
@@ -42,24 +42,65 @@ export default function DtdcOverviewPage() {
 
       {/* ANALYTICS TERMINAL */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-50 flex items-center gap-3">
-             <Database size={18} className="text-blue-500" />
-             <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Network Lifecycle Distribution</h3>
+        {/* HEADER */}
+        <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <Database size={18} className="text-indigo-500" />
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Network Lifecycle Distribution</h3>
+          </div>
+          <span className="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-1 rounded border border-slate-100">
+            TOTAL: {data.total.toLocaleString()} UNITS
+          </span>
         </div>
+
+        {/* VISUAL CHART BAR */}
+        <div className="px-8 pt-8">
+          <div className="flex h-3 w-full rounded-full bg-slate-100 overflow-hidden shadow-inner">
+            {data.breakdown.map((b: any, i: number) => {
+              // Assign colors based on the group or index
+              const colors = ['bg-emerald-500', 'bg-amber-400', 'bg-rose-500', 'bg-orange-500', 'bg-indigo-500', 'bg-slate-400'];
+              const width = (b.value / data.total) * 100;
+              
+              return width > 0 ? (
+                <div 
+                  key={`bar-${b.label}`}
+                  style={{ width: `${width}%` }}
+                  className={`${colors[i % colors.length]} transition-all duration-500 hover:opacity-80`}
+                  title={`${b.label}: ${b.value}`}
+                />
+              ) : null;
+            })}
+          </div>
+        </div>
+
+        {/* DATA GRID */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 divide-x divide-slate-50">
-          {data.breakdown.map((b: any) => (
-            <div key={b.label} className="p-8 hover:bg-slate-50/50 transition-colors group">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 group-hover:text-blue-600 transition-colors">
-                {b.label.replace('_', ' ')}
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-slate-900 tracking-tighter font-mono">
-                  {b.value}
-                </span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Units</span>
+          {data.breakdown.map((b: any, i: number) => {
+            const colors = ['text-emerald-500', 'text-amber-500', 'text-rose-500', 'text-orange-500', 'text-indigo-500', 'text-slate-400'];
+            
+            return (
+              <div key={b.label} className="p-8 hover:bg-slate-50/50 transition-colors group relative">
+                {/* Decorative Dot matching bar color */}
+                <div className={clsx("absolute top-8 left-6 w-1 h-1 rounded-full", colors[i % colors.length].replace('text-', 'bg-'))} />
+                
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 pl-3 group-hover:text-slate-900 transition-colors">
+                  {b.label.replace('_', ' ')}
+                </p>
+                
+                <div className="flex items-baseline gap-2 pl-3">
+                  <span className="text-3xl font-black text-slate-900 tracking-tighter font-mono">
+                    {b.value.toLocaleString()}
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-slate-300 uppercase">Units</span>
+                    <span className={clsx("text-[9px] font-black font-mono", colors[i % colors.length])}>
+                      {((b.value / data.total) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

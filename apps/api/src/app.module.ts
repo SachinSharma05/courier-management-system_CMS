@@ -25,6 +25,7 @@ import { DelhiveryC2CModule } from './providers/delhivery/delhivery.module';
 import { DtdcModule } from './providers/dtdc/dtdc.module';
 import { ComplaintsModule } from './admin/complaints/complaints.module';
 import { MarutiModule } from './providers/maruti/maruti.module';
+import { ProfileModule } from './admin/profile/profile.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { MarutiModule } from './providers/maruti/maruti.module';
     DtdcModule,
     ComplaintsModule,
     MarutiModule,
+    ProfileModule,
   ],
   providers:[
     {

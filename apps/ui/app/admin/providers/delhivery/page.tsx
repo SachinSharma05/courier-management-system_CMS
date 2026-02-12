@@ -16,7 +16,7 @@ export default function DelhiveryOverviewPage() {
   if (isLoading) return <LoadingTerminal />;
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700 font-sans">
       
       {/* EXECUTIVE SUMMARY */}
       <div className="flex items-end justify-between border-b border-slate-100 pb-6">
@@ -24,7 +24,7 @@ export default function DelhiveryOverviewPage() {
           <h2 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.25em] flex items-center gap-2">
             <div className="h-1 w-4 bg-indigo-600 rounded-full" /> Real-Time Metrics
           </h2>
-          <h3 className="text-2xl font-bold text-slate-900 mt-2">Network Health Overview</h3>
+          <h3 className="text-2xl font-bold text-slate-900 mt-2">Delhivery Operational Insight</h3>
           <p className="text-sm text-slate-500 mt-1">Live shipment lifecycle monitoring for Delhivery network nodes.</p>
         </div>
         <div className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm">
@@ -43,24 +43,71 @@ export default function DelhiveryOverviewPage() {
 
       {/* ANALYTICS TERMINAL */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-50 flex items-center gap-3">
-             <Database size={18} className="text-indigo-500" />
-             <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Shipment Lifecycle Distribution</h3>
+        {/* HEADER - Consistent with Maruti/DTDC */}
+        <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <Database size={18} className="text-indigo-500" />
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Shipment Lifecycle Distribution</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-1 rounded border border-slate-100 shadow-sm">
+              TOTAL: {data.total.toLocaleString()} UNITS
+            </span>
+          </div>
         </div>
+
+        {/* VISUAL CHART BAR - Segmented visualization */}
+        <div className="px-8 pt-8">
+          <div className="flex h-3 w-full rounded-full bg-slate-100 overflow-hidden shadow-inner border border-slate-200/50">
+            {data.breakdown.map((b: any, i: number) => {
+              // High-contrast logistics palette
+              const colors = ['bg-emerald-500', 'bg-indigo-500', 'bg-amber-400', 'bg-orange-500', 'bg-rose-500', 'bg-slate-400'];
+              const width = (b.value / data.total) * 100;
+              
+              return width > 0 ? (
+                <div 
+                  key={`bar-delhivery-${b.label}`}
+                  style={{ width: `${width}%` }}
+                  className={`${colors[i % colors.length]} transition-all duration-700 ease-in-out hover:brightness-110 cursor-help`}
+                  title={`${b.label}: ${b.value} units`}
+                />
+              ) : null;
+            })}
+          </div>
+        </div>
+
+        {/* DATA GRID - Consistent 6-column layout */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 divide-x divide-slate-50">
-          {data.breakdown.map((b: any) => (
-            <div key={b.label} className="p-8 hover:bg-slate-50/50 transition-colors group">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 group-hover:text-indigo-600 transition-colors">
-                {b.label.replace('_', ' ')}
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-slate-900 tracking-tighter font-mono">
-                  {b.value}
-                </span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Units</span>
+          {data.breakdown.map((b: any, i: number) => {
+            const colors = ['text-emerald-500', 'text-indigo-500', 'text-amber-500', 'text-orange-500', 'text-rose-500', 'text-slate-400'];
+            const dotColors = ['bg-emerald-500', 'bg-indigo-500', 'bg-amber-500', 'bg-orange-500', 'bg-rose-500', 'bg-slate-400'];
+            
+            return (
+              <div key={b.label} className="p-8 hover:bg-slate-50/40 transition-all group relative overflow-hidden">
+                {/* Decorative Indicator Bar */}
+                <div className={clsx("absolute top-0 left-0 w-full h-0.5 opacity-0 group-hover:opacity-100 transition-opacity", dotColors[i % dotColors.length])} />
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <div className={clsx("w-1.5 h-1.5 rounded-full", dotColors[i % dotColors.length])} />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors">
+                    {b.label.replace('_', ' ')}
+                  </p>
+                </div>
+                
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-slate-900 tracking-tighter font-mono">
+                    {b.value.toLocaleString()}
+                  </span>
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[8px] font-bold text-slate-300 uppercase mb-0.5">Units</span>
+                    <span className={clsx("text-[10px] font-black font-mono", colors[i % colors.length])}>
+                      {((b.value / data.total) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

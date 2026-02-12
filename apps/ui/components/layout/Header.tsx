@@ -47,15 +47,9 @@ export function Header() {
             placeholder="Search AWB..." 
             value={awbSearch}
             onChange={(e) => setAwbSearch(e.target.value)}
-            className="bg-[#f4f4f5] border-transparent rounded-md px-9 py-1.5 text-xs w-60 focus:bg-white focus:border-slate-300 focus:ring-0 transition-colors placeholder:text-slate-500"
+            className="bg-[#f4f4f5] border-transparent rounded-md px-9 py-1.5 text-xs w-100 focus:bg-white focus:border-slate-300 focus:ring-0 transition-colors placeholder:text-slate-500"
           />
         </form>
-
-        {/* NOTIFICATIONS */}
-        <button className="text-slate-400 hover:text-slate-900 transition-colors relative">
-          <Bell size={18} />
-          <span className="absolute -top-1 -right-1 h-2 w-2 bg-indigo-500 rounded-full border-2 border-white" />
-        </button>
 
         <div className="h-6 w-[1px] bg-slate-200" />
 

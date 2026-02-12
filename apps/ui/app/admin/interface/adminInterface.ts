@@ -479,3 +479,19 @@ export interface PincodeInfo {
   city?: string;
   inc: string;
 }
+
+export interface ProfileResponseDto {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  phone?: string;
+  password?: string;
+}

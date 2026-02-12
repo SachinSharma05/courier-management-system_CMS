@@ -8,16 +8,8 @@ export async function cleanupOldConsignments() {
     .select({ id: consignments.id })
     .from(consignments)
     .where(
-      and(
-        eq(consignments.normalized_status, 'delivered'),
-        sql`(
-          (${consignments.booked_at} IS NOT NULL 
-            AND ${consignments.booked_at} <= NOW() - INTERVAL '10 days')
-          OR
-          (${consignments.booked_at} IS NULL 
-            AND ${consignments.created_at} <= NOW() - INTERVAL '10 days')
-        )`
-      )
+      sql`COALESCE(${consignments.booked_at}, ${consignments.created_at}) 
+          <= NOW() - INTERVAL '20 days'`
     )
     .limit(500);
 
@@ -29,9 +21,6 @@ export async function cleanupOldConsignments() {
   const ids = rows.map((r) => r.id);
 
   // 2. Perform deletions
-  // Since Neon HTTP doesn't support traditional transactions via .transaction(),
-  // we execute them sequentially. Ensure you delete events first (foreign key).
-  
   await db
     .delete(trackingEvents)
     .where(inArray(trackingEvents.consignment_id, ids));

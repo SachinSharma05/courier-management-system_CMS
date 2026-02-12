@@ -1,4 +1,4 @@
-import { ApiResponse, CreateUserDto, UpdateUserDto, UserOption } from "@/app/admin/interface/adminInterface";
+import { ApiResponse, CreateUserDto, UpdateProfileDto, UpdateUserDto, UserOption } from "@/app/admin/interface/adminInterface";
 import { api } from "@/lib/api/axios";
 
 /* =======================
@@ -24,5 +24,17 @@ export async function updateUser(
 
 export async function disableUser(userId: number) {
   const res = await api.delete(`/admin/users/${userId}`);
+  return res.data;
+}
+
+export async function getProfile() {
+  const res = await api.get('/admin/profile');
+  return res.data;
+}
+
+export async function updateProfile(
+  payload: Partial<UpdateProfileDto>,
+) {
+  const res = await api.patch('/admin/profile', payload);
   return res.data;
 }
