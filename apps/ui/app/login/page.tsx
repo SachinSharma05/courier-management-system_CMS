@@ -140,8 +140,8 @@ export default function LoginPage() {
 }
 
 /* ───────────────── COMPONENTS ───────────────── */
-
-function LoginButton({ label, onClick, isLoading, variant }: any) {
+type ButtonVariant = 'primary' | 'secondary';
+function LoginButton({ label, onClick, isLoading = false, variant }: { label: string, onClick: () => void, isLoading?: boolean, variant?: ButtonVariant }) {
   return (
     <button 
       onClick={onClick}

@@ -31,32 +31,31 @@ export class ProfileService {
   }
 
   async updateProfile(userId: number, dto: UpdateProfileDto) {
-  const updateData: Partial<typeof users.$inferInsert> = {};
+    const updateData: Partial<typeof users.$inferInsert> = {};
 
-  if (dto.name !== undefined) {
-    updateData.username = dto.name;
+    if (dto.name !== undefined) {
+        updateData.username = dto.name;
+    }
+
+    if (dto.phone !== undefined) {
+        updateData.phone = dto.phone;
+    }
+
+    if (dto.password !== undefined && dto.password.trim().length > 0) {
+        const hashed = await encrypt(dto.password);
+        updateData.password_hash = hashed;
+    }
+
+    // 🚨 CRITICAL GUARD
+    if (Object.keys(updateData).length === 0) {
+        throw new BadRequestException('No fields provided for update');
+    }
+
+    await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId));
+
+    return this.getProfile(userId);
   }
-
-  if (dto.phone !== undefined) {
-    updateData.phone = dto.phone;
-  }
-
-  if (dto.password !== undefined && dto.password.trim().length > 0) {
-    const hashed = await encrypt(dto.password);
-    updateData.password_hash = hashed;
-  }
-
-  // 🚨 CRITICAL GUARD
-  if (Object.keys(updateData).length === 0) {
-    throw new BadRequestException('No fields provided for update');
-  }
-
-  await db
-    .update(users)
-    .set(updateData)
-    .where(eq(users.id, userId));
-
-  return this.getProfile(userId);
-}
-
 }
