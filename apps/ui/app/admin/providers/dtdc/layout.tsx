@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Shield, ChevronRight, Activity, Globe, Terminal, Zap } from 'lucide-react';
+import { Shield, ChevronRight, Activity, Zap } from 'lucide-react';
 
 export default function DtdcLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

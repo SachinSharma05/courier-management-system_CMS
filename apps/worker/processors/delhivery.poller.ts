@@ -5,13 +5,15 @@ import { eq, sql } from 'drizzle-orm';
 import { trackingQueue } from '../queues/tracking.queue';
 
 export async function pollDelhivery(_: Job) {
+  console.log('[POLL] Fetching Delhivery consignments needing tracking');
+  
   const rows = await db
     .select({ awb: consignments.awb })
     .from(consignments)
     .where(sql`
       provider = 'DELHIVERY'
       AND (
-        last_status_at IS NULL
+        normalized_status IS NULL
         OR last_status_at < NOW() - INTERVAL '6 hours'
       )
       AND tracking_locked_at IS NULL

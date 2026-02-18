@@ -107,7 +107,7 @@ export default function EmployeesPage() {
       </header>
 
       {/* ───────────────── SUB-NAV & STATS ───────────────── */}
-      <div className="border-b border-slate-200 px-6 py-3 flex items-center justify-between bg-white/80 backdrop-blur-md">
+      <div className="mb-4 flex items-center justify-between rounded-2xl border border-slate-300 bg-white p-3 shadow-sm">
         <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-fit">
           <TabBtn active={activeTab === 'directory'} onClick={() => setActiveTab('directory')} label="Directory" icon={<Briefcase size={12}/>} />
           <TabBtn active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} label="Attendance" icon={<Clock size={12}/>} />
@@ -124,7 +124,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* ───────────────── DATA GRID ───────────────── */}
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto">
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
           <table className="w-full border-collapse">
             <thead>

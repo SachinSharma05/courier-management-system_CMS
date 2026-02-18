@@ -30,8 +30,8 @@ export class MarutiService {
   private getClient() {
     return new MarutiClient({
       env: process.env.MARUTI_ENV as 'PROD' | 'QA',
-      username: process.env.MARUTI_USERNAME!,
-      password: process.env.MARUTI_PASSWORD!,
+      username: process.env.MARUTI_USERNAME ?? 'shubhbhakti@gmail.com',
+      password: process.env.MARUTI_PASSWORD ?? 'Ican@123',
       accessToken: this.accessToken ?? undefined,
       expiresAt: this.expiresAt ?? undefined,
     });

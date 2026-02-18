@@ -37,14 +37,14 @@ const NAV_SECTIONS = [
       { label: 'Roles_Permission', href: '/admin/roles', icon: Shield },
     ],
   },
-  {
-    title: 'System_Kernel',
-    items: [
-      { label: 'DLQ_Failures', href: '/admin/dlq', icon: AlertTriangle },
-      { label: 'Audit_Registry', href: '/admin/audit', icon: ClipboardList },
-      { label: 'Environment', href: '/admin/system', icon: Settings },
-    ],
-  },
+  // {
+  //   title: 'System_Kernel',
+  //   items: [
+  //     { label: 'DLQ_Failures', href: '/admin/dlq', icon: AlertTriangle },
+  //     { label: 'Audit_Registry', href: '/admin/audit', icon: ClipboardList },
+  //     { label: 'Environment', href: '/admin/system', icon: Settings },
+  //   ],
+  // },
 ];
 
 const PROVIDER_CONFIG: Provider[] = [

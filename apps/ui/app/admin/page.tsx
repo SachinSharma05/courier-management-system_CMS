@@ -74,7 +74,7 @@ export default function AdminDashboard() {
   if (!data) return <LoadingScreen />;
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-900">
+    <div className="p-2 space-y-2 bg-[#F8FAFC] min-h-screen text-slate-900">
       
       {/* ───────────────── HEADER: CLEAN & FLAT ───────────────── */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between bg-white p-5 border border-slate-200 rounded-lg">

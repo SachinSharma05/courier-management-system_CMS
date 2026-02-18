@@ -47,9 +47,9 @@ async function bootstrap() {
     async job => {
       switch (job.name) {
         case 'DTDC_POLL_NO_DATA':        return pollNoDataFoundAwbs();
-        case 'DELHIVERY_POLL':           return pollDelhivery(job);
+        case 'DELHIVERY_POLL_NO_DATA':   return pollDelhivery(job);
         case 'DELHIVERY_BULK_TRACK':     return processDelhiveryBulk(job);
-        case 'DTDC_AUTH_SINGLE':          return processDtdcAuthSingle(job);
+        case 'DTDC_AUTH_SINGLE':         return processDtdcAuthSingle(job);
         case 'DTDC_PUBLIC_BATCH':        return processDtdcPublicBatch(job);
         case 'DELETE_OLD_CONSIGNMENTS':  return cleanupOldConsignments();
         default:
