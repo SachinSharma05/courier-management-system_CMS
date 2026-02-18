@@ -43,5 +43,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image).*)'],
+  // Explicitly target your routes to avoid interfering with asset loading
+  matcher: ['/', '/login', '/admin/:path*'],
 };

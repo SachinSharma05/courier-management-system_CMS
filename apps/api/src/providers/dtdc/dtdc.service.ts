@@ -1,8 +1,7 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { sql, desc, eq, asc } from 'drizzle-orm';
-import { commodities, consignments, users } from '../../db/schema';
+import { Injectable } from '@nestjs/common';
+import { asc } from 'drizzle-orm';
+import { commodities } from '../../db/schema';
 import { db } from '../../db';
-import { computeMovement, computeTAT } from '../../admin/consignments/tat.engine';
 import { DtdcClient } from './dtdc.client';
 import { DtdcServiceabilityDto } from './dto/serviceability.dto';
 import { DtdcPriceTatPayload } from './dto/DtdcPriceTatDto';

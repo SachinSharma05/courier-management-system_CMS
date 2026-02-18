@@ -11,14 +11,23 @@ import { db } from '../../db';
 export class DelhiveryService {
   private client: DelhiveryClient;
   constructor() {
-    this.client = new DelhiveryClient(process.env.DELHIVERY_TOKEN!);
+    this.client = new DelhiveryClient('fdf1ec596cae5feec6685c57a7285f7637b771f5');
   }
 
   getPincodeTat(pin: string) {
-    return this.client.get(
+    try{
+      return this.client.get(
       '/c/api/pin-codes/json/',
       { filter_codes: pin },
     );
+    }
+    catch (err: any) {
+      console.error("DELHIVERY ERROR STATUS:", err.response?.status);
+      console.error("DELHIVERY ERROR DATA:", err.response?.data);
+      console.error("DELHIVERY ERROR MESSAGE:", err.message);
+
+      throw err; // temporarily rethrow raw error
+    } 
   }
 
   // CORRECT: Pass the clean data object
